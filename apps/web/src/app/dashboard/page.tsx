@@ -1,14 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
+
+const cardClassName =
+  "flex flex-col rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/80 transition-shadow hover:shadow-md";
 
 const cards = [
   {
     icon: "🧬",
     title: "Perfil de salud",
     subtitle: "Cargá tus datos clínicos",
+    href: "/perfil" as const,
   },
   {
     icon: "🥗",
@@ -59,20 +64,37 @@ export default function DashboardPage() {
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((card) => (
-            <article
-              key={card.title}
-              className="flex flex-col rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/80 transition-shadow hover:shadow-md"
-            >
-              <span className="text-4xl" aria-hidden>
-                {card.icon}
-              </span>
-              <h2 className="mt-4 text-lg font-semibold text-gray-900">
-                {card.title}
-              </h2>
-              <p className="mt-1 text-sm text-gray-600">{card.subtitle}</p>
-            </article>
-          ))}
+          {cards.map((card) => {
+            const inner = (
+              <>
+                <span className="text-4xl" aria-hidden>
+                  {card.icon}
+                </span>
+                <h2 className="mt-4 text-lg font-semibold text-gray-900">
+                  {card.title}
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">{card.subtitle}</p>
+              </>
+            );
+
+            if ("href" in card && card.href) {
+              return (
+                <Link
+                  key={card.title}
+                  href={card.href}
+                  className={`${cardClassName} text-left outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2`}
+                >
+                  {inner}
+                </Link>
+              );
+            }
+
+            return (
+              <article key={card.title} className={cardClassName}>
+                {inner}
+              </article>
+            );
+          })}
         </div>
       </main>
     </div>
