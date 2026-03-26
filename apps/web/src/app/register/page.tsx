@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -55,6 +56,26 @@ export default function RegisterPage() {
     setConfirmPassword("");
   }
 
+  async function handleGoogleOAuth() {
+    setError(null);
+    setOauthLoading(true);
+    try {
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/dashboard`;
+
+      const { error: signInOAuthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+
+      if (signInOAuthError) {
+        setError(signInOAuthError.message);
+      }
+    } finally {
+      setOauthLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-50 to-white">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-6 py-12">
@@ -89,12 +110,67 @@ export default function RegisterPage() {
               </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               {error ? (
                 <p className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm text-red-600">
                   {error}
                 </p>
               ) : null}
+
+              <button
+                type="button"
+                onClick={handleGoogleOAuth}
+                disabled={oauthLoading || loading}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-300 bg-white px-6 py-4 text-base font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  width="20"
+                  height="20"
+                  aria-hidden="true"
+                  className="h-5 w-5"
+                >
+                  <path
+                    d="M10 1.8 A8.2 8.2 0 0 1 17.9 10"
+                    fill="none"
+                    stroke="#4285F4"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M17.9 10 A8.2 8.2 0 0 1 10 18.2"
+                    fill="none"
+                    stroke="#34A853"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M10 18.2 A8.2 8.2 0 0 1 2.1 10"
+                    fill="none"
+                    stroke="#EA4335"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M2.1 10 A8.2 8.2 0 0 1 10 1.8"
+                    fill="none"
+                    stroke="#FBBC05"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="10" cy="10" r="5.3" fill="white" />
+                </svg>
+
+                {oauthLoading ? "Redirigiendo…" : "Continuar con Google"}
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span className="text-sm font-medium text-gray-400">o</span>
+                <div className="h-px flex-1 bg-gray-200" />
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
 
               <div className="space-y-1.5 text-left">
                 <label
@@ -183,7 +259,8 @@ export default function RegisterPage() {
               >
                 {loading ? "Creando cuenta…" : "Crear cuenta"}
               </button>
-            </form>
+              </form>
+            </div>
           )}
         </div>
 
