@@ -25,7 +25,7 @@ const cards = [
     icon: "📈",
     title: "Mi evolución",
     subtitle: "Ver historial y gráficos",
-    href: "/historial" as const,
+    href: "/evolucion" as const,
   },
 ] as const;
 
