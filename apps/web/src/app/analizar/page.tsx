@@ -54,6 +54,19 @@ export default function AnalizarPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Error en el análisis");
       setAnalysis(data.analysis);
+
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const scoreMatch = data.analysis.match(/(\d+)\/10/);
+        const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+        await supabase.from("analysis_history").insert({
+          user_id: session.user.id,
+          food_description: foodDescription,
+          analysis_result: data.analysis,
+          score,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -72,7 +85,8 @@ export default function AnalizarPage() {
       return <p key={i} className="text-gray-700 mb-1">{line}</p>;
     });
   };
-return (
+
+  return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-green-900 text-white px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold">Analizar alimento</h1>
