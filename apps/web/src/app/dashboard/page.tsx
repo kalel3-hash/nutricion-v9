@@ -19,11 +19,13 @@ const cards = [
     icon: "🥗",
     title: "Analizar alimento",
     subtitle: "Fotografiá o describí un alimento",
+    href: "/analizar" as const,
   },
   {
     icon: "📈",
     title: "Mi evolución",
     subtitle: "Ver historial y gráficos",
+    href: "/historial" as const,
   },
 ] as const;
 
@@ -77,22 +79,14 @@ export default function DashboardPage() {
               </>
             );
 
-            if ("href" in card && card.href) {
-              return (
-                <Link
-                  key={card.title}
-                  href={card.href}
-                  className={`${cardClassName} text-left outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2`}
-                >
-                  {inner}
-                </Link>
-              );
-            }
-
             return (
-              <article key={card.title} className={cardClassName}>
+              <Link
+                key={card.title}
+                href={card.href}
+                className={`${cardClassName} text-left outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2`}
+              >
                 {inner}
-              </article>
+              </Link>
             );
           })}
         </div>
