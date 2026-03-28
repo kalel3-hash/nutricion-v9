@@ -7,7 +7,24 @@ type HealthProfile = Record<string, unknown>;
 
 function buildPrompt(healthProfile: HealthProfile, foodDescription: string) {
   const profileJson = JSON.stringify(healthProfile, null, 2);
-  return `Sos un asistente de analisis nutricional. Perfil del usuario: ${profileJson}. Alimento: ${foodDescription}. Responde con estos 4 bloques: BLOQUE 1 - PUNTAJE: numero 1-10 con etiqueta (PROHIBIDO/DESACONSEJADO/NEUTRO/RECOMENDABLE/ALTAMENTE RECOMENDABLE) y resumen 2-3 lineas. BLOQUE 2 - ANALISIS PERSONALIZADO: vincula el alimento con los marcadores clinicos. BLOQUE 3 - SUGERENCIAS DE MEJORA: porciones y modificaciones. BLOQUE 4 - FUENTES: minimo 2 referencias cientificas. Termina con: Este analisis es orientativo y no reemplaza la consulta con un profesional de la salud.`;
+  return `Sos un asistente de analisis nutricional. Perfil del usuario: ${profileJson}. Alimento: ${foodDescription}.
+
+Responde EXACTAMENTE con estos 4 bloques. En el BLOQUE 1 el puntaje SIEMPRE debe estar en el formato EXACTO "X/10" donde X es un numero del 1 al 10:
+
+BLOQUE 1 - PUNTAJE:
+[numero]/10 - [etiqueta: PROHIBIDO/DESACONSEJADO/NEUTRO/RECOMENDABLE/ALTAMENTE RECOMENDABLE]
+[resumen de 2-3 lineas]
+
+BLOQUE 2 - ANALISIS PERSONALIZADO:
+[analisis vinculando el alimento con los marcadores clinicos del usuario]
+
+BLOQUE 3 - SUGERENCIAS DE MEJORA:
+[porciones recomendadas y modificaciones posibles]
+
+BLOQUE 4 - FUENTES:
+[minimo 2 referencias cientificas]
+
+Este analisis es orientativo y no reemplaza la consulta con un profesional de la salud.`;
 }
 
 export async function POST(request: Request) {
@@ -30,6 +47,7 @@ export async function POST(request: Request) {
     const data = await new Promise<Record<string, unknown>>((resolve, reject) => {
       const payload = JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0 },
       });
 
       const agent = new https.Agent({ rejectUnauthorized: false });

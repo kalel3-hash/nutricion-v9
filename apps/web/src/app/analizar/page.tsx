@@ -74,16 +74,107 @@ export default function AnalizarPage() {
     }
   };
 
+  const getScoreStyle = (score: number) => {
+    if (score <= 3) return {
+      bg: "bg-red-500",
+      label: score <= 2 ? "PROHIBIDO" : "DESACONSEJADO",
+      textColor: "text-white",
+    };
+    if (score <= 7) return {
+      bg: score <= 4 ? "bg-yellow-400" : score <= 6 ? "bg-yellow-400" : "bg-yellow-400",
+      label: score <= 4 ? "DESACONSEJADO" : score <= 6 ? "NEUTRO" : "RECOMENDABLE",
+      textColor: "text-yellow-900",
+    };
+    return {
+      bg: "bg-green-500",
+      label: score <= 8 ? "RECOMENDABLE" : "ALTAMENTE RECOMENDABLE",
+      textColor: "text-white",
+    };
+  };
+
   const formatAnalysis = (text: string) => {
-    return text.split("\n").map((line, i) => {
-      if (line.startsWith("BLOQUE")) {
-        return <p key={i} className="text-green-900 font-bold mt-4 mb-1">{line}</p>;
+    const blocks = [
+      { key: "BLOQUE 1", title: "🎯 Puntaje", bg: "bg-blue-50", border: "border-blue-200", titleColor: "text-blue-800" },
+      { key: "BLOQUE 2", title: "🔬 Análisis personalizado", bg: "bg-purple-50", border: "border-purple-200", titleColor: "text-purple-800" },
+      { key: "BLOQUE 3", title: "💡 Sugerencias de mejora", bg: "bg-amber-50", border: "border-amber-200", titleColor: "text-amber-800" },
+      { key: "BLOQUE 4", title: "📚 Fuentes", bg: "bg-gray-50", border: "border-gray-200", titleColor: "text-gray-700" },
+    ];
+
+    const lines = text.split("\n");
+    const sections: { blockIndex: number; lines: string[] }[] = [];
+    let currentBlock = -1;
+
+    lines.forEach((line) => {
+      const blockMatch = blocks.findIndex((b) => line.includes(b.key));
+      if (blockMatch >= 0) {
+        currentBlock = blockMatch;
+        sections.push({ blockIndex: blockMatch, lines: [] });
+      } else if (currentBlock >= 0 && sections.length > 0) {
+        sections[sections.length - 1].lines.push(line);
       }
-      if (line.includes("⚠️")) {
-        return <p key={i} className="text-orange-600 mt-4 p-2 bg-orange-50 rounded">{line}</p>;
-      }
-      return <p key={i} className="text-gray-700 mb-1">{line}</p>;
     });
+
+    if (sections.length === 0) {
+      return <div className="text-gray-700 text-sm whitespace-pre-wrap">{text}</div>;
+    }
+
+    return (
+      <div className="flex flex-col gap-4">
+        {sections.map((section, i) => {
+          const block = blocks[section.blockIndex];
+          const content = section.lines.join("\n").trim();
+          const isScoreBlock = section.blockIndex === 0;
+
+          if (isScoreBlock) {
+            const scoreMatch = content.match(/\*{0,2}(\d+)\*{0,2}\s*\/\s*10/);
+            const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+            const style = score ? getScoreStyle(score) : null;
+            const summaryLines = content
+              .split("\n")
+              .filter(l => !l.match(/\d+\/10/) && l.trim())
+              .map(l => l.replace(/\*\*/g, ""));
+
+            return (
+              <div key={i} className={`rounded-xl border ${block.border} ${block.bg} p-4`}>
+                <h3 className={`font-bold text-base mb-3 ${block.titleColor}`}>{block.title}</h3>
+                {score && style && (
+                  <div className={`${style.bg} rounded-xl p-4 flex items-center gap-5 mb-3`}>
+                    <div className={`${style.textColor} text-center min-w-16`}>
+                      <div className="text-6xl font-black leading-none">{score}</div>
+                      <div className="text-sm font-medium opacity-80">/ 10</div>
+                    </div>
+                    <div className={`${style.textColor}`}>
+                      <div className="text-2xl font-bold">{style.label}</div>
+                    </div>
+                  </div>
+                )}
+                <div className="text-gray-700 text-sm leading-relaxed space-y-1">
+                  {summaryLines.map((line, j) => (
+                    <p key={j}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={i} className={`rounded-xl border ${block.border} ${block.bg} p-4`}>
+              <h3 className={`font-bold text-base mb-2 ${block.titleColor}`}>{block.title}</h3>
+              <div className="text-gray-700 text-sm leading-relaxed space-y-1">
+                {content.split("\n").map((line, j) => {
+                  const clean = line.replace(/\*\*/g, "");
+                  return line.includes("⚠️") ? (
+                    <p key={j} className="text-orange-600 font-medium mt-2">{clean}</p>
+                  ) : (
+                    <p key={j}>{clean}</p>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
