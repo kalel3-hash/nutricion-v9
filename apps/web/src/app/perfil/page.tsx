@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 
 const MAIN_GOALS = [
@@ -75,6 +75,9 @@ export default function PerfilSaludPage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMessage, setOcrMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -112,6 +115,47 @@ export default function PerfilSaludPage() {
     };
     loadProfile();
   }, []);
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setOcrLoading(true);
+    setOcrMessage(null);
+
+    const formData = new FormData();
+    formData.append("pdf", file);
+
+    try {
+      const response = await fetch("/api/ocr-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || "Error procesando el PDF");
+
+      const v = data.values;
+      if (v.total_cholesterol_mg_dl !== null) setTotalChol(v.total_cholesterol_mg_dl.toString());
+      if (v.hdl_mg_dl !== null) setHdl(v.hdl_mg_dl.toString());
+      if (v.ldl_mg_dl !== null) setLdl(v.ldl_mg_dl.toString());
+      if (v.triglycerides_mg_dl !== null) setTriglycerides(v.triglycerides_mg_dl.toString());
+      if (v.fasting_glucose_mg_dl !== null) setFastingGlucose(v.fasting_glucose_mg_dl.toString());
+      if (v.hba1c_percent !== null) setHba1c(v.hba1c_percent.toString());
+      if (v.creatinine_mg_dl !== null) setCreatinine(v.creatinine_mg_dl.toString());
+      if (v.urea_mg_dl !== null) setUrea(v.urea_mg_dl.toString());
+      if (v.tsh_miu_l !== null) setTsh(v.tsh_miu_l.toString());
+
+      const extracted = Object.values(v).filter(val => val !== null).length;
+      setOcrMessage(`✓ Se extrajeron ${extracted} valores del PDF. Revisalos y guardá el perfil.`);
+    } catch (err) {
+      setOcrMessage(`Error: ${err instanceof Error ? err.message : "Error desconocido"}`);
+    } finally {
+      setOcrLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -178,6 +222,41 @@ export default function PerfilSaludPage() {
       </header>
 
       <main className="mx-auto w-full max-w-[600px] px-4 py-8 sm:px-6">
+
+        <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/80">
+          <h2 className="text-base font-semibold text-green-900 mb-2">📄 Cargar estudio clínico PDF</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Subí el PDF de tu análisis de sangre y la IA va a extraer los valores automáticamente.
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handlePdfUpload}
+            className="hidden"
+            id="pdf-upload"
+          />
+          <label
+            htmlFor="pdf-upload"
+            className={`flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-4 cursor-pointer transition-colors ${
+              ocrLoading
+                ? "border-gray-200 bg-gray-50 text-gray-400"
+                : "border-green-300 hover:border-green-500 hover:bg-green-50 text-green-700"
+            }`}
+          >
+            {ocrLoading ? "⏳ Procesando PDF..." : "📎 Seleccionar PDF del laboratorio"}
+          </label>
+          {ocrMessage && (
+            <p className={`mt-3 text-sm rounded-lg px-3 py-2 ${
+              ocrMessage.startsWith("Error")
+                ? "bg-red-50 text-red-600"
+                : "bg-green-50 text-green-700"
+            }`}>
+              {ocrMessage}
+            </p>
+          )}
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/80 sm:p-8">
           {success && (
             <p className="rounded-xl bg-green-50 px-4 py-3 text-center text-sm font-medium text-green-800">
