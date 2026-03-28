@@ -119,23 +119,14 @@ export default function PerfilSaludPage() {
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setOcrLoading(true);
     setOcrMessage(null);
-
     const formData = new FormData();
     formData.append("pdf", file);
-
     try {
-      const response = await fetch("/api/ocr-pdf", {
-        method: "POST",
-        body: formData,
-      });
-
+      const response = await fetch("/api/ocr-pdf", { method: "POST", body: formData });
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.error || "Error procesando el PDF");
-
       const v = data.values;
       if (v.total_cholesterol_mg_dl !== null) setTotalChol(v.total_cholesterol_mg_dl.toString());
       if (v.hdl_mg_dl !== null) setHdl(v.hdl_mg_dl.toString());
@@ -146,7 +137,6 @@ export default function PerfilSaludPage() {
       if (v.creatinine_mg_dl !== null) setCreatinine(v.creatinine_mg_dl.toString());
       if (v.urea_mg_dl !== null) setUrea(v.urea_mg_dl.toString());
       if (v.tsh_miu_l !== null) setTsh(v.tsh_miu_l.toString());
-
       const extracted = Object.values(v).filter(val => val !== null).length;
       setOcrMessage(`✓ Se extrajeron ${extracted} valores del PDF. Revisalos y guardá el perfil.`);
     } catch (err) {
@@ -164,10 +154,11 @@ export default function PerfilSaludPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (userError) { setLoading(false); setError(userError.message); return; }
-    if (!user) { setLoading(false); setError("No hay sesión activa. Iniciá sesión nuevamente."); return; }
+    if (sessionError) { setLoading(false); setError(sessionError.message); return; }
+    if (!session) { setLoading(false); setError("No hay sesión activa. Iniciá sesión nuevamente."); return; }
+    const user = session.user;
 
     const row: HealthProfileRow = {
       user_id: user.id,
@@ -222,36 +213,17 @@ export default function PerfilSaludPage() {
       </header>
 
       <main className="mx-auto w-full max-w-[600px] px-4 py-8 sm:px-6">
-
         <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/80">
           <h2 className="text-base font-semibold text-green-900 mb-2">📄 Cargar estudio clínico PDF</h2>
           <p className="text-sm text-gray-500 mb-4">
             Subí el PDF de tu análisis de sangre y la IA va a extraer los valores automáticamente.
           </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handlePdfUpload}
-            className="hidden"
-            id="pdf-upload"
-          />
-          <label
-            htmlFor="pdf-upload"
-            className={`flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-4 cursor-pointer transition-colors ${
-              ocrLoading
-                ? "border-gray-200 bg-gray-50 text-gray-400"
-                : "border-green-300 hover:border-green-500 hover:bg-green-50 text-green-700"
-            }`}
-          >
+          <input ref={fileInputRef} type="file" accept=".pdf" onChange={handlePdfUpload} className="hidden" id="pdf-upload" />
+          <label htmlFor="pdf-upload" className={`flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-4 cursor-pointer transition-colors ${ocrLoading ? "border-gray-200 bg-gray-50 text-gray-400" : "border-green-300 hover:border-green-500 hover:bg-green-50 text-green-700"}`}>
             {ocrLoading ? "⏳ Procesando PDF..." : "📎 Seleccionar PDF del laboratorio"}
           </label>
           {ocrMessage && (
-            <p className={`mt-3 text-sm rounded-lg px-3 py-2 ${
-              ocrMessage.startsWith("Error")
-                ? "bg-red-50 text-red-600"
-                : "bg-green-50 text-green-700"
-            }`}>
+            <p className={`mt-3 text-sm rounded-lg px-3 py-2 ${ocrMessage.startsWith("Error") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
               {ocrMessage}
             </p>
           )}
@@ -270,9 +242,7 @@ export default function PerfilSaludPage() {
           )}
 
           <section className="space-y-4">
-            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">
-              SECCIÓN 1 — Datos personales
-            </h2>
+            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">SECCIÓN 1 — Datos personales</h2>
             <div className="space-y-1.5">
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-800">Nombre completo</label>
               <input id="fullName" type="text" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
@@ -301,9 +271,7 @@ export default function PerfilSaludPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">
-              SECCIÓN 2 — Marcadores clínicos
-            </h2>
+            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">SECCIÓN 2 — Marcadores clínicos</h2>
             {(
               [
                 ["totalChol", "Colesterol total mg/dL", totalChol, setTotalChol],
@@ -325,9 +293,7 @@ export default function PerfilSaludPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">
-              SECCIÓN 3 — Condiciones y objetivos
-            </h2>
+            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">SECCIÓN 3 — Condiciones y objetivos</h2>
             <div className="space-y-1.5">
               <label htmlFor="conditions" className="block text-sm font-medium text-gray-800">Condiciones diagnosticadas</label>
               <textarea id="conditions" rows={3} value={conditionsText} onChange={(e) => setConditionsText(e.target.value)} placeholder="Ej: Diabetes tipo 2, Hipotiroidismo" className="w-full resize-y rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
