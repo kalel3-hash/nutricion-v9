@@ -14,23 +14,28 @@ export default function AnalizarPage() {
   useEffect(() => {
     const loadData = async () => {
       const supabase = createClient();
-      let session = null;
-      const { data: sessionData } = await supabase.auth.getSession();
-      session = sessionData.session;
+      setError(""); // Limpiamos errores previos al intentar cargar
+      
+      // PATRÓN ROBUSTO: Intentamos obtener sesión y refrescar si es necesario
+      let { data: { session } } = await supabase.auth.getSession();
+      
       if (!session) {
         const { data: refreshData } = await supabase.auth.refreshSession();
         session = refreshData.session;
       }
+
       if (!session) {
         setError("Necesitás iniciar sesión para usar esta función.");
         setLoadingProfile(false);
         return;
       }
+
       const { data } = await supabase
         .from("health_profiles")
         .select("*")
         .eq("user_id", session.user.id)
         .single();
+      
       setProfile(data);
       setLoadingProfile(false);
     };
@@ -42,7 +47,21 @@ export default function AnalizarPage() {
     setLoading(true);
     setAnalysis("");
     setError("");
+
     try {
+      const supabase = createClient();
+      
+      // Verificamos sesión antes de empezar el análisis para asegurar el guardado posterior
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+
+      if (!session) {
+        throw new Error("La sesión expiró. Por favor, volvé a iniciar sesión.");
+      }
+
       const response = await fetch("/api/analizar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,7 +71,7 @@ export default function AnalizarPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Error en el servidor");
+      if (!response.ok) throw new Error("Error en el servidor de análisis");
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -66,18 +85,19 @@ export default function AnalizarPage() {
         setAnalysis(accumulatedText);
       }
 
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const scoreMatch = accumulatedText.match(/\*{0,2}(\d+)\*{0,2}\s*\/\s*10/);
-        const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
-        await supabase.from("analysis_history").insert({
-          user_id: session.user.id,
-          food_description: foodDescription,
-          analysis_result: accumulatedText,
-          score,
-        });
-      }
+      // Guardado en historial usando la sesión validada arriba
+      const scoreMatch = accumulatedText.match(/\*{0,2}(\d+)\*{0,2}\s*\/\s*10/);
+      const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+      
+      const { error: insertError } = await supabase.from("analysis_history").insert({
+        user_id: session.user.id,
+        food_description: foodDescription,
+        analysis_result: accumulatedText,
+        score,
+      });
+
+      if (insertError) console.error("Error al guardar historial:", insertError.message);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -202,15 +222,17 @@ export default function AnalizarPage() {
         ) : (
           <div className="bg-white rounded-xl shadow p-6">
             {error && (
-              <p className="text-red-500 mb-4">
-                {error}{" "}
-                <Link href="/login" className="underline">Ir al login</Link>
-              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <p className="text-red-600 text-sm">
+                  {error}{" "}
+                  <Link href="/login" className="underline font-bold">Ir al login</Link>
+                </p>
+              </div>
             )}
             {!error && !profile && (
-              <p className="text-yellow-600 mb-4">
+              <p className="text-yellow-600 mb-4 bg-yellow-50 p-4 rounded-lg border border-yellow-100">
                 ⚠️ No tenés perfil de salud cargado.{" "}
-                <Link href="/perfil" className="underline">Completá tu perfil</Link>
+                <Link href="/perfil" className="underline font-bold">Completá tu perfil</Link> para un análisis preciso.
               </p>
             )}
             {!error && (

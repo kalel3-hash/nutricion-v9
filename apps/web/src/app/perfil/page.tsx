@@ -82,8 +82,18 @@ export default function PerfilSaludPage() {
   useEffect(() => {
     const loadProfile = async () => {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoadingProfile(false); return; }
+      
+      // Patrón de sesión robusto para la carga inicial
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+
+      if (!session) { 
+        setLoadingProfile(false); 
+        return; 
+      }
 
       const { data } = await supabase
         .from("health_profiles")
@@ -154,10 +164,26 @@ export default function PerfilSaludPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    // ARREGLO PARA GOOGLE OAUTH: getSession + refreshSession 
+    let { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (sessionError) { setLoading(false); setError(sessionError.message); return; }
-    if (!session) { setLoading(false); setError("No hay sesión activa. Iniciá sesión nuevamente."); return; }
+    if (!session) {
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        setLoading(false);
+        setError("Error de sesión: " + refreshError.message);
+        return;
+      }
+      session = refreshData.session;
+    }
+
+    if (!session) { 
+      setLoading(false); 
+      setError("No hay sesión activa. Iniciá sesión nuevamente."); 
+      return; 
+    }
+    
     const user = session.user;
 
     const row: HealthProfileRow = {
@@ -187,7 +213,10 @@ export default function PerfilSaludPage() {
       .upsert(row, { onConflict: "user_id" });
 
     setLoading(false);
-    if (upsertError) { setError(upsertError.message); return; }
+    if (upsertError) { 
+      setError(upsertError.message); 
+      return; 
+    }
     setSuccess(true);
   }
 
