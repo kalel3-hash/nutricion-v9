@@ -51,19 +51,30 @@ export default function AnalizarPage() {
           health_profile: profile,
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Error en el análisis");
-      setAnalysis(data.analysis);
+
+      if (!response.ok) throw new Error("Error en el servidor");
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = "";
+
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        accumulatedText += chunk;
+        setAnalysis(accumulatedText);
+      }
 
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const scoreMatch = data.analysis.match(/(\d+)\/10/);
+        const scoreMatch = accumulatedText.match(/\*{0,2}(\d+)\*{0,2}\s*\/\s*10/);
         const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
         await supabase.from("analysis_history").insert({
           user_id: session.user.id,
           food_description: foodDescription,
-          analysis_result: data.analysis,
+          analysis_result: accumulatedText,
           score,
         });
       }
@@ -81,7 +92,7 @@ export default function AnalizarPage() {
       textColor: "text-white",
     };
     if (score <= 7) return {
-      bg: score <= 4 ? "bg-yellow-400" : score <= 6 ? "bg-yellow-400" : "bg-yellow-400",
+      bg: "bg-yellow-400",
       label: score <= 4 ? "DESACONSEJADO" : score <= 6 ? "NEUTRO" : "RECOMENDABLE",
       textColor: "text-yellow-900",
     };

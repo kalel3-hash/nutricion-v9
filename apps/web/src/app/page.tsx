@@ -1,16 +1,18 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex flex-col items-center justify-center px-6">
       <div className="flex flex-col items-center text-center max-w-sm w-full">
-        <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
-          <span className="text-white text-2xl font-black">N9</span>
-        </div>
-        <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">
-          Nutrición V9
-        </h1>
+        <Image
+          src="/Logo.png"
+          alt="VitalCross AI"
+          width={600}
+          height={220}
+          className="object-contain mb-6"
+        />
         <p className="text-gray-500 text-base mb-10 leading-relaxed">
           Tu análisis nutricional personalizado basado en tu perfil de salud
         </p>
@@ -29,7 +31,7 @@ export default function HomePage() {
           </Link>
         </div>
         <p className="text-xs text-gray-400 mt-8 leading-relaxed">
-          Analizá alimentos según tu perfil clínico real.{"\n"}
+          Analizá alimentos según tu perfil clínico real.
           Colesterol, glucemia, medicamentos y más.
         </p>
       </div>
