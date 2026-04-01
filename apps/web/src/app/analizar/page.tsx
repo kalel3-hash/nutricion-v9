@@ -13,44 +13,41 @@ export default function AnalizarPage() {
 
   useEffect(() => {
     const supabase = createClient();
+    let retryCount = 0;
+    const maxRetries = 3;
 
-    // Usamos onAuthStateChange para detectar la sesión apenas esté lista
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Evento de Auth:", event);
+    const checkSession = async () => {
+      // 1. Intentamos obtener sesión de forma directa
+      let { data: { session } } = await supabase.auth.getSession();
+      
+      // 2. Si no hay, intentamos refrescarla (vital para Google OAuth)
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
 
       if (session) {
-        setError(""); // Limpiamos errores si hay sesión
-        try {
-          const { data, error: profileError } = await supabase
-            .from("health_profiles")
-            .select("*")
-            .eq("user_id", session.user.id)
-            .single();
-          
-          if (profileError && profileError.code !== "PGRST116") {
-             console.error("Error cargando perfil:", profileError.message);
-          }
-          
-          setProfile(data);
-        } catch (err) {
-          console.error("Error inesperado:", err);
-        } finally {
-          setLoadingProfile(false);
-        }
+        setError("");
+        const { data } = await supabase
+          .from("health_profiles")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .single();
+        
+        setProfile(data);
+        setLoadingProfile(false);
+      } else if (retryCount < maxRetries) {
+        // 3. Si falla, reintentamos un par de veces con delay
+        retryCount++;
+        setTimeout(checkSession, 1000);
       } else {
-        // Si después de intentar cargar no hay sesión, damos un pequeño margen
-        setTimeout(() => {
-          if (!session) {
-            setError("Necesitás iniciar sesión para usar esta función.");
-            setLoadingProfile(false);
-          }
-        }, 1500); // Esperamos 1.5 segundos a que la cookie se asiente
+        // 4. Si después de 3 intentos no hay nada, mostramos error
+        setError("No logramos detectar tu sesión de Google.");
+        setLoadingProfile(false);
       }
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
+
+    checkSession();
   }, []);
 
   const handleAnalyze = async () => {
@@ -96,8 +93,9 @@ export default function AnalizarPage() {
       const scoreMatch = accumulatedText.match(/\*{0,2}(\d+)\*{0,2}\s*\/\s*10/);
       const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
       
+      // FIX: user_id con un solo guion bajo 
       await supabase.from("analysis_history").insert({
-        user__id: session.user.id,
+        user_id: session.user.id,
         food_description: foodDescription,
         analysis_result: accumulatedText,
         score,
@@ -183,37 +181,59 @@ export default function AnalizarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-green-900 text-white px-6 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-gray-100 font-sans">
+      <header className="bg-green-900 text-white px-6 py-4 flex justify-between items-center shadow-lg">
         <h1 className="text-xl font-bold">Analizar alimento</h1>
-        <Link href="/dashboard" className="bg-green-700 px-4 py-2 rounded hover:bg-green-600">Volver</Link>
+        <Link href="/dashboard" className="bg-green-700 px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">Volver</Link>
       </header>
       <main className="max-w-2xl mx-auto p-6">
         {loadingProfile ? (
-          <div className="flex flex-col items-center justify-center p-12">
+          <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl shadow">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700 mb-4"></div>
-            <p className="text-gray-500 text-lg font-medium">Verificando tu sesión...</p>
+            <p className="text-gray-500 text-lg font-medium">Verificando tu perfil...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow p-6">
+          <div className="bg-white rounded-xl shadow-md p-6">
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-center">
-                <p className="text-red-600 text-sm mb-3">{error}</p>
-                <Link href="/login" className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold inline-block">Iniciar Sesión</Link>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-4 text-center">
+                <p className="text-red-600 font-medium mb-4">{error}</p>
+                <div className="flex flex-col gap-3">
+                   <Link href="/login" className="bg-red-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-red-700 transition-colors">
+                     Ir al Login
+                   </Link>
+                   <button onClick={() => window.location.reload()} className="text-gray-500 text-sm underline">
+                     Reintentar cargar página
+                   </button>
+                </div>
               </div>
             )}
             {!error && !profile && (
-              <p className="text-yellow-600 mb-4 bg-yellow-50 p-4 rounded-lg border border-yellow-100">
-                ⚠️ No tenés perfil de salud cargado. <Link href="/perfil" className="underline font-bold">Completá tu perfil</Link>
-              </p>
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-6">
+                <p className="text-amber-800 text-sm">
+                  ⚠️ <strong>Aviso:</strong> No detectamos un perfil de salud. El análisis será genérico. 
+                  <Link href="/perfil" className="ml-2 underline font-bold">Completar perfil</Link>
+                </p>
+              </div>
             )}
             {!error && (
               <>
-                <textarea className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:outline-none focus:ring-2 focus:ring-green-500 mb-4" placeholder="Describí el alimento que querés analizar." value={foodDescription} onChange={(e) => setFoodDescription(e.target.value)} />
-                <button onClick={handleAnalyze} disabled={loading || !foodDescription.trim()} className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50">
-                  {loading ? "🔍 Analizando..." : "Analizar"}
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-bold mb-2">¿Qué vas a comer?</label>
+                  <textarea 
+                    className="w-full border border-gray-300 rounded-xl p-4 h-32 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all" 
+                    placeholder="Ej: Dos empanadas de carne fritas y una coca cola original." 
+                    value={foodDescription} 
+                    onChange={(e) => setFoodDescription(e.target.value)} 
+                  />
+                </div>
+                <button 
+                  onClick={handleAnalyze} 
+                  disabled={loading || !foodDescription.trim()} 
+                  className="w-full bg-green-700 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+                >
+                  {loading ? "🔍 Analizando..." : "Realizar Análisis VitalCross"}
                 </button>
-                {analysis && <div className="mt-6 border-t pt-4">{formatAnalysis(analysis)}</div>}
+                {analysis && <div className="mt-8 border-t pt-6">{formatAnalysis(analysis)}</div>}
               </>
             )}
           </div>
