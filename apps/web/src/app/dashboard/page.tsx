@@ -47,7 +47,7 @@ export default function DashboardPage() {
         <div className="mx-auto flex max-w-5xl items-start justify-between gap-4">
           <div className="min-w-0 pt-0.5">
             <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              Bienvenido a Nutrición V9
+              Bienvenido a VitalCross AI
             </h1>
             <p className="mt-1 text-sm text-green-100">
               Tu perfil de salud está listo para configurar
