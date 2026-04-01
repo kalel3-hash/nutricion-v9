@@ -12,34 +12,45 @@ export default function AnalizarPage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      const supabase = createClient();
-      setError(""); // Limpiamos errores previos al intentar cargar
-      
-      // PATRÓN ROBUSTO: Intentamos obtener sesión y refrescar si es necesario
-      let { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        const { data: refreshData } = await supabase.auth.refreshSession();
-        session = refreshData.session;
-      }
+    const supabase = createClient();
 
-      if (!session) {
-        setError("Necesitás iniciar sesión para usar esta función.");
-        setLoadingProfile(false);
-        return;
-      }
+    // Usamos onAuthStateChange para detectar la sesión apenas esté lista
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Evento de Auth:", event);
 
-      const { data } = await supabase
-        .from("health_profiles")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .single();
-      
-      setProfile(data);
-      setLoadingProfile(false);
+      if (session) {
+        setError(""); // Limpiamos errores si hay sesión
+        try {
+          const { data, error: profileError } = await supabase
+            .from("health_profiles")
+            .select("*")
+            .eq("user_id", session.user.id)
+            .single();
+          
+          if (profileError && profileError.code !== "PGRST116") {
+             console.error("Error cargando perfil:", profileError.message);
+          }
+          
+          setProfile(data);
+        } catch (err) {
+          console.error("Error inesperado:", err);
+        } finally {
+          setLoadingProfile(false);
+        }
+      } else {
+        // Si después de intentar cargar no hay sesión, damos un pequeño margen
+        setTimeout(() => {
+          if (!session) {
+            setError("Necesitás iniciar sesión para usar esta función.");
+            setLoadingProfile(false);
+          }
+        }, 1500); // Esperamos 1.5 segundos a que la cookie se asiente
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
     };
-    loadData();
   }, []);
 
   const handleAnalyze = async () => {
@@ -50,17 +61,14 @@ export default function AnalizarPage() {
 
     try {
       const supabase = createClient();
-      
-      // Verificamos sesión antes de empezar el análisis para asegurar el guardado posterior
       let { data: { session } } = await supabase.auth.getSession();
+      
       if (!session) {
         const { data: refreshData } = await supabase.auth.refreshSession();
         session = refreshData.session;
       }
 
-      if (!session) {
-        throw new Error("La sesión expiró. Por favor, volvé a iniciar sesión.");
-      }
+      if (!session) throw new Error("La sesión expiró. Por favor, volvé a iniciar sesión.");
 
       const response = await fetch("/api/analizar", {
         method: "POST",
@@ -85,18 +93,15 @@ export default function AnalizarPage() {
         setAnalysis(accumulatedText);
       }
 
-      // Guardado en historial usando la sesión validada arriba
       const scoreMatch = accumulatedText.match(/\*{0,2}(\d+)\*{0,2}\s*\/\s*10/);
       const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
       
-      const { error: insertError } = await supabase.from("analysis_history").insert({
-        user_id: session.user.id,
+      await supabase.from("analysis_history").insert({
+        user__id: session.user.id,
         food_description: foodDescription,
         analysis_result: accumulatedText,
         score,
       });
-
-      if (insertError) console.error("Error al guardar historial:", insertError.message);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -106,21 +111,9 @@ export default function AnalizarPage() {
   };
 
   const getScoreStyle = (score: number) => {
-    if (score <= 3) return {
-      bg: "bg-red-500",
-      label: score <= 2 ? "PROHIBIDO" : "DESACONSEJADO",
-      textColor: "text-white",
-    };
-    if (score <= 7) return {
-      bg: "bg-yellow-400",
-      label: score <= 4 ? "DESACONSEJADO" : score <= 6 ? "NEUTRO" : "RECOMENDABLE",
-      textColor: "text-yellow-900",
-    };
-    return {
-      bg: "bg-green-500",
-      label: score <= 8 ? "RECOMENDABLE" : "ALTAMENTE RECOMENDABLE",
-      textColor: "text-white",
-    };
+    if (score <= 3) return { bg: "bg-red-500", label: score <= 2 ? "PROHIBIDO" : "DESACONSEJADO", textColor: "text-white" };
+    if (score <= 7) return { bg: "bg-yellow-400", label: score <= 4 ? "DESACONSEJADO" : score <= 6 ? "NEUTRO" : "RECOMENDABLE", textColor: "text-yellow-900" };
+    return { bg: "bg-green-500", label: score <= 8 ? "RECOMENDABLE" : "ALTAMENTE RECOMENDABLE", textColor: "text-white" };
   };
 
   const formatAnalysis = (text: string) => {
@@ -145,26 +138,18 @@ export default function AnalizarPage() {
       }
     });
 
-    if (sections.length === 0) {
-      return <div className="text-gray-700 text-sm whitespace-pre-wrap">{text}</div>;
-    }
+    if (sections.length === 0) return <div className="text-gray-700 text-sm whitespace-pre-wrap">{text}</div>;
 
     return (
       <div className="flex flex-col gap-4">
         {sections.map((section, i) => {
           const block = blocks[section.blockIndex];
           const content = section.lines.join("\n").trim();
-          const isScoreBlock = section.blockIndex === 0;
-
-          if (isScoreBlock) {
+          if (section.blockIndex === 0) {
             const scoreMatch = content.match(/\*{0,2}(\d+)\*{0,2}\s*\/\s*10/);
             const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
             const style = score ? getScoreStyle(score) : null;
-            const summaryLines = content
-              .split("\n")
-              .filter(l => !l.match(/\d+\/10/) && l.trim())
-              .map(l => l.replace(/\*\*/g, ""));
-
+            const summaryLines = content.split("\n").filter(l => !l.match(/\d+\/10/) && l.trim()).map(l => l.replace(/\*\*/g, ""));
             return (
               <div key={i} className={`rounded-xl border ${block.border} ${block.bg} p-4`}>
                 <h3 className={`font-bold text-base mb-3 ${block.titleColor}`}>{block.title}</h3>
@@ -174,31 +159,20 @@ export default function AnalizarPage() {
                       <div className="text-6xl font-black leading-none">{score}</div>
                       <div className="text-sm font-medium opacity-80">/ 10</div>
                     </div>
-                    <div className={`${style.textColor}`}>
-                      <div className="text-2xl font-bold">{style.label}</div>
-                    </div>
+                    <div className={`${style.textColor}`}><div className="text-2xl font-bold">{style.label}</div></div>
                   </div>
                 )}
-                <div className="text-gray-700 text-sm leading-relaxed space-y-1">
-                  {summaryLines.map((line, j) => (
-                    <p key={j}>{line}</p>
-                  ))}
-                </div>
+                <div className="text-gray-700 text-sm leading-relaxed space-y-1">{summaryLines.map((line, j) => (<p key={j}>{line}</p>))}</div>
               </div>
             );
           }
-
           return (
             <div key={i} className={`rounded-xl border ${block.border} ${block.bg} p-4`}>
               <h3 className={`font-bold text-base mb-2 ${block.titleColor}`}>{block.title}</h3>
               <div className="text-gray-700 text-sm leading-relaxed space-y-1">
                 {content.split("\n").map((line, j) => {
                   const clean = line.replace(/\*\*/g, "");
-                  return line.includes("⚠️") ? (
-                    <p key={j} className="text-orange-600 font-medium mt-2">{clean}</p>
-                  ) : (
-                    <p key={j}>{clean}</p>
-                  );
+                  return line.includes("⚠️") ? <p key={j} className="text-orange-600 font-medium mt-2">{clean}</p> : <p key={j}>{clean}</p>;
                 })}
               </div>
             </div>
@@ -212,49 +186,34 @@ export default function AnalizarPage() {
     <div className="min-h-screen bg-gray-100">
       <header className="bg-green-900 text-white px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold">Analizar alimento</h1>
-        <Link href="/dashboard" className="bg-green-700 px-4 py-2 rounded hover:bg-green-600">
-          Volver
-        </Link>
+        <Link href="/dashboard" className="bg-green-700 px-4 py-2 rounded hover:bg-green-600">Volver</Link>
       </header>
       <main className="max-w-2xl mx-auto p-6">
         {loadingProfile ? (
-          <p className="text-gray-500 text-xl">Cargando perfil...</p>
+          <div className="flex flex-col items-center justify-center p-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700 mb-4"></div>
+            <p className="text-gray-500 text-lg font-medium">Verificando tu sesión...</p>
+          </div>
         ) : (
           <div className="bg-white rounded-xl shadow p-6">
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-red-600 text-sm">
-                  {error}{" "}
-                  <Link href="/login" className="underline font-bold">Ir al login</Link>
-                </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-center">
+                <p className="text-red-600 text-sm mb-3">{error}</p>
+                <Link href="/login" className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold inline-block">Iniciar Sesión</Link>
               </div>
             )}
             {!error && !profile && (
               <p className="text-yellow-600 mb-4 bg-yellow-50 p-4 rounded-lg border border-yellow-100">
-                ⚠️ No tenés perfil de salud cargado.{" "}
-                <Link href="/perfil" className="underline font-bold">Completá tu perfil</Link> para un análisis preciso.
+                ⚠️ No tenés perfil de salud cargado. <Link href="/perfil" className="underline font-bold">Completá tu perfil</Link>
               </p>
             )}
             {!error && (
               <>
-                <textarea
-                  className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:outline-none focus:ring-2 focus:ring-green-500 mb-4"
-                  placeholder="Describí el alimento que querés analizar."
-                  value={foodDescription}
-                  onChange={(e) => setFoodDescription(e.target.value)}
-                />
-                <button
-                  onClick={handleAnalyze}
-                  disabled={loading || !foodDescription.trim()}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
-                >
-                  {loading ? "🔍 Analizando con tu perfil de salud..." : "Analizar"}
+                <textarea className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:outline-none focus:ring-2 focus:ring-green-500 mb-4" placeholder="Describí el alimento que querés analizar." value={foodDescription} onChange={(e) => setFoodDescription(e.target.value)} />
+                <button onClick={handleAnalyze} disabled={loading || !foodDescription.trim()} className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50">
+                  {loading ? "🔍 Analizando..." : "Analizar"}
                 </button>
-                {analysis && (
-                  <div className="mt-6 border-t pt-4">
-                    {formatAnalysis(analysis)}
-                  </div>
-                )}
+                {analysis && <div className="mt-6 border-t pt-4">{formatAnalysis(analysis)}</div>}
               </>
             )}
           </div>
