@@ -18,7 +18,6 @@ export default function PerfilPage() {
   useEffect(() => {
     const loadProfile = async () => {
       const supabase = createClient();
-      // Verificación de sesión inicial compatible con Google OAuth
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
@@ -42,7 +41,7 @@ export default function PerfilPage() {
     try {
       const supabase = createClient();
       
-      // PASO CRÍTICO: Reemplazo de getUser() por getSession() + Refresh
+      // FIX CRÍTICO: Sincronización de sesión para Google OAuth
       let { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -50,7 +49,7 @@ export default function PerfilPage() {
         session = refreshData.session;
       }
 
-      if (!session) throw new Error("No se detectó una sesión activa. Por favor, reingresá.");
+      if (!session) throw new Error("Sesión no detectada. Por favor, reingresá.");
 
       const { error } = await supabase
         .from("health_profiles")
@@ -63,7 +62,6 @@ export default function PerfilPage() {
       if (error) throw error;
       setMessage("✅ Perfil guardado exitosamente");
     } catch (err: any) {
-      console.error("Error al guardar:", err);
       setMessage(`❌ Error: ${err.message}`);
     } finally {
       setSaving(false);
@@ -72,99 +70,102 @@ export default function PerfilPage() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <p className="text-green-800 font-bold animate-pulse">Cargando tus datos clínicos...</p>
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-700 mx-auto mb-4"></div>
+        <p className="text-green-800 font-bold">Cargando perfil médico...</p>
+      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-12">
-      <header className="bg-green-900 text-white p-4 flex justify-between items-center shadow-md mb-6">
-        <h1 className="font-bold text-lg tracking-tight text-white">VitalCross AI — Perfil</h1>
-        <Link href="/dashboard" className="bg-green-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-600 transition-colors">Volver</Link>
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-green-900 text-white px-6 py-4 flex justify-between items-center shadow-lg">
+        <h1 className="text-xl font-bold italic tracking-tighter">VitalCross AI — Mi Perfil</h1>
+        <Link href="/dashboard" className="bg-green-700 hover:bg-green-600 px-4 py-2 rounded-lg font-bold transition-all">Volver</Link>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4">
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-gray-100">
-          <div className="border-b border-gray-100 pb-4">
-            <h2 className="text-xl font-black text-green-800 uppercase italic tracking-wide">Datos Personales</h2>
-            <p className="text-gray-400 text-xs mt-1 font-medium">Información esencial para el análisis nutricional</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-[10px] font-black text-gray-500 uppercase mb-1 tracking-widest">Nombre Completo</label>
-              <input 
-                type="text" 
-                className="w-full border-2 border-gray-50 rounded-xl p-3 focus:border-green-500 outline-none transition-all text-gray-700"
-                value={profile.full_name || ""}
-                onChange={(e) => setProfile({...profile, full_name: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-gray-500 uppercase mb-1 tracking-widest">Edad</label>
-              <input 
-                type="number" 
-                className="w-full border-2 border-gray-50 rounded-xl p-3 focus:border-green-500 outline-none transition-all text-gray-700"
-                value={profile.age || ""}
-                onChange={(e) => setProfile({...profile, age: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-gray-500 uppercase mb-1 tracking-widest">Sexo</label>
-              <select 
-                className="w-full border-2 border-gray-50 rounded-xl p-3 focus:border-green-500 outline-none transition-all text-gray-700"
-                value={profile.sex || ""}
-                onChange={(e) => setProfile({...profile, sex: e.target.value})}
-              >
-                <option value="">Seleccionar</option>
-                <option value="M">Masculino</option>
-                <option value="F">Femenino</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="border-b border-gray-100 pb-4 pt-4">
-            <h2 className="text-xl font-black text-blue-800 uppercase italic tracking-wide">Valores de Laboratorio</h2>
-            <p className="text-gray-400 text-xs mt-1 font-medium">Ingresá tus últimos análisis clínicos</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {[
-              { label: "Glucosa (mg/dl)", key: "fasting_glucose_mg_dl" },
-              { label: "Colest. Total", key: "total_cholesterol_mg_dl" },
-              { label: "HDL", key: "hdl_mg_dl" },
-              { label: "LDL", key: "ldl_mg_dl" },
-              { label: "Triglicéridos", key: "triglycerides_mg_dl" },
-              { label: "Creatinina", key: "creatinine_mg_dl" },
-            ].map((field) => (
-              <div key={field.key}>
-                <label className="block text-[9px] font-black text-gray-400 uppercase mb-1 tracking-tighter">{field.label}</label>
+      <main className="max-w-2xl mx-auto p-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+          
+          {/* SECCIÓN 1: DATOS PERSONALES */}
+          <div className="p-8 border-b border-gray-50">
+            <h2 className="text-2xl font-black text-green-800 uppercase italic mb-6">Sección 1 — Datos personales</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Nombre Completo</label>
                 <input 
-                  type="number" 
-                  step="0.01"
-                  className="w-full border-2 border-gray-50 rounded-lg p-2 text-sm focus:border-blue-400 outline-none transition-all"
-                  value={profile[field.key] || ""}
-                  onChange={(e) => setProfile({...profile, [field.key]: e.target.value})}
+                  type="text" 
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 focus:border-green-500 outline-none transition-all"
+                  value={profile.full_name || ""}
+                  onChange={(e) => setProfile({...profile, full_name: e.target.value})}
                 />
               </div>
-            ))}
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Edad</label>
+                <input 
+                  type="number" 
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 focus:border-green-500 outline-none"
+                  value={profile.age || ""}
+                  onChange={(e) => setProfile({...profile, age: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Sexo</label>
+                <select 
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 focus:border-green-500 outline-none"
+                  value={profile.sex || ""}
+                  onChange={(e) => setProfile({...profile, sex: e.target.value})}
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Femenino</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div className="pt-6">
+          {/* SECCIÓN 2: VALORES CLÍNICOS */}
+          <div className="p-8 bg-blue-50/30">
+            <h2 className="text-2xl font-black text-blue-800 uppercase italic mb-6">Valores de Laboratorio</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[
+                { label: "Glucosa (mg/dl)", key: "fasting_glucose_mg_dl" },
+                { label: "Colest. Total", key: "total_cholesterol_mg_dl" },
+                { label: "HDL", key: "hdl_mg_dl" },
+                { label: "LDL", key: "ldl_mg_dl" },
+                { label: "Triglicéridos", key: "triglycerides_mg_dl" },
+                { label: "Creatinina", key: "creatinine_mg_dl" },
+              ].map((field) => (
+                <div key={field.key} className="bg-white p-3 rounded-2xl border border-blue-100 shadow-sm">
+                  <label className="block text-[10px] font-bold text-blue-400 uppercase mb-1">{field.label}</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    className="w-full text-gray-700 font-bold outline-none"
+                    value={profile[field.key] || ""}
+                    onChange={(e) => setProfile({...profile, [field.key]: e.target.value})}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* BOTÓN Y MENSAJES */}
+          <div className="p-8 bg-white text-center">
             <button 
               type="submit" 
               disabled={saving}
-              className="w-full bg-green-700 text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:bg-green-800 disabled:opacity-50 transition-all transform active:scale-95"
+              className="w-full bg-green-700 hover:bg-green-800 text-white py-5 rounded-2xl font-black text-xl shadow-xl transition-all transform active:scale-95 disabled:opacity-50 mb-4"
             >
-              {saving ? "PROCESANDO..." : "ACTUALIZAR MI PERFIL"}
+              {saving ? "GUARDANDO DATOS..." : "ACTUALIZAR MI PERFIL"}
             </button>
-          </div>
 
-          {message && (
-            <div className={`p-4 rounded-xl text-center font-bold text-sm animate-bounce ${message.includes('✅') ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-              {message}
-            </div>
-          )}
+            {message && (
+              <div className={`p-4 rounded-2xl font-bold text-sm ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                {message}
+              </div>
+            )}
+          </div>
         </form>
       </main>
     </div>
