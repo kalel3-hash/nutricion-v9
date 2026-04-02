@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState, useEffect, useRef } from "react";
+import { FormEvent, useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
 
 const MAIN_GOALS = [
@@ -79,42 +79,62 @@ export default function PerfilSaludPage() {
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoadingProfile(false); return; }
+  // --- Lógica de Autenticación Espejo de Analizar ---
+  const loadProfileData = useCallback(async (userId: string) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("health_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
 
-      const { data } = await supabase
-        .from("health_profiles")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (data) {
-        setFullName(data.full_name ?? "");
-        setAge(data.age?.toString() ?? "");
-        setSex(data.sex ?? "");
-        setWeightKg(data.weight_kg?.toString() ?? "");
-        setHeightCm(data.height_cm?.toString() ?? "");
-        setTotalChol(data.total_cholesterol_mg_dl?.toString() ?? "");
-        setHdl(data.hdl_mg_dl?.toString() ?? "");
-        setLdl(data.ldl_mg_dl?.toString() ?? "");
-        setTriglycerides(data.triglycerides_mg_dl?.toString() ?? "");
-        setFastingGlucose(data.fasting_glucose_mg_dl?.toString() ?? "");
-        setHba1c(data.hba1c_percent?.toString() ?? "");
-        setCreatinine(data.creatinine_mg_dl?.toString() ?? "");
-        setUrea(data.urea_mg_dl?.toString() ?? "");
-        setTsh(data.tsh_miu_l?.toString() ?? "");
-        setConditionsText((data.conditions ?? []).join(", "));
-        setMedicationsText((data.medications ?? []).join(", "));
-        setAllergiesText((data.allergies ?? []).join(", "));
-        setMainGoal(data.main_goal ?? "");
-      }
-      setLoadingProfile(false);
-    };
-    loadProfile();
+    if (data) {
+      setFullName(data.full_name ?? "");
+      setAge(data.age?.toString() ?? "");
+      setSex(data.sex ?? "");
+      setWeightKg(data.weight_kg?.toString() ?? "");
+      setHeightCm(data.height_cm?.toString() ?? "");
+      setTotalChol(data.total_cholesterol_mg_dl?.toString() ?? "");
+      setHdl(data.hdl_mg_dl?.toString() ?? "");
+      setLdl(data.ldl_mg_dl?.toString() ?? "");
+      setTriglycerides(data.triglycerides_mg_dl?.toString() ?? "");
+      setFastingGlucose(data.fasting_glucose_mg_dl?.toString() ?? "");
+      setHba1c(data.hba1c_percent?.toString() ?? "");
+      setCreatinine(data.creatinine_mg_dl?.toString() ?? "");
+      setUrea(data.urea_mg_dl?.toString() ?? "");
+      setTsh(data.tsh_miu_l?.toString() ?? "");
+      setConditionsText((data.conditions ?? []).join(", "));
+      setMedicationsText((data.medications ?? []).join(", "));
+      setAllergiesText((data.allergies ?? []).join(", "));
+      setMainGoal(data.main_goal ?? "");
+    }
+    setLoadingProfile(false);
   }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let isMounted = true;
+
+    const initAuth = async () => {
+      // Forzamos el refresco de sesión como en Analizar
+      const { data: { session } } = await supabase.auth.refreshSession();
+      if (session && isMounted) {
+        await loadProfileData(session.user.id);
+      } else {
+        const { data: { session: retry } } = await supabase.auth.getSession();
+        if (retry && isMounted) await loadProfileData(retry.user.id);
+        else if (isMounted) setLoadingProfile(false);
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && isMounted) loadProfileData(session.user.id);
+    });
+
+    initAuth();
+    return () => { isMounted = false; subscription.unsubscribe(); };
+  }, [loadProfileData]);
+  // ------------------------------------------------
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -133,7 +153,6 @@ export default function PerfilSaludPage() {
       });
 
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.error || "Error procesando el PDF");
 
       const v = data.values;
@@ -164,13 +183,17 @@ export default function PerfilSaludPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Aquí también usamos refresh por seguridad
+    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
 
-    if (userError) { setLoading(false); setError(userError.message); return; }
-    if (!user) { setLoading(false); setError("No hay sesión activa. Iniciá sesión nuevamente."); return; }
+    if (sessionError || !session) {
+      setLoading(false);
+      setError("Sesión no válida. Por favor reiniciá sesión.");
+      return;
+    }
 
     const row: HealthProfileRow = {
-      user_id: user.id,
+      user_id: session.user.id,
       full_name: fullName.trim() || null,
       age: parseOptionalInt(age),
       sex: sex || null,
@@ -200,10 +223,11 @@ export default function PerfilSaludPage() {
     setSuccess(true);
   }
 
+  // --- El resto del render es idéntico a tu código original ---
   if (loadingProfile) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500">Cargando perfil...</p>
+        <p className="text-gray-500 font-bold animate-pulse">Sincronizando con Google...</p>
       </div>
     );
   }
