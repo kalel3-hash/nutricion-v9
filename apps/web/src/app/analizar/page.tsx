@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
 import Link from "next/link";
 
@@ -10,46 +10,34 @@ export default function AnalizarPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loadingAuth, setLoadingAuth] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const supabase = createClient();
+
+  const getValidSession = useCallback(async () => {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      return refreshData.session;
+    }
+    return session;
+  }, [supabase]);
 
   useEffect(() => {
-    const supabase = createClient();
-
-    const loadUserData = async (uid: string) => {
-      const { data } = await supabase
-        .from("health_profiles")
-        .select("*")
-        .eq("user_id", uid)
-        .single();
-      if (data) setProfile(data);
-    };
-
-    // onAuthStateChange es la fuente de verdad para Google OAuth
-    // INITIAL_SESSION se dispara siempre al montar, con o sin sesión
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "INITIAL_SESSION") {
-        if (session) {
-          setUserId(session.user.id);
-          await loadUserData(session.user.id);
-        }
-        // Recién acá sabemos con certeza si hay sesión o no
-        setLoadingAuth(false);
-      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        if (session) {
-          setUserId(session.user.id);
-          setError("");
-          await loadUserData(session.user.id);
-          setLoadingAuth(false);
-        }
-      } else if (event === "SIGNED_OUT") {
-        setUserId(null);
-        setProfile(null);
-        setLoadingAuth(false);
+    const init = async () => {
+      const session = await getValidSession();
+      if (session) {
+        setCurrentUserId(session.user.id);
+        const { data } = await supabase
+          .from("health_profiles")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .single();
+        if (data) setProfile(data);
       }
-    });
-
-    return () => { subscription.unsubscribe(); };
-  }, []);
+      setLoadingAuth(false);
+    };
+    init();
+  }, [getValidSession, supabase]);
 
   const handleAnalyze = async () => {
     if (!foodDescription.trim()) return;
@@ -58,14 +46,7 @@ export default function AnalizarPage() {
     setError("");
 
     try {
-      const supabase = createClient();
-      let { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        const { data: refreshData } = await supabase.auth.refreshSession();
-        session = refreshData.session;
-      }
-
+      const session = await getValidSession();
       if (!session) throw new Error("No se detectó sesión activa.");
 
       const response = await fetch("/api/analizar", {
@@ -116,7 +97,7 @@ export default function AnalizarPage() {
     );
   }
 
-  if (!userId) {
+  if (!currentUserId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
