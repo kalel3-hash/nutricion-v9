@@ -14,10 +14,22 @@ export default function AnalizarPage() {
   useEffect(() => {
     const supabase = createClient();
 
-    // 1. Verificación inicial rápida
+    const loadUserData = async (userId: string) => {
+      const { data } = await supabase
+        .from("health_profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      if (data) setProfile(data);
+    };
+
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          session = refreshData.session;
+        }
         if (session) {
           await loadUserData(session.user.id);
         }
@@ -28,7 +40,6 @@ export default function AnalizarPage() {
       }
     };
 
-    // 2. Suscripción en tiempo real a la sesión (Clave para Google)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         setError("");
@@ -39,15 +50,6 @@ export default function AnalizarPage() {
         setError("Iniciá sesión para continuar.");
       }
     });
-
-    const loadUserData = async (userId: string) => {
-      const { data } = await supabase
-        .from("health_profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-      if (data) setProfile(data);
-    };
 
     initAuth();
     return () => { subscription.unsubscribe(); };
@@ -61,8 +63,13 @@ export default function AnalizarPage() {
 
     try {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      let { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+
       if (!session) throw new Error("No se detectó sesión activa.");
 
       const response = await fetch("/api/analizar", {
@@ -137,16 +144,16 @@ export default function AnalizarPage() {
                   <Link href="/perfil" className="text-amber-800 text-xs underline font-bold">Cargar perfil</Link>
                 </div>
               )}
-              
+
               <label className="block text-gray-700 text-xs font-bold uppercase mb-2">¿Qué vas a comer?</label>
-              <textarea 
+              <textarea
                 className="w-full border-2 border-gray-100 rounded-xl p-4 h-36 focus:border-green-500 outline-none transition-all"
                 placeholder="Ej: Milanesa con puré y un vaso de jugo de naranja."
                 value={foodDescription}
                 onChange={(e) => setFoodDescription(e.target.value)}
               />
-              
-              <button 
+
+              <button
                 onClick={handleAnalyze}
                 disabled={loading || !foodDescription.trim()}
                 className="w-full mt-4 bg-green-700 text-white py-4 rounded-xl font-black shadow-lg active:scale-95 transition-all disabled:opacity-50"
