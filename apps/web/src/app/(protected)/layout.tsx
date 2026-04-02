@@ -1,19 +1,20 @@
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase";
-import AnalizarClient from "./AnalizarClient";
 
-export default async function AnalizarPage() {
+export default async function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createServerClient();
 
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // ✅ Igual que dashboard y perfil
   if (!session) {
     redirect("/login");
   }
 
-  // ✅ userId SIEMPRE string
-  return <AnalizarClient userId={session.user.id} />;
+  return <>{children}</>;
 }
