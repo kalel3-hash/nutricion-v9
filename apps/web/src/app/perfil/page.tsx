@@ -53,6 +53,7 @@ type HealthProfileRow = {
 };
 
 export default function PerfilSaludPage() {
+  // ESTADOS DE DATOS
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("");
@@ -71,18 +72,22 @@ export default function PerfilSaludPage() {
   const [medicationsText, setMedicationsText] = useState("");
   const [allergiesText, setAllergiesText] = useState("");
   const [mainGoal, setMainGoal] = useState<string>("");
+
+  // ESTADOS DE CONTROL
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
 
-  // --- Lógica de Autenticación Espejo de Analizar ---
-  const loadProfileData = useCallback(async (userId: string) => {
-    const supabase = createClient();
-    const { data } = await supabase
+  // Función para cargar datos desde la DB
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error: fetchError } = await supabase
       .from("health_profiles")
       .select("*")
       .eq("user_id", userId)
@@ -109,32 +114,42 @@ export default function PerfilSaludPage() {
       setMainGoal(data.main_goal ?? "");
     }
     setLoadingProfile(false);
-  }, []);
+  }, [supabase]);
 
+  // Manejo de autenticación robusto
   useEffect(() => {
-    const supabase = createClient();
-    let isMounted = true;
-
     const initAuth = async () => {
-      // Forzamos el refresco de sesión como en Analizar
+      // 1. Intentamos refrescar la sesión activamente
       const { data: { session } } = await supabase.auth.refreshSession();
-      if (session && isMounted) {
-        await loadProfileData(session.user.id);
+      
+      if (session) {
+        setCurrentUserId(session.user.id);
+        await fetchProfile(session.user.id);
       } else {
-        const { data: { session: retry } } = await supabase.auth.getSession();
-        if (retry && isMounted) await loadProfileData(retry.user.id);
-        else if (isMounted) setLoadingProfile(false);
+        // 2. Si falla el refresh, probamos getSession normal
+        const { data: { session: fallback } } = await supabase.auth.getSession();
+        if (fallback) {
+          setCurrentUserId(fallback.user.id);
+          await fetchProfile(fallback.user.id);
+        } else {
+          setLoadingProfile(false);
+        }
       }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session && isMounted) loadProfileData(session.user.id);
+    // Escuchar cambios de estado (por si loguea en otra pestaña o expira)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setCurrentUserId(session.user.id);
+        if (event === 'SIGNED_IN') fetchProfile(session.user.id);
+      } else {
+        setCurrentUserId(null);
+      }
     });
 
     initAuth();
-    return () => { isMounted = false; subscription.unsubscribe(); };
-  }, [loadProfileData]);
-  // ------------------------------------------------
+    return () => subscription.unsubscribe();
+  }, [supabase, fetchProfile]);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,7 +182,7 @@ export default function PerfilSaludPage() {
       if (v.tsh_miu_l !== null) setTsh(v.tsh_miu_l.toString());
 
       const extracted = Object.values(v).filter(val => val !== null).length;
-      setOcrMessage(`✓ Se extrajeron ${extracted} valores del PDF. Revisalos y guardá el perfil.`);
+      setOcrMessage(`✓ Se extrajeron ${extracted} valores del PDF.`);
     } catch (err) {
       setOcrMessage(`Error: ${err instanceof Error ? err.message : "Error desconocido"}`);
     } finally {
@@ -182,18 +197,21 @@ export default function PerfilSaludPage() {
     setSuccess(false);
     setLoading(true);
 
-    const supabase = createClient();
-    // Aquí también usamos refresh por seguridad
-    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+    // Verificación de seguridad antes de guardar
+    let userId = currentUserId;
+    if (!userId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user.id || null;
+    }
 
-    if (sessionError || !session) {
+    if (!userId) {
       setLoading(false);
-      setError("Sesión no válida. Por favor reiniciá sesión.");
+      setError("No se detectó sesión de Google. Por favor, recargá la página o reingresá.");
       return;
     }
 
     const row: HealthProfileRow = {
-      user_id: session.user.id,
+      user_id: userId,
       full_name: fullName.trim() || null,
       age: parseOptionalInt(age),
       sex: sex || null,
@@ -219,15 +237,37 @@ export default function PerfilSaludPage() {
       .upsert(row, { onConflict: "user_id" });
 
     setLoading(false);
-    if (upsertError) { setError(upsertError.message); return; }
+    if (upsertError) {
+      setError(upsertError.message);
+      return;
+    }
     setSuccess(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // --- El resto del render es idéntico a tu código original ---
   if (loadingProfile) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500 font-bold animate-pulse">Sincronizando con Google...</p>
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent"></div>
+          <p className="mt-4 text-gray-600 font-medium">Sincronizando sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Pantalla de error si no hay sesión después de cargar
+  if (!currentUserId && !loadingProfile) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-sm text-center ring-1 ring-gray-200">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">No logramos detectar tu sesión</h2>
+          <p className="text-gray-500 mb-6">Necesitás estar identificado con Google para ver o editar tu perfil.</p>
+          <Link href="/login" className="block w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors">
+            Ir al Login
+          </Link>
+        </div>
       </div>
     );
   }
@@ -236,9 +276,7 @@ export default function PerfilSaludPage() {
     <div className="min-h-screen bg-gray-100">
       <header className="bg-green-900 px-4 py-4 shadow-md sm:px-6">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-            Mi perfil de salud
-          </h1>
+          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">Mi perfil de salud</h1>
           <Link href="/dashboard" className="shrink-0 rounded-lg border border-green-700 bg-green-800 px-3 py-1.5 text-sm font-semibold text-green-50 transition-colors hover:bg-green-700">
             Volver
           </Link>
@@ -246,137 +284,68 @@ export default function PerfilSaludPage() {
       </header>
 
       <main className="mx-auto w-full max-w-[600px] px-4 py-8 sm:px-6">
-
+        {/* PDF UPLOAD SECTION */}
         <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/80">
           <h2 className="text-base font-semibold text-green-900 mb-2">📄 Cargar estudio clínico PDF</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Subí el PDF de tu análisis de sangre y la IA va a extraer los valores automáticamente.
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handlePdfUpload}
-            className="hidden"
-            id="pdf-upload"
-          />
-          <label
-            htmlFor="pdf-upload"
-            className={`flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-4 cursor-pointer transition-colors ${
-              ocrLoading
-                ? "border-gray-200 bg-gray-50 text-gray-400"
-                : "border-green-300 hover:border-green-500 hover:bg-green-50 text-green-700"
-            }`}
-          >
-            {ocrLoading ? "⏳ Procesando PDF..." : "📎 Seleccionar PDF del laboratorio"}
+          <p className="text-sm text-gray-500 mb-4">Extraé los valores de tu análisis de sangre automáticamente.</p>
+          <input ref={fileInputRef} type="file" accept=".pdf" onChange={handlePdfUpload} className="hidden" id="pdf-upload" />
+          <label htmlFor="pdf-upload" className={`flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-4 cursor-pointer transition-colors ${ocrLoading ? "border-gray-200 bg-gray-50 text-gray-400" : "border-green-300 hover:border-green-500 hover:bg-green-50 text-green-700"}`}>
+            {ocrLoading ? "⏳ Procesando..." : "📎 Seleccionar PDF"}
           </label>
           {ocrMessage && (
-            <p className={`mt-3 text-sm rounded-lg px-3 py-2 ${
-              ocrMessage.startsWith("Error")
-                ? "bg-red-50 text-red-600"
-                : "bg-green-50 text-green-700"
-            }`}>
+            <p className={`mt-3 text-sm rounded-lg px-3 py-2 ${ocrMessage.startsWith("Error") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
               {ocrMessage}
             </p>
           )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200/80 sm:p-8">
-          {success && (
-            <p className="rounded-xl bg-green-50 px-4 py-3 text-center text-sm font-medium text-green-800">
-              ✓ Perfil guardado correctamente
-            </p>
-          )}
-          {error && (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm text-red-600">
-              {error}
-            </p>
-          )}
+          {success && <p className="rounded-xl bg-green-50 px-4 py-3 text-center text-sm font-medium text-green-800">✓ Perfil guardado correctamente</p>}
+          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm text-red-600">{error}</p>}
 
           <section className="space-y-4">
-            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">
-              SECCIÓN 1 — Datos personales
-            </h2>
+            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">SECCIÓN 1 — Datos personales</h2>
             <div className="space-y-1.5">
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-800">Nombre completo</label>
-              <input id="fullName" type="text" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
+              <label className="block text-sm font-medium text-gray-800">Nombre completo</label>
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-green-600/20 outline-none" />
             </div>
-            <div className="space-y-1.5">
-              <label htmlFor="age" className="block text-sm font-medium text-gray-800">Edad</label>
-              <input id="age" type="number" min={0} max={130} step={1} value={age} onChange={(e) => setAge(e.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="sex" className="block text-sm font-medium text-gray-800">Sexo</label>
-              <select id="sex" value={sex} onChange={(e) => setSex(e.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow focus:border-green-600 focus:ring-2 focus:ring-green-600/20">
-                <option value="">Seleccionar…</option>
-                <option value="Masculino">Masculino</option>
-                <option value="Femenino">Femenino</option>
-                <option value="Otro">Otro</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="weightKg" className="block text-sm font-medium text-gray-800">Peso en kg</label>
-              <input id="weightKg" type="number" min={0} step="0.1" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="heightCm" className="block text-sm font-medium text-gray-800">Altura en cm</label>
-              <input id="heightCm" type="number" min={0} step="0.1" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">
-              SECCIÓN 2 — Marcadores clínicos
-            </h2>
-            {(
-              [
-                ["totalChol", "Colesterol total mg/dL", totalChol, setTotalChol],
-                ["hdl", "Colesterol HDL mg/dL", hdl, setHdl],
-                ["ldl", "Colesterol LDL mg/dL", ldl, setLdl],
-                ["triglycerides", "Triglicéridos mg/dL", triglycerides, setTriglycerides],
-                ["fastingGlucose", "Glucemia en ayunas mg/dL", fastingGlucose, setFastingGlucose],
-                ["hba1c", "Hemoglobina glicosilada HbA1c %", hba1c, setHba1c],
-                ["creatinine", "Creatinina mg/dL", creatinine, setCreatinine],
-                ["urea", "Urea mg/dL", urea, setUrea],
-                ["tsh", "TSH mUI/L", tsh, setTsh],
-              ] as const
-            ).map(([id, label, val, setVal]) => (
-              <div key={id} className="space-y-1.5">
-                <label htmlFor={id} className="block text-sm font-medium text-gray-800">{label}</label>
-                <input id={id} type="number" min={0} step="any" value={val} onChange={(e) => setVal(e.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-800">Edad</label>
+                <input type="number" value={age} onChange={(e) => setAge(e.target.value)} className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-green-600/20 outline-none" />
               </div>
-            ))}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-800">Sexo</label>
+                <select value={sex} onChange={(e) => setSex(e.target.value)} className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-green-600/20 outline-none">
+                  <option value="">Seleccionar</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                </select>
+              </div>
+            </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">
-              SECCIÓN 3 — Condiciones y objetivos
-            </h2>
-            <div className="space-y-1.5">
-              <label htmlFor="conditions" className="block text-sm font-medium text-gray-800">Condiciones diagnosticadas</label>
-              <textarea id="conditions" rows={3} value={conditionsText} onChange={(e) => setConditionsText(e.target.value)} placeholder="Ej: Diabetes tipo 2, Hipotiroidismo" className="w-full resize-y rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="medications" className="block text-sm font-medium text-gray-800">Medicamentos actuales</label>
-              <textarea id="medications" rows={3} value={medicationsText} onChange={(e) => setMedicationsText(e.target.value)} placeholder="Ej: Metformina 500mg, Levotiroxina 50mcg" className="w-full resize-y rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="allergies" className="block text-sm font-medium text-gray-800">Alergias e intolerancias</label>
-              <textarea id="allergies" rows={3} value={allergiesText} onChange={(e) => setAllergiesText(e.target.value)} placeholder="Ej: Gluten, Lactosa, Mariscos" className="w-full resize-y rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-600/20" />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="mainGoal" className="block text-sm font-medium text-gray-800">Objetivo principal</label>
-              <select id="mainGoal" value={mainGoal} onChange={(e) => setMainGoal(e.target.value)} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none transition-shadow focus:border-green-600 focus:ring-2 focus:ring-green-600/20">
-                <option value="">Seleccionar…</option>
-                {MAIN_GOALS.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
+            <h2 className="border-b border-gray-200 pb-2 text-base font-semibold text-green-900">SECCIÓN 2 — Marcadores clínicos</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {[
+                ["totalChol", "Colesterol total", totalChol, setTotalChol],
+                ["hdl", "HDL", hdl, setHdl],
+                ["ldl", "LDL", ldl, setLdl],
+                ["triglycerides", "Triglicéridos", triglycerides, setTriglycerides],
+                ["fastingGlucose", "Glucemia", fastingGlucose, setFastingGlucose],
+                ["hba1c", "HbA1c %", hba1c, setHba1c],
+              ].map(([id, label, val, setVal]) => (
+                <div key={id} className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-800">{label}</label>
+                  <input type="number" step="any" value={val as string} onChange={(e) => (setVal as any)(e.target.value)} className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-green-600/20 outline-none" />
+                </div>
+              ))}
             </div>
           </section>
 
-          <button type="submit" disabled={loading} className="flex w-full items-center justify-center rounded-2xl bg-green-600 px-6 py-4 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
-            {loading ? "Guardando…" : "Guardar perfil"}
+          <button type="submit" disabled={loading} className="w-full rounded-2xl bg-green-600 py-4 text-lg font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition-all">
+            {loading ? "Guardando..." : "Actualizar mi perfil"}
           </button>
         </form>
       </main>
