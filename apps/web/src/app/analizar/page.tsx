@@ -10,48 +10,44 @@ export default function AnalizarPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
 
-    const loadUserData = async (userId: string) => {
+    const loadUserData = async (uid: string) => {
       const { data } = await supabase
         .from("health_profiles")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", uid)
         .single();
       if (data) setProfile(data);
     };
 
-    const initAuth = async () => {
-      try {
-        let { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          const { data: refreshData } = await supabase.auth.refreshSession();
-          session = refreshData.session;
-        }
+    // onAuthStateChange es la fuente de verdad para Google OAuth
+    // INITIAL_SESSION se dispara siempre al montar, con o sin sesión
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "INITIAL_SESSION") {
         if (session) {
+          setUserId(session.user.id);
           await loadUserData(session.user.id);
         }
-      } catch (err) {
-        console.error("Error inicial:", err);
-      } finally {
+        // Recién acá sabemos con certeza si hay sesión o no
         setLoadingAuth(false);
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        setError("");
-        await loadUserData(session.user.id);
-        setLoadingAuth(false);
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (session) {
+          setUserId(session.user.id);
+          setError("");
+          await loadUserData(session.user.id);
+          setLoadingAuth(false);
+        }
+      } else if (event === "SIGNED_OUT") {
+        setUserId(null);
         setProfile(null);
-        setError("Iniciá sesión para continuar.");
+        setLoadingAuth(false);
       }
     });
 
-    initAuth();
     return () => { subscription.unsubscribe(); };
   }, []);
 
@@ -114,7 +110,20 @@ export default function AnalizarPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-700 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium italic">Sincronizando con Google...</p>
+          <p className="text-gray-600 font-medium italic">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+          <p className="text-red-600 font-medium mb-6">Necesitás iniciar sesión para analizar.</p>
+          <Link href="/login" className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold block hover:bg-red-700 transition-colors">
+            IR AL LOGIN
+          </Link>
         </div>
       </div>
     );
@@ -129,47 +138,42 @@ export default function AnalizarPage() {
 
       <main className="max-w-xl mx-auto p-4 mt-4">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {error ? (
-            <div className="p-8 text-center">
-              <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 text-sm font-medium">{error}</div>
-              <Link href="/login" className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold block hover:bg-red-700 transition-colors">
-                IR AL LOGIN
-              </Link>
-            </div>
-          ) : (
-            <div className="p-6">
-              {!profile && (
-                <div className="mb-4 bg-amber-50 border border-amber-100 p-3 rounded-lg flex items-center gap-2">
-                  <span className="text-amber-600 text-xs font-bold italic">⚠️ Análisis estándar (Sin perfil clínico)</span>
-                  <Link href="/perfil" className="text-amber-800 text-xs underline font-bold">Cargar perfil</Link>
+          <div className="p-6">
+            {!profile && (
+              <div className="mb-4 bg-amber-50 border border-amber-100 p-3 rounded-lg flex items-center gap-2">
+                <span className="text-amber-600 text-xs font-bold italic">⚠️ Análisis estándar (Sin perfil clínico)</span>
+                <Link href="/perfil" className="text-amber-800 text-xs underline font-bold">Cargar perfil</Link>
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium">{error}</div>
+            )}
+
+            <label className="block text-gray-700 text-xs font-bold uppercase mb-2">¿Qué vas a comer?</label>
+            <textarea
+              className="w-full border-2 border-gray-100 rounded-xl p-4 h-36 focus:border-green-500 outline-none transition-all"
+              placeholder="Ej: Milanesa con puré y un vaso de jugo de naranja."
+              value={foodDescription}
+              onChange={(e) => setFoodDescription(e.target.value)}
+            />
+
+            <button
+              onClick={handleAnalyze}
+              disabled={loading || !foodDescription.trim()}
+              className="w-full mt-4 bg-green-700 text-white py-4 rounded-xl font-black shadow-lg active:scale-95 transition-all disabled:opacity-50"
+            >
+              {loading ? "PROCESANDO..." : "ANALIZAR AHORA"}
+            </button>
+
+            {analysis && (
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">{analysis}</pre>
                 </div>
-              )}
-
-              <label className="block text-gray-700 text-xs font-bold uppercase mb-2">¿Qué vas a comer?</label>
-              <textarea
-                className="w-full border-2 border-gray-100 rounded-xl p-4 h-36 focus:border-green-500 outline-none transition-all"
-                placeholder="Ej: Milanesa con puré y un vaso de jugo de naranja."
-                value={foodDescription}
-                onChange={(e) => setFoodDescription(e.target.value)}
-              />
-
-              <button
-                onClick={handleAnalyze}
-                disabled={loading || !foodDescription.trim()}
-                className="w-full mt-4 bg-green-700 text-white py-4 rounded-xl font-black shadow-lg active:scale-95 transition-all disabled:opacity-50"
-              >
-                {loading ? "PROCESANDO..." : "ANALIZAR AHORA"}
-              </button>
-
-              {analysis && (
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">{analysis}</pre>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>
