@@ -22,20 +22,9 @@ type HealthProfileRow = {
 export default function PerfilClient({
   userId,
 }: {
-  userId: string | null;
+  userId: string;
 }) {
   const supabase = createClient();
-
-  /* =========================
-     Manejo OAuth (CLAVE)
-  ========================= */
-  if (!userId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600 font-medium">
-        Verificando sesión...
-      </div>
-    );
-  }
 
   /* =========================
      Estados de Perfil
@@ -106,7 +95,7 @@ export default function PerfilClient({
     setSuccess(false);
 
     const row: HealthProfileRow = {
-      user_id: userId!, // ✅ aserción segura
+      user_id: userId,
       full_name: fullName || null,
       age: age ? parseInt(age) : null,
       sex: sex || null,
@@ -160,7 +149,9 @@ export default function PerfilClient({
             type="text"
             placeholder="Nombre completo"
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            onChange={(e) =>
+              setFullName(e.target.value)
+            }
             className="w-full border p-2 rounded"
           />
 
@@ -178,8 +169,12 @@ export default function PerfilClient({
               className="border p-2 rounded"
             >
               <option value="">Sexo</option>
-              <option value="Masculino">Masculino</option>
-              <option value="Femenino">Femenino</option>
+              <option value="Masculino">
+                Masculino
+              </option>
+              <option value="Femenino">
+                Femenino
+              </option>
             </select>
           </div>
 
