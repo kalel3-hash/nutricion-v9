@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase";
 import PerfilClient from "./PerfilClient";
 
@@ -8,8 +9,11 @@ export default async function PerfilPage() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // ❌ NO redirect acá (rompe Google OAuth)
-  // Dejamos que el client termine de manejar la sesión
+  // ✅ Si NO hay sesión, redirigimos (email/password y Google ya resueltos)
+  if (!session) {
+    redirect("/login");
+  }
 
-  return <PerfilClient userId={session?.user.id ?? null} />;
+  // ✅ A esta línea solo llega con session válida
+  return <PerfilClient userId={session.user.id} />;
 }
