@@ -7,26 +7,10 @@ import Link from "next/link";
 export default function AnalizarClient({
   userId,
 }: {
-  userId: string | null;
+  userId: string;
 }) {
   const supabase = createClient();
 
-  /* =========================
-     Manejo OAuth (CLAVE)
-  ========================= */
-  if (!userId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600 font-medium italic">
-          Verificando sesión...
-        </div>
-      </div>
-    );
-  }
-
-  /* =========================
-     Estados
-  ========================= */
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [foodDescription, setFoodDescription] = useState("");
   const [analysis, setAnalysis] = useState("");
@@ -34,9 +18,6 @@ export default function AnalizarClient({
   const [error, setError] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(true);
 
-  /* =========================
-     Cargar perfil clínico
-  ========================= */
   useEffect(() => {
     const loadProfile = async () => {
       const { data } = await supabase
@@ -52,9 +33,6 @@ export default function AnalizarClient({
     loadProfile();
   }, [supabase, userId]);
 
-  /* =========================
-     Analizar alimento
-  ========================= */
   const handleAnalyze = async () => {
     if (!foodDescription.trim()) return;
 
@@ -85,7 +63,7 @@ export default function AnalizarClient({
         setAnalysis(text);
       }
 
-      const scoreMatch = text.match(/\*{0,2}(\d+)\*{0,2}\s*\/\s*10/);
+      const scoreMatch = text.match(/(\d+)\s*\/\s*10/);
 
       await supabase.from("analysis_history").insert({
         user_id: userId,
@@ -95,32 +73,24 @@ export default function AnalizarClient({
       });
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Error de conexión",
+        err instanceof Error ? err.message : "Error de conexión"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================
-     Loading perfil
-  ========================= */
   if (loadingProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600 italic">
-          Cargando perfil...
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        Cargando perfil...
       </div>
     );
   }
 
-  /* =========================
-     Render
-  ========================= */
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
-      <header className="bg-green-900 text-white p-4 flex justify-between items-center shadow-md">
+      <header className="bg-green-900 text-white p-4 flex justify-between items-center">
         <h1 className="font-bold">VitalCross AI</h1>
         <Link
           href="/dashboard"
@@ -131,57 +101,42 @@ export default function AnalizarClient({
       </header>
 
       <main className="max-w-xl mx-auto p-4 mt-4">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-6">
-            {!profile && (
-              <div className="mb-4 bg-amber-50 border border-amber-100 p-3 rounded-lg flex items-center gap-2">
-                <span className="text-amber-600 text-xs font-bold italic">
-                  ⚠️ Análisis estándar (Sin perfil clínico)
-                </span>
-                <Link
-                  href="/perfil"
-                  className="text-amber-800 text-xs underline font-bold"
-                >
-                  Cargar perfil
-                </Link>
-              </div>
-            )}
+        <div className="bg-white rounded-2xl shadow-xl p-6">
+          {!profile && (
+            <div className="mb-4 bg-amber-50 p-3 rounded text-xs">
+              Análisis estándar (sin perfil) —{" "}
+              <Link href="/perfil" className="underline">
+                Cargar perfil
+              </Link>
+            </div>
+          )}
 
-            {error && (
-              <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium">
-                {error}
-              </div>
-            )}
+          {error && (
+            <div className="mb-4 text-red-600">{error}</div>
+          )}
 
-            <label className="block text-gray-700 text-xs font-bold uppercase mb-2">
-              ¿Qué vas a comer?
-            </label>
+          <textarea
+            className="w-full border rounded p-4 h-32"
+            placeholder="Ej: Milanesa con puré"
+            value={foodDescription}
+            onChange={(e) =>
+              setFoodDescription(e.target.value)
+            }
+          />
 
-            <textarea
-              className="w-full border-2 border-gray-100 rounded-xl p-4 h-36 focus:border-green-500 outline-none transition-all"
-              placeholder="Ej: Milanesa con puré y un vaso de jugo de naranja."
-              value={foodDescription}
-              onChange={(e) => setFoodDescription(e.target.value)}
-            />
+          <button
+            onClick={handleAnalyze}
+            disabled={loading || !foodDescription.trim()}
+            className="w-full mt-4 bg-green-700 text-white py-3 rounded font-bold"
+          >
+            {loading ? "PROCESANDO..." : "ANALIZAR"}
+          </button>
 
-            <button
-              onClick={handleAnalyze}
-              disabled={loading || !foodDescription.trim()}
-              className="w-full mt-4 bg-green-700 text-white py-4 rounded-xl font-black shadow-lg active:scale-95 transition-all disabled:opacity-50"
-            >
-              {loading ? "PROCESANDO..." : "ANALIZAR AHORA"}
-            </button>
-
-            {analysis && (
-              <div className="mt-8 pt-6 border-t border-gray-100">
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">
-                    {analysis}
-                  </pre>
-                </div>
-              </div>
-            )}
-          </div>
+          {analysis && (
+            <pre className="mt-6 bg-gray-50 p-4 rounded whitespace-pre-wrap">
+              {analysis}
+            </pre>
+          )}
         </div>
       </main>
     </div>

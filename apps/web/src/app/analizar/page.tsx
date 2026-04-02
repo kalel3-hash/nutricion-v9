@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase";
 import AnalizarClient from "./AnalizarClient";
 
@@ -8,7 +9,11 @@ export default async function AnalizarPage() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // ❌ NO redirect acá
+  // ✅ Igual que dashboard y perfil
+  if (!session) {
+    redirect("/login");
+  }
 
-  return <AnalizarClient userId={session?.user.id ?? null} />;
+  // ✅ userId SIEMPRE string
+  return <AnalizarClient userId={session.user.id} />;
 }
