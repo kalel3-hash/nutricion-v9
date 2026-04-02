@@ -11,13 +11,50 @@ type EvolutionRow = {
   score: number | null;
 };
 
-export default function EvolucionClient({ userId }: { userId: string }) {
+export default function EvolucionClient() {
   const supabase = createClient();
+
+  const [userId, setUserId] = useState<string>("");
+  const [loadingUser, setLoadingUser] = useState(true);
+
   const [rows, setRows] = useState<EvolutionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
+    let mounted = true;
+
+    const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!mounted) return;
+
+      if (!session) {
+        setUserId("");
+        setLoadingUser(false);
+        setLoading(false);
+        setError("Sesión no disponible.");
+        return;
+      }
+
+      setUserId(session.user.id);
+      setLoadingUser(false);
+    };
+
+    init();
+
+    return () => {
+      mounted = false;
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let mounted = true;
+
     const load = async () => {
       setLoading(true);
       setError("");
@@ -28,6 +65,8 @@ export default function EvolucionClient({ userId }: { userId: string }) {
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(30);
+
+      if (!mounted) return;
 
       if (qError) {
         setError(qError.message);
@@ -40,7 +79,19 @@ export default function EvolucionClient({ userId }: { userId: string }) {
     };
 
     load();
+
+    return () => {
+      mounted = false;
+    };
   }, [supabase, userId]);
+
+  if (loadingUser || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Cargando evolución…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
@@ -55,25 +106,19 @@ export default function EvolucionClient({ userId }: { userId: string }) {
         <div className="bg-white rounded-2xl shadow-xl p-6">
           <h2 className="text-lg font-bold mb-4">Evolución</h2>
 
-          {loading && (
-            <div className="text-gray-600 italic">
-              Cargando datos...
-            </div>
-          )}
-
-          {!loading && error && (
+          {error && (
             <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
-          {!loading && !error && rows.length === 0 && (
+          {!error && rows.length === 0 && (
             <div className="text-gray-600">
               Todavía no hay análisis guardados.
             </div>
           )}
 
-          {!loading && !error && rows.length > 0 && (
+          {!error && rows.length > 0 && (
             <div className="space-y-3">
               {rows.map((r) => (
                 <div
