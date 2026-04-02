@@ -19,8 +19,23 @@ type HealthProfileRow = {
   creatinine_mg_dl: number | null;
 };
 
-export default function PerfilClient({ userId }: { userId: string }) {
+export default function PerfilClient({
+  userId,
+}: {
+  userId: string | null;
+}) {
   const supabase = createClient();
+
+  /* =========================
+     Manejo OAuth (CLAVE)
+  ========================= */
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600 font-medium">
+        Verificando sesión...
+      </div>
+    );
+  }
 
   /* =========================
      Estados de Perfil
@@ -71,7 +86,7 @@ export default function PerfilClient({ userId }: { userId: string }) {
 
   if (loadingProfile) {
     return (
-      <div className="p-10 text-center">
+      <div className="min-h-screen flex items-center justify-center">
         Cargando perfil...
       </div>
     );
@@ -91,14 +106,20 @@ export default function PerfilClient({ userId }: { userId: string }) {
       full_name: fullName || null,
       age: age ? parseInt(age) : null,
       sex: sex || null,
-      total_cholesterol_mg_dl: totalChol ? parseFloat(totalChol) : null,
+      total_cholesterol_mg_dl: totalChol
+        ? parseFloat(totalChol)
+        : null,
       hdl_mg_dl: hdl ? parseFloat(hdl) : null,
       ldl_mg_dl: ldl ? parseFloat(ldl) : null,
-      triglycerides_mg_dl: triglycerides ? parseFloat(triglycerides) : null,
+      triglycerides_mg_dl: triglycerides
+        ? parseFloat(triglycerides)
+        : null,
       fasting_glucose_mg_dl: fastingGlucose
         ? parseFloat(fastingGlucose)
         : null,
-      creatinine_mg_dl: creatinine ? parseFloat(creatinine) : null,
+      creatinine_mg_dl: creatinine
+        ? parseFloat(creatinine)
+        : null,
     };
 
     const { error } = await supabase
@@ -117,10 +138,18 @@ export default function PerfilClient({ userId }: { userId: string }) {
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-sm">
-        <h2 className="text-lg font-bold mb-4">Mi Perfil de Salud</h2>
+        <h2 className="text-lg font-bold mb-4">
+          Mi Perfil de Salud
+        </h2>
 
-        {error && <p className="text-red-600">{error}</p>}
-        {success && <p className="text-green-600">Guardado con éxito</p>}
+        {error && (
+          <p className="text-red-600 mb-2">{error}</p>
+        )}
+        {success && (
+          <p className="text-green-600 mb-2">
+            Guardado con éxito
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
@@ -150,7 +179,9 @@ export default function PerfilClient({ userId }: { userId: string }) {
             </select>
           </div>
 
-          <h3 className="font-bold pt-4">Valores de laboratorio</h3>
+          <h3 className="font-bold pt-4">
+            Valores de laboratorio
+          </h3>
 
           <div className="grid grid-cols-2 gap-4">
             <input
@@ -182,7 +213,9 @@ export default function PerfilClient({ userId }: { userId: string }) {
               step="any"
               placeholder="Triglicéridos"
               value={triglycerides}
-              onChange={(e) => setTriglycerides(e.target.value)}
+              onChange={(e) =>
+                setTriglycerides(e.target.value)
+              }
               className="border p-2 rounded"
             />
             <input
@@ -190,7 +223,9 @@ export default function PerfilClient({ userId }: { userId: string }) {
               step="any"
               placeholder="Glucosa en ayunas"
               value={fastingGlucose}
-              onChange={(e) => setFastingGlucose(e.target.value)}
+              onChange={(e) =>
+                setFastingGlucose(e.target.value)
+              }
               className="border p-2 rounded"
             />
             <input
@@ -198,7 +233,9 @@ export default function PerfilClient({ userId }: { userId: string }) {
               step="any"
               placeholder="Creatinina"
               value={creatinine}
-              onChange={(e) => setCreatinine(e.target.value)}
+              onChange={(e) =>
+                setCreatinine(e.target.value)
+              }
               className="border p-2 rounded"
             />
           </div>
