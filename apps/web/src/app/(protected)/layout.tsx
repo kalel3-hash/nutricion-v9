@@ -1,20 +1,9 @@
-import { redirect } from "next/navigation";
-import { createServerClient } from "@/lib/supabase";
-
-export default async function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const supabase = await createServerClient();
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    redirect("/login");
+export default function ProtectedLayout({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    // NO se valida sesión acá
+    // El control se hace en el AuthGuard (client)
+    return <>{children}</>;
   }
-
-  return <>{children}</>;
-}
