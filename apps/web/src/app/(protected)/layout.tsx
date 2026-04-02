@@ -1,9 +1,16 @@
-export default function ProtectedLayout({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) {
-    // NO se valida sesión acá
-    // El control se hace en el AuthGuard (client)
-    return <>{children}</>;
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+
+export default async function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/login");
   }
+
+  return <>{children}</>;
+}

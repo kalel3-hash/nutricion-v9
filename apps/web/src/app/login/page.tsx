@@ -1,151 +1,82 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
-import { createClient } from "@/lib/supabase";
+// apps/web/src/app/login/page.tsx
 import Image from "next/image";
+import { signIn } from "@/auth"; // v5: server action
+import { redirect } from "next/navigation";
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams?: { callbackUrl?: string };
+}) {
+  const callbackUrl = searchParams?.callbackUrl || "/";
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    setLoading(false);
-
-    if (signInError) {
-      setError("Email o contraseña incorrectos");
-      return;
-    }
-
-    router.push("/dashboard");
-  }
-
-  async function handleGoogleOAuth() {
-    setError(null);
-    setOauthLoading(true);
-    try {
-      const supabase = createClient();
-      const redirectTo = `${window.location.origin}/dashboard`;
-
-      const { error: signInOAuthError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo },
-      });
-
-      if (signInOAuthError) {
-        setError(signInOAuthError.message);
-      }
-    } finally {
-      setOauthLoading(false);
-    }
+  async function googleSignIn() {
+    "use server";
+    // Inicia sesión con Google y redirige a la URL solicitada o a "/"
+    await signIn("google", { redirectTo: callbackUrl });
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-6 py-12">
-
-        <Link href="/" aria-label="Inicio VitalCross AI">
+    <main className="min-h-[80vh] grid place-items-center p-6">
+      <div className="w-full max-w-md rounded-xl bg-white shadow p-8 space-y-8">
+        <div className="flex flex-col items-center gap-3">
+          {/* Logo opcional */}
           <Image
-            src="/Logo.png"
+            src="/logo.png"
             alt="VitalCross AI"
-            width={500}
-            height={220}
-            className="object-contain mb-2"
+            width={120}
+            height={120}
+            priority
           />
-        </Link>
-
-        <h1 className="text-center text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-          Iniciar sesión
-        </h1>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          VitalCross AI — ingresá a tu cuenta
-        </p>
-
-        <button
-          type="button"
-          onClick={handleGoogleOAuth}
-          disabled={oauthLoading || loading}
-          className="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-300 bg-white px-6 py-4 text-base font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" className="h-5 w-5">
-            <path d="M10 1.8 A8.2 8.2 0 0 1 17.9 10" fill="none" stroke="#4285F4" strokeWidth="2.2" strokeLinecap="round"/>
-            <path d="M17.9 10 A8.2 8.2 0 0 1 10 18.2" fill="none" stroke="#34A853" strokeWidth="2.2" strokeLinecap="round"/>
-            <path d="M10 18.2 A8.2 8.2 0 0 1 2.1 10" fill="none" stroke="#EA4335" strokeWidth="2.2" strokeLinecap="round"/>
-            <path d="M2.1 10 A8.2 8.2 0 0 1 10 1.8" fill="none" stroke="#FBBC05" strokeWidth="2.2" strokeLinecap="round"/>
-            <circle cx="10" cy="10" r="5.3" fill="white"/>
-          </svg>
-          {oauthLoading ? "Redirigiendo…" : "Continuar con Google"}
-        </button>
-
-        <div className="mt-4 flex items-center gap-3">
-          <div className="h-px flex-1 bg-gray-200" />
-          <span className="text-sm font-medium text-gray-400">o</span>
-          <div className="h-px flex-1 bg-gray-200" />
+          <h1 className="text-2xl font-semibold text-center">Iniciar sesión</h1>
+          <p className="text-sm text-neutral-600 text-center">
+            Accedé con tu cuenta de Google
+          </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mt-4 w-full space-y-4 rounded-2xl bg-white/80 p-6 shadow-sm ring-1 ring-gray-100 sm:p-8"
-        >
-          {error ? (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm text-red-600">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="space-y-1.5 text-left">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              id="email" name="email" type="email" autoComplete="email" required
-              value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-              placeholder="correo@ejemplo.com"
-            />
-          </div>
-
-          <div className="space-y-1.5 text-left">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Contraseña</label>
-            <input
-              id="password" name="password" type="password" autoComplete="current-password" required
-              value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-              placeholder="Tu contraseña"
-            />
-          </div>
-
+        <form action={googleSignIn} className="space-y-4">
           <button
-            type="submit" disabled={loading}
-            className="mt-2 flex w-full items-center justify-center rounded-2xl bg-green-600 px-6 py-4 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            type="submit"
+            className="w-full rounded-md border border-neutral-300 bg-white hover:bg-neutral-50 py-3 px-4 text-sm font-medium flex items-center justify-center gap-2"
           >
-            {loading ? "Ingresando…" : "Iniciar sesión"}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 48 48"
+            >
+              <path
+                fill="#FFC107"
+                d="M43.611 20.083H42V20H24v8h11.303C33.807 31.657 29.314 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 12.955 3 4 11.955 4 23s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"
+              />
+              <path
+                fill="#FF3D00"
+                d="M6.306 14.691l6.571 4.817C14.651 16.018 18.961 13 24 13c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 16.318 3 9.656 7.337 6.306 14.691z"
+              />
+              <path
+                fill="#4CAF50"
+                d="M24 43c5.241 0 9.735-1.737 12.98-4.712l-5.99-4.998C29.9 34.669 27.17 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43z"
+              />
+              <path
+                fill="#1976D2"
+                d="M43.611 20.083H42V20H24v8h11.303C34.617 31.657 30.124 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43c8.837 0 16-7.163 16-16 0-1.341-.138-2.651-.389-3.917z"
+              />
+            </svg>
+            Continuar con Google
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-500">
-  <Link href="/recuperar-contrasena" className="font-medium text-green-700 hover:underline">
-    ¿Olvidaste tu contraseña?
-  </Link>
-</p>
-        <p className="mt-6 text-center text-sm text-gray-500">
-          ¿No tenés cuenta?{" "}
-          <Link href="/register" className="font-medium text-green-700 underline-offset-2 hover:text-green-800 hover:underline">
-            Registrate
-          </Link>
-        </p>
+
+        {/* Enlace de fallback si las server actions estuvieran bloqueadas */}
+        <div className="text-center">
+          <a
+            href={`/api/auth/signin?provider=google&callbackUrl=${encodeURIComponent(
+              callbackUrl
+            )}`}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ¿Problemas? Probar inicio con enlace directo
+          </a>
+        </div>
       </div>
     </main>
   );
