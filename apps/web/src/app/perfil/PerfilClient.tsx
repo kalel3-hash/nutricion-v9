@@ -70,7 +70,11 @@ export default function PerfilClient({ userId }: { userId: string }) {
   }, [supabase, userId]);
 
   if (loadingProfile) {
-    return <div className="p-10 text-center">Cargando perfil...</div>;
+    return (
+      <div className="p-10 text-center">
+        Cargando perfil...
+      </div>
+    );
   }
 
   /* =========================
@@ -90,7 +94,7 @@ export default function PerfilClient({ userId }: { userId: string }) {
       total_cholesterol_mg_dl: totalChol ? parseFloat(totalChol) : null,
       hdl_mg_dl: hdl ? parseFloat(hdl) : null,
       ldl_mg_dl: ldl ? parseFloat(ldl) : null,
-      triglycerides: null,
+      triglycerides_mg_dl: triglycerides ? parseFloat(triglycerides) : null,
       fasting_glucose_mg_dl: fastingGlucose
         ? parseFloat(fastingGlucose)
         : null,
@@ -146,10 +150,63 @@ export default function PerfilClient({ userId }: { userId: string }) {
             </select>
           </div>
 
+          <h3 className="font-bold pt-4">Valores de laboratorio</h3>
+
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              step="any"
+              placeholder="Colesterol total"
+              value={totalChol}
+              onChange={(e) => setTotalChol(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="HDL"
+              value={hdl}
+              onChange={(e) => setHdl(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="LDL"
+              value={ldl}
+              onChange={(e) => setLdl(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="Triglicéridos"
+              value={triglycerides}
+              onChange={(e) => setTriglycerides(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="Glucosa en ayunas"
+              value={fastingGlucose}
+              onChange={(e) => setFastingGlucose(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="Creatinina"
+              value={creatinine}
+              onChange={(e) => setCreatinine(e.target.value)}
+              className="border p-2 rounded"
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-700 text-white py-3 rounded-lg"
+            className="w-full bg-green-700 text-white py-3 rounded-lg font-bold disabled:opacity-50"
           >
             {loading ? "Guardando..." : "Guardar Perfil"}
           </button>
