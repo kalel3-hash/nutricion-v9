@@ -2,97 +2,42 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase";
 
-type HistoryRow = {
+type Item = {
   id: string;
-  created_at: string;
-  food_description: string;
-  analysis_result: string;
-  score: number | null;
+  created_at?: string;
+  food_description?: string;
+  score?: number | null;
+  analysis_result?: string;
 };
 
 export default function HistorialClient() {
-  const supabase = createClient();
-
-  const [userId, setUserId] = useState<string>("");
-  const [loadingUser, setLoadingUser] = useState(true);
-
-  const [rows, setRows] = useState<HistoryRow[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const init = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!mounted) return;
-
-      if (!session) {
-        setUserId("");
-        setLoadingUser(false);
-        setLoading(false);
-        setError("Sesión no disponible.");
-        return;
-      }
-
-      setUserId(session.user.id);
-      setLoadingUser(false);
-    };
-
-    init();
-
-    return () => {
-      mounted = false;
-    };
-  }, [supabase]);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    let mounted = true;
-
-    const load = async () => {
-      setLoading(true);
-      setError("");
-
-      const { data, error: qError } = await supabase
-        .from("analysis_history")
-        .select("id, created_at, food_description, analysis_result, score")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (!mounted) return;
-
-      if (qError) {
-        setError(qError.message);
-        setRows([]);
-      } else {
-        setRows((data as HistoryRow[]) ?? []);
-      }
-
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/history", { method: "GET" });
+      const json = await res.json();
+      setItems(json.items ?? []);
+    } catch (e: any) {
+      setError(e?.message || "Error cargando historial");
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
+  useEffect(() => {
     load();
+  }, []);
 
-    return () => {
-      mounted = false;
-    };
-  }, [supabase, userId]);
-
-  if (loadingUser || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Cargando historial…
-      </div>
-    );
-  }
+  const toggle = (id: string) => {
+    setOpenId((prev) => (prev === id ? null : id));
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
@@ -104,51 +49,82 @@ export default function HistorialClient() {
       </header>
 
       <main className="max-w-3xl mx-auto p-4 mt-4">
-        <div className="bg-white rounded-2xl shadow-xl p-6">
-          <h2 className="text-lg font-bold mb-4">Historial</h2>
-
-          {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">
-              {error}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-black">Historial</h1>
+              <button
+                onClick={load}
+                className="text-sm font-bold underline text-green-800"
+                disabled={loading}
+              >
+                {loading ? "Actualizando…" : "Actualizar"}
+              </button>
             </div>
-          )}
 
-          {!error && rows.length === 0 && (
-            <div className="text-gray-600">
-              Todavía no hay análisis guardados.
-            </div>
-          )}
+            {error && (
+              <div className="mt-4 bg-red-50 text-red-700 p-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
-          {!error && rows.length > 0 && (
-            <div className="space-y-4">
-              {rows.map((r) => (
-                <div key={r.id} className="border border-gray-100 rounded-xl p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-gray-900 truncate">
-                        {r.food_description}
+            {loading ? (
+              <div className="mt-6 text-gray-600 italic">Cargando…</div>
+            ) : items.length === 0 ? (
+              <div className="mt-6 text-gray-600">
+                Todavía no hay análisis guardados.
+              </div>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {items.map((it) => {
+                  const opened = openId === it.id;
+                  return (
+                    <div key={it.id} className="border border-gray-100 rounded-xl p-4">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="min-w-0">
+                          <div className="font-bold truncate">
+                            {it.food_description ?? "Sin descripción"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {it.created_at ? new Date(it.created_at).toLocaleString() : ""}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="text-sm font-black">
+                            {it.score != null ? `${it.score}/10` : "—"}
+                          </div>
+
+                          <button
+                            onClick={() => toggle(it.id)}
+                            className="text-sm font-bold underline text-green-800"
+                          >
+                            {opened ? "Ocultar" : "Ver"}
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {new Date(r.created_at).toLocaleString()}
-                      </div>
-                    </div>
 
-                    <div className="shrink-0">
-                      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-black bg-gray-100 text-gray-800">
-                        {r.score === null ? "—" : `${r.score}/10`}
-                      </span>
+                      {opened && it.analysis_result && (
+                        <div className="mt-3">
+                          <div className="flex justify-end">
+                            <button
+                              className="text-xs font-bold underline text-gray-600"
+                              onClick={() => navigator.clipboard.writeText(it.analysis_result || "")}
+                            >
+                              Copiar análisis
+                            </button>
+                          </div>
+                          <pre className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
+                            {it.analysis_result}
+                          </pre>
+                        </div>
+                      )}
                     </div>
-                  </div>
-
-                  <div className="mt-3 bg-gray-50 border border-gray-100 rounded-lg p-3">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans leading-relaxed">
-                      {r.analysis_result}
-                    </pre>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>
