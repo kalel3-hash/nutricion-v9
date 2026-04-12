@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import Link from "next/link";
+import Image from "next/image";
 import PerfilFormClient from "./PerfilFormClient";
 
 export default async function PerfilPage() {
@@ -7,39 +8,50 @@ export default async function PerfilPage() {
   const user = session?.user;
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans">
-      <header className="bg-green-900 text-white p-4 flex justify-between items-center shadow-md">
-        <h1 className="font-bold">VitalCross AI</h1>
+    <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
 
-        <Link href="/dashboard" className="bg-green-800 px-4 py-1 rounded-md text-sm">
-          Volver
+      {/* ── NAVBAR ── */}
+      <nav style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "0.875rem 2rem",
+        background: "#FFFFFF",
+        borderBottom: "1px solid #B5D4F4",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+      }}>
+        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+          <Image src="/Logo.png" alt="VitalCross AI" width={56} height={56} style={{ objectFit: "contain" }} />
+          <span style={{ fontSize: "15px", fontWeight: 600 }}>
+            <span style={{ color: "#185FA5" }}>Vital</span>
+            <span style={{ color: "#2C2C2A" }}>Cross AI</span>
+          </span>
         </Link>
-      </header>
+        <Link href="/dashboard" style={{
+          padding: "7px 18px",
+          borderRadius: "8px",
+          border: "1.5px solid #B5D4F4",
+          background: "transparent",
+          color: "#5F5E5A",
+          fontSize: "13px",
+          fontWeight: 500,
+          textDecoration: "none",
+        }}>
+          ← Volver
+        </Link>
+      </nav>
 
-      <main className="max-w-xl mx-auto p-4 mt-4 space-y-4">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-6">
-            <h1 className="text-xl font-black mb-4">Perfil</h1>
-
-            <div className="flex items-center gap-4">
-              {user?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.image} alt="Avatar" className="h-12 w-12 rounded-full" />
-              ) : (
-                <div className="h-12 w-12 rounded-full bg-gray-200" />
-              )}
-
-              <div>
-                <div className="font-bold">{user?.name ?? "Usuario"}</div>
-                <div className="text-sm text-gray-600">{user?.email ?? "Sin email"}</div>
-              </div>
-            </div>
-
-            <div className="mt-6 text-sm text-gray-700">
-              <p className="font-semibold mb-2">Estado</p>
-              <p>Sesión OK (NextAuth). Este perfil no depende de Supabase Auth.</p>
-            </div>
-          </div>
+      {/* ── CONTENIDO ── */}
+      <main style={{ maxWidth: "700px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+        <div style={{ marginBottom: "2rem" }}>
+          <h1 style={{ margin: "0 0 0.3rem", fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>
+            Perfil de salud
+          </h1>
+          <p style={{ margin: 0, fontSize: "0.9rem", color: "#5F5E5A" }}>
+            {user?.email ?? ""}
+          </p>
         </div>
 
         <PerfilFormClient />

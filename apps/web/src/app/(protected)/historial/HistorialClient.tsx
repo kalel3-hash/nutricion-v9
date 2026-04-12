@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 type Item = {
   id: string;
@@ -11,11 +12,18 @@ type Item = {
   analysis_result?: string;
 };
 
+const scoreColor = (s: number) => {
+  if (s <= 3) return { bg: "#FEE2E2", text: "#991B1B", border: "#FECACA" };
+  if (s <= 6) return { bg: "#FAEEDA", text: "#854F0B", border: "#FAC775" };
+  return { bg: "#EAF3DE", text: "#27500A", border: "#C0DD97" };
+};
+
 export default function HistorialClient() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -31,101 +39,214 @@ export default function HistorialClient() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  const toggle = (id: string) => {
-    setOpenId((prev) => (prev === id ? null : id));
+  const toggle = (id: string) => setOpenId((prev) => (prev === id ? null : id));
+
+  const copyToClipboard = async (text: string, id: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans">
-      <header className="bg-green-900 text-white p-4 flex justify-between items-center shadow-md">
-        <h1 className="font-bold">VitalCross AI</h1>
-        <Link href="/dashboard" className="bg-green-800 px-4 py-1 rounded-md text-sm">
-          Volver
+    <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
+
+      {/* ── NAVBAR ── */}
+      <nav style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "0.875rem 2rem", background: "#FFFFFF",
+        borderBottom: "1px solid #B5D4F4", position: "sticky", top: 0, zIndex: 50,
+      }}>
+        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+          <Image src="/Logo.png" alt="VitalCross AI" width={56} height={56} style={{ objectFit: "contain" }} />
+          <span style={{ fontSize: "15px", fontWeight: 600 }}>
+            <span style={{ color: "#185FA5" }}>Vital</span>
+            <span style={{ color: "#2C2C2A" }}>Cross AI</span>
+          </span>
         </Link>
-      </header>
+        <Link href="/dashboard" style={{
+          padding: "7px 18px", borderRadius: "8px", border: "1.5px solid #B5D4F4",
+          background: "transparent", color: "#5F5E5A", fontSize: "13px",
+          fontWeight: 500, textDecoration: "none",
+        }}>
+          ← Volver
+        </Link>
+      </nav>
 
-      <main className="max-w-3xl mx-auto p-4 mt-4">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-black">Historial</h1>
-              <button
-                onClick={load}
-                className="text-sm font-bold underline text-green-800"
-                disabled={loading}
-              >
-                {loading ? "Actualizando…" : "Actualizar"}
-              </button>
-            </div>
+      {/* ── MAIN ── */}
+      <main style={{ maxWidth: "720px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
-            {error && (
-              <div className="mt-4 bg-red-50 text-red-700 p-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+        {/* Encabezado */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+          <div>
+            <h1 style={{ margin: "0 0 0.3rem", fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>
+              Historial de análisis
+            </h1>
+            <p style={{ margin: 0, fontSize: "0.9rem", color: "#5F5E5A" }}>
+              Tus últimos {items.length} análisis guardados
+            </p>
+          </div>
+          <button
+            onClick={load}
+            disabled={loading}
+            style={{
+              padding: "7px 16px", borderRadius: "8px",
+              border: "1.5px solid #B5D4F4", background: "transparent",
+              color: "#185FA5", fontSize: "0.85rem", fontWeight: 600,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? "Actualizando…" : "↺ Actualizar"}
+          </button>
+        </div>
 
-            {loading ? (
-              <div className="mt-6 text-gray-600 italic">Cargando…</div>
-            ) : items.length === 0 ? (
-              <div className="mt-6 text-gray-600">
-                Todavía no hay análisis guardados.
-              </div>
-            ) : (
-              <div className="mt-6 space-y-4">
-                {items.map((it) => {
-                  const opened = openId === it.id;
-                  return (
-                    <div key={it.id} className="border border-gray-100 rounded-xl p-4">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="min-w-0">
-                          <div className="font-bold truncate">
-                            {it.food_description ?? "Sin descripción"}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {it.created_at ? new Date(it.created_at).toLocaleString() : ""}
-                          </div>
-                        </div>
+        {/* Error */}
+        {error && (
+          <div style={{
+            background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px",
+            padding: "0.75rem 1rem", marginBottom: "1rem",
+            fontSize: "0.875rem", color: "#991B1B",
+          }}>
+            {error}
+          </div>
+        )}
 
-                        <div className="flex items-center gap-3">
-                          <div className="text-sm font-black">
-                            {it.score != null ? `${it.score}/10` : "—"}
-                          </div>
+        {/* Loading */}
+        {loading && (
+          <p style={{ color: "#5F5E5A", fontSize: "0.9rem", textAlign: "center", padding: "3rem 0" }}>
+            Cargando historial…
+          </p>
+        )}
 
-                          <button
-                            onClick={() => toggle(it.id)}
-                            className="text-sm font-bold underline text-green-800"
-                          >
-                            {opened ? "Ocultar" : "Ver"}
-                          </button>
-                        </div>
-                      </div>
+        {/* Vacío */}
+        {!loading && items.length === 0 && (
+          <div style={{
+            background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4",
+            padding: "3rem", textAlign: "center",
+          }}>
+            <p style={{ margin: "0 0 1rem", fontSize: "0.95rem", color: "#5F5E5A" }}>
+              Todavía no hay análisis guardados.
+            </p>
+            <Link href="/analizar" style={{
+              display: "inline-block", padding: "0.7rem 1.5rem",
+              borderRadius: "8px", background: "#185FA5",
+              color: "#FFFFFF", fontSize: "0.9rem", fontWeight: 600, textDecoration: "none",
+            }}>
+              Hacer mi primer análisis
+            </Link>
+          </div>
+        )}
 
-                      {opened && it.analysis_result && (
-                        <div className="mt-3">
-                          <div className="flex justify-end">
-                            <button
-                              className="text-xs font-bold underline text-gray-600"
-                              onClick={() => navigator.clipboard.writeText(it.analysis_result || "")}
-                            >
-                              Copiar análisis
-                            </button>
-                          </div>
-                          <pre className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
-                            {it.analysis_result}
-                          </pre>
+        {/* Lista */}
+        {!loading && items.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+            {items.map((it) => {
+              const opened = openId === it.id;
+              const s = it.score ?? null;
+              const colors = s !== null ? scoreColor(s) : null;
+
+              return (
+                <div key={it.id} style={{
+                  background: "#FFFFFF", borderRadius: "12px",
+                  border: "1px solid #B5D4F4",
+                  boxShadow: "0 2px 8px rgba(24,95,165,0.05)",
+                  overflow: "hidden",
+                }}>
+                  {/* Fila principal */}
+                  <div style={{
+                    display: "flex", alignItems: "center",
+                    justifyContent: "space-between", gap: "1rem",
+                    padding: "1rem 1.25rem",
+                  }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{
+                        margin: "0 0 0.2rem", fontWeight: 700,
+                        fontSize: "0.95rem", color: "#2C2C2A",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {it.food_description ?? "Sin descripción"}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#888780" }}>
+                        {it.created_at ? new Date(it.created_at).toLocaleString("es-AR") : ""}
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.875rem", flexShrink: 0 }}>
+                      {/* Badge puntaje */}
+                      {s !== null && colors && (
+                        <div style={{
+                          padding: "4px 12px", borderRadius: "20px",
+                          background: colors.bg, border: `1px solid ${colors.border}`,
+                          fontSize: "0.875rem", fontWeight: 700, color: colors.text,
+                        }}>
+                          {s}/10
                         </div>
                       )}
+
+                      {/* Botón expandir */}
+                      <button
+                        onClick={() => toggle(it.id)}
+                        style={{
+                          padding: "5px 14px", borderRadius: "6px",
+                          border: "1.5px solid #B5D4F4", background: "transparent",
+                          color: "#185FA5", fontSize: "0.82rem", fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {opened ? "Ocultar" : "Ver"}
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+
+                  {/* Análisis expandido */}
+                  {opened && it.analysis_result && (
+                    <div style={{
+                      borderTop: "1px solid #E6F1FB",
+                      padding: "1.25rem",
+                      background: "#F8FBFF",
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
+                        <button
+                          onClick={() => copyToClipboard(it.analysis_result || "", it.id)}
+                          style={{
+                            padding: "4px 12px", borderRadius: "6px",
+                            border: "1px solid #B5D4F4", background: "#FFFFFF",
+                            color: copied === it.id ? "#27500A" : "#185FA5",
+                            fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
+                          }}
+                        >
+                          {copied === it.id ? "✅ Copiado" : "Copiar análisis"}
+                        </button>
+                      </div>
+                      <pre style={{
+                        whiteSpace: "pre-wrap", fontSize: "0.875rem",
+                        color: "#2C2C2A", fontFamily: "inherit",
+                        lineHeight: 1.7, margin: 0,
+                      }}>
+                        {it.analysis_result}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
+
+        {/* Link a nuevo análisis */}
+        {!loading && items.length > 0 && (
+          <div style={{ textAlign: "center", marginTop: "2rem" }}>
+            <Link href="/analizar" style={{
+              fontSize: "0.9rem", color: "#185FA5",
+              fontWeight: 600, textDecoration: "none",
+            }}>
+              + Hacer nuevo análisis
+            </Link>
+          </div>
+        )}
+
       </main>
     </div>
   );

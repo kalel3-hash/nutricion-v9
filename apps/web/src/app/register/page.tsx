@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase";
 
@@ -36,9 +37,7 @@ export default function RegisterPage() {
       email: email.trim(),
       password,
       options: {
-        data: {
-          full_name: fullName.trim(),
-        },
+        data: { full_name: fullName.trim() },
       },
     });
 
@@ -62,220 +61,242 @@ export default function RegisterPage() {
     try {
       const supabase = createClient();
       const redirectTo = `${window.location.origin}/dashboard`;
-
       const { error: signInOAuthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo },
       });
-
-      if (signInOAuthError) {
-        setError(signInOAuthError.message);
-      }
+      if (signInOAuthError) setError(signInOAuthError.message);
     } finally {
       setOauthLoading(false);
     }
   }
 
+  const inputStyle = {
+    width: "100%",
+    padding: "0.75rem 1rem",
+    borderRadius: "8px",
+    border: "1.5px solid #B5D4F4",
+    fontSize: "0.95rem",
+    color: "#2C2C2A",
+    outline: "none",
+    background: "#F8FBFF",
+    boxSizing: "border-box" as const,
+  };
+
+  const labelStyle = {
+    display: "block",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#2C2C2A",
+    marginBottom: "6px",
+  };
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-6 py-12">
-        <Link
-          href="/"
-          className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-600 shadow-md transition-opacity hover:opacity-90"
-          aria-label="Inicio Nutrición V9"
-        >
-          <span className="text-2xl font-extrabold tracking-tight text-white">
-            N9
+    <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
+
+      {/* ── NAVBAR ── */}
+      <nav style={{
+        display: "flex",
+        alignItems: "center",
+        padding: "0.875rem 2rem",
+        background: "#FFFFFF",
+        borderBottom: "1px solid #B5D4F4",
+      }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+          <Image src="/Logo.png" alt="VitalCross AI" width={56} height={56} style={{ objectFit: "contain" }} />
+          <span style={{ fontSize: "15px", fontWeight: 600 }}>
+            <span style={{ color: "#185FA5" }}>Vital</span>
+            <span style={{ color: "#2C2C2A" }}>Cross AI</span>
           </span>
         </Link>
+      </nav>
 
-        <h1 className="text-center text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-          Crear cuenta
-        </h1>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Nutrición V9 — registrate para continuar
-        </p>
+      {/* ── CONTENIDO ── */}
+      <main style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "calc(100vh - 65px)",
+        padding: "2rem 1rem",
+      }}>
+        <div style={{
+          width: "100%",
+          maxWidth: "420px",
+          background: "#FFFFFF",
+          borderRadius: "16px",
+          border: "1px solid #B5D4F4",
+          boxShadow: "0 4px 24px rgba(24, 95, 165, 0.08)",
+          padding: "2.5rem 2rem",
+        }}>
 
-        <div className="mt-8 w-full rounded-2xl bg-white/80 p-6 shadow-sm ring-1 ring-gray-100 sm:p-8">
+          {/* Logo + título */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "2rem" }}>
+            <Image src="/Logo.png" alt="VitalCross AI" width={120} height={120} style={{ objectFit: "contain" }} priority />
+            <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>
+              Crear cuenta
+            </h1>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "#5F5E5A" }}>
+              Registrate para continuar
+            </p>
+          </div>
+
+          {/* Estado: éxito */}
           {success ? (
-            <div className="space-y-4 text-center">
-              <p className="rounded-xl bg-green-50 px-4 py-4 text-sm font-medium text-green-800">
+            <div style={{ textAlign: "center" }}>
+              <div style={{
+                background: "#EAF3DE",
+                border: "1px solid #C0DD97",
+                borderRadius: "8px",
+                padding: "1rem",
+                marginBottom: "1.25rem",
+                fontSize: "0.875rem",
+                color: "#27500A",
+              }}>
                 ¡Cuenta creada! Revisá tu email para confirmar tu cuenta.
-              </p>
-              <Link
-                href="/login"
-                className="inline-flex w-full items-center justify-center rounded-2xl border border-green-600 bg-white px-6 py-3 text-base font-semibold text-green-700 transition-colors hover:bg-green-50"
-              >
+              </div>
+              <Link href="/login" style={{
+                display: "block",
+                padding: "0.8rem",
+                borderRadius: "8px",
+                background: "#185FA5",
+                color: "#FFFFFF",
+                fontSize: "0.95rem",
+                fontWeight: 600,
+                textDecoration: "none",
+                textAlign: "center",
+              }}>
                 Ir a iniciar sesión
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              {error ? (
-                <p className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm text-red-600">
+            <>
+              {/* Error */}
+              {error && (
+                <div style={{
+                  background: "#FEE2E2",
+                  border: "1px solid #FECACA",
+                  borderRadius: "8px",
+                  padding: "0.75rem 1rem",
+                  marginBottom: "1.25rem",
+                  fontSize: "0.875rem",
+                  color: "#991B1B",
+                  textAlign: "center",
+                }}>
                   {error}
-                </p>
-              ) : null}
+                </div>
+              )}
 
+              {/* Botón Google */}
               <button
                 type="button"
                 onClick={handleGoogleOAuth}
                 disabled={oauthLoading || loading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-300 bg-white px-6 py-4 text-base font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  width: "100%",
+                  padding: "0.8rem",
+                  borderRadius: "8px",
+                  background: "#FFFFFF",
+                  border: "1.5px solid #B5D4F4",
+                  fontSize: "0.95rem",
+                  fontWeight: 500,
+                  color: "#2C2C2A",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
+                  marginBottom: "1.25rem",
+                  opacity: oauthLoading || loading ? 0.6 : 1,
+                }}
               >
-                <svg
-                  viewBox="0 0 20 20"
-                  width="20"
-                  height="20"
-                  aria-hidden="true"
-                  className="h-5 w-5"
-                >
-                  <path
-                    d="M10 1.8 A8.2 8.2 0 0 1 17.9 10"
-                    fill="none"
-                    stroke="#4285F4"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M17.9 10 A8.2 8.2 0 0 1 10 18.2"
-                    fill="none"
-                    stroke="#34A853"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M10 18.2 A8.2 8.2 0 0 1 2.1 10"
-                    fill="none"
-                    stroke="#EA4335"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M2.1 10 A8.2 8.2 0 0 1 10 1.8"
-                    fill="none"
-                    stroke="#FBBC05"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="10" cy="10" r="5.3" fill="white" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
+                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.807 31.657 29.314 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 12.955 3 4 11.955 4 23s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/>
+                  <path fill="#FF3D00" d="M6.306 14.691l6.571 4.817C14.651 16.018 18.961 13 24 13c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 16.318 3 9.656 7.337 6.306 14.691z"/>
+                  <path fill="#4CAF50" d="M24 43c5.241 0 9.735-1.737 12.98-4.712l-5.99-4.998C29.9 34.669 27.17 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43z"/>
+                  <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303C34.617 31.657 30.124 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43c8.837 0 16-7.163 16-16 0-1.341-.138-2.651-.389-3.917z"/>
                 </svg>
-
                 {oauthLoading ? "Redirigiendo…" : "Continuar con Google"}
               </button>
 
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-gray-200" />
-                <span className="text-sm font-medium text-gray-400">o</span>
-                <div className="h-px flex-1 bg-gray-200" />
+              {/* Divisor */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "1.25rem" }}>
+                <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
+                <span style={{ fontSize: "0.8rem", color: "#888780" }}>o</span>
+                <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Formulario */}
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div>
+                  <label htmlFor="fullName" style={labelStyle}>Nombre completo</label>
+                  <input
+                    id="fullName" name="fullName" type="text" autoComplete="name" required
+                    value={fullName} onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Tu nombre" style={inputStyle}
+                  />
+                </div>
 
-              <div className="space-y-1.5 text-left">
-                <label
-                  htmlFor="fullName"
-                  className="block text-sm font-medium text-gray-700"
+                <div>
+                  <label htmlFor="email" style={labelStyle}>Email</label>
+                  <input
+                    id="email" name="email" type="email" autoComplete="email" required
+                    value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="correo@ejemplo.com" style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" style={labelStyle}>Contraseña</label>
+                  <input
+                    id="password" name="password" type="password" autoComplete="new-password" required
+                    value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres" style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" style={labelStyle}>Confirmar contraseña</label>
+                  <input
+                    id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required
+                    value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repetí la contraseña" style={inputStyle}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: "100%",
+                    padding: "0.8rem",
+                    borderRadius: "8px",
+                    background: "#185FA5",
+                    color: "#FFFFFF",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    border: "none",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.6 : 1,
+                    marginTop: "0.25rem",
+                  }}
                 >
-                  Nombre completo
-                </label>
-                <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-                  placeholder="Tu nombre"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-                  placeholder="correo@ejemplo.com"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Contraseña
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Confirmar contraseña
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-                  placeholder="Repetí la contraseña"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-2 flex w-full items-center justify-center rounded-2xl bg-green-600 px-6 py-4 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "Creando cuenta…" : "Crear cuenta"}
-              </button>
+                  {loading ? "Creando cuenta…" : "Crear cuenta"}
+                </button>
               </form>
-            </div>
+
+              {/* Link a login */}
+              <div style={{ borderTop: "1px solid #E6F1FB", marginTop: "1.5rem", paddingTop: "1.25rem", textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: "0.875rem", color: "#5F5E5A" }}>
+                  ¿Ya tenés cuenta?{" "}
+                  <Link href="/login" style={{ color: "#185FA5", fontWeight: 600, textDecoration: "none" }}>
+                    Iniciar sesión
+                  </Link>
+                </p>
+              </div>
+            </>
           )}
         </div>
-
-        {!success ? (
-          <p className="mt-6 text-center text-sm text-gray-500">
-            ¿Ya tenés cuenta?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-green-700 underline-offset-2 hover:text-green-800 hover:underline"
-            >
-              Iniciar sesión
-            </Link>
-          </p>
-        ) : null}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
