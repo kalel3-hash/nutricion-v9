@@ -30,122 +30,245 @@ export default async function LoginPage({
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F0F6FF", display: "flex", flexDirection: "column" }}>
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      fontFamily: "system-ui, sans-serif",
+    }}>
 
-      <nav style={{
+      {/* ── PANEL IZQUIERDO — Branding ── */}
+      <div style={{
+        flex: 1,
+        background: "linear-gradient(160deg, #0C447C 0%, #185FA5 50%, #378ADD 100%)",
         display: "flex",
-        alignItems: "center",
-        padding: "0.875rem 2rem",
-        background: "#FFFFFF",
-        borderBottom: "1px solid #B5D4F4",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        padding: "4rem 5rem",
+        position: "relative",
+        overflow: "hidden",
       }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <Image src="/Logo.png" alt="VitalCross AI" width={56} height={56} style={{ objectFit: "contain" }} />
-          <span style={{ fontSize: "15px", fontWeight: 600 }}>
-            <span style={{ color: "#185FA5" }}>Vital</span>
-            <span style={{ color: "#2C2C2A" }}>Cross AI</span>
-          </span>
-        </Link>
-      </nav>
 
-      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
+        {/* Círculos decorativos de fondo */}
         <div style={{
-          width: "100%", maxWidth: "420px", background: "#FFFFFF",
-          borderRadius: "16px", border: "1px solid #B5D4F4",
-          boxShadow: "0 4px 24px rgba(24,95,165,0.08)", padding: "2.5rem 2rem",
-        }}>
+          position: "absolute", top: "-80px", right: "-80px",
+          width: "320px", height: "320px", borderRadius: "50%",
+          background: "rgba(255,255,255,0.05)",
+        }} />
+        <div style={{
+          position: "absolute", bottom: "-60px", left: "-60px",
+          width: "240px", height: "240px", borderRadius: "50%",
+          background: "rgba(255,255,255,0.05)",
+        }} />
+        <div style={{
+          position: "absolute", bottom: "120px", right: "40px",
+          width: "140px", height: "140px", borderRadius: "50%",
+          background: "rgba(255,255,255,0.04)",
+        }} />
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "2rem" }}>
-            <Image src="/Logo.png" alt="VitalCross AI" width={250} height={250} style={{ objectFit: "contain" }} priority />
-            <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>Iniciar sesión</h1>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "#5F5E5A" }}>Ingresá con tu cuenta de VitalCross AI</p>
-          </div>
-
-          {hasError && (
-            <div style={{
-              background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px",
-              padding: "0.75rem 1rem", marginBottom: "1.25rem",
-              fontSize: "0.875rem", color: "#991B1B", textAlign: "center",
-            }}>
-              Email o contraseña incorrectos. Intentá de nuevo.
-            </div>
-          )}
-
-          <form action={credentialsSignIn} style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.25rem" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#2C2C2A" }}>Email</label>
-              <input type="email" name="email" required placeholder="tu@email.com" style={{
-                padding: "0.75rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4",
-                fontSize: "0.95rem", color: "#2C2C2A", outline: "none",
-                background: "#F8FBFF", width: "100%", boxSizing: "border-box",
-              }} />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#2C2C2A" }}>Contraseña</label>
-                <Link href="/recuperar-contrasena" style={{ fontSize: "0.8rem", color: "#185FA5", textDecoration: "none" }}>
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
-              <input type="password" name="password" required placeholder="••••••••" style={{
-                padding: "0.75rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4",
-                fontSize: "0.95rem", color: "#2C2C2A", outline: "none",
-                background: "#F8FBFF", width: "100%", boxSizing: "border-box",
-              }} />
-            </div>
-
-            <button type="submit" style={{
-              width: "100%", padding: "0.8rem", borderRadius: "8px",
-              background: "#185FA5", color: "#FFFFFF", fontSize: "0.95rem",
-              fontWeight: 600, border: "none", cursor: "pointer", marginTop: "0.25rem",
-            }}>
-              Iniciar sesión
-            </button>
-          </form>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "1.25rem" }}>
-            <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
-            <span style={{ fontSize: "0.8rem", color: "#888780" }}>o</span>
-            <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
-          </div>
-
-          <form action={googleSignIn}>
-            <button type="submit" style={{
-              width: "100%", padding: "0.8rem", borderRadius: "8px",
-              background: "#FFFFFF", border: "1.5px solid #B5D4F4",
-              fontSize: "0.95rem", fontWeight: 500, color: "#2C2C2A",
-              cursor: "pointer", display: "flex", alignItems: "center",
-              justifyContent: "center", gap: "10px",
-            }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
-                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.807 31.657 29.314 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 12.955 3 4 11.955 4 23s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/>
-                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.817C14.651 16.018 18.961 13 24 13c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 16.318 3 9.656 7.337 6.306 14.691z"/>
-                <path fill="#4CAF50" d="M24 43c5.241 0 9.735-1.737 12.98-4.712l-5.99-4.998C29.9 34.669 27.17 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43z"/>
-                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303C34.617 31.657 30.124 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43c8.837 0 16-7.163 16-16 0-1.341-.138-2.651-.389-3.917z"/>
-              </svg>
-              Continuar con Google
-            </button>
-          </form>
-
-          <div style={{ textAlign: "center", marginTop: "0.75rem" }}>
-            <a href={`/api/auth/signin?provider=google&callbackUrl=${encodeURIComponent(callbackUrl)}`}
-              style={{ fontSize: "0.8rem", color: "#378ADD", textDecoration: "none" }}>
-              ¿Problemas? Probar inicio con enlace directo
-            </a>
-          </div>
-
-          <div style={{ borderTop: "1px solid #E6F1FB", marginTop: "1.5rem", paddingTop: "1.25rem", textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "#5F5E5A" }}>
-              ¿No tenés cuenta?{" "}
-              <Link href="/register" style={{ color: "#185FA5", fontWeight: 600, textDecoration: "none" }}>
-                Crear cuenta gratis
-              </Link>
-            </p>
-          </div>
-
+        {/* Logo */}
+        <div style={{ marginBottom: "2.5rem", position: "relative", zIndex: 1, width: "100px", height: "100px", borderRadius: "24px", background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Image
+            src="/Logo.png"
+            alt="VitalCross AI"
+            width={280}
+            height={280}
+            style={{ objectFit: "contain" }}
+            priority
+          />
         </div>
-      </main>
+
+        {/* Nombre */}
+        <h1 style={{
+          margin: "0 0 1rem",
+          fontSize: "clamp(2rem, 4vw, 3rem)",
+          fontWeight: 700,
+          color: "#FFFFFF",
+          letterSpacing: "-0.5px",
+          lineHeight: 1.1,
+          position: "relative",
+          zIndex: 1,
+        }}>
+          Vital<span style={{ color: "#85B7EB" }}>Cross AI</span>
+        </h1>
+
+        {/* Slogan */}
+        <p style={{
+          margin: "0 0 1.5rem",
+          fontSize: "clamp(1.1rem, 2vw, 1.35rem)",
+          fontWeight: 500,
+          color: "#B5D4F4",
+          lineHeight: 1.4,
+          position: "relative",
+          zIndex: 1,
+        }}>
+          Tu nutrición, personalizada<br />según tu salud real.
+        </p>
+
+        {/* Descripción */}
+        <p style={{
+          margin: "0 0 3rem",
+          fontSize: "0.95rem",
+          color: "rgba(255,255,255,0.7)",
+          lineHeight: 1.75,
+          maxWidth: "380px",
+          position: "relative",
+          zIndex: 1,
+        }}>
+          Analizá cualquier alimento considerando tus marcadores clínicos reales: colesterol, glucemia, función renal, medicamentos y más. La IA evalúa cada consulta según tu perfil de salud único.
+        </p>
+
+        {/* Puntos destacados */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", position: "relative", zIndex: 1 }}>
+          {[
+            "Análisis personalizado con IA",
+            "Basado en tus estudios clínicos",
+            "OCR automático de PDF de laboratorio",
+          ].map((item) => (
+            <div key={item} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{
+                width: "20px", height: "20px", borderRadius: "50%",
+                background: "rgba(255,255,255,0.15)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.8)" }}>{item}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer izquierdo */}
+        <p style={{
+          position: "absolute", bottom: "2rem", left: "5rem",
+          fontSize: "0.75rem", color: "rgba(255,255,255,0.4)",
+          margin: 0, zIndex: 1,
+        }}>
+          © 2026 VitalCross AI
+        </p>
+      </div>
+
+      {/* ── PANEL DERECHO — Formulario ── */}
+      <div style={{
+        width: "460px",
+        flexShrink: 0,
+        background: "#FFFFFF",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        padding: "3rem 3rem",
+        borderLeft: "1px solid #B5D4F4",
+      }}>
+
+        <div style={{ marginBottom: "2rem" }}>
+          <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>
+            Iniciar sesión
+          </h2>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "#5F5E5A" }}>
+            ¿No tenés cuenta?{" "}
+            <Link href="/register" style={{ color: "#185FA5", fontWeight: 600, textDecoration: "none" }}>
+              Crear cuenta gratis
+            </Link>
+          </p>
+        </div>
+
+        {/* Error */}
+        {hasError && (
+          <div style={{
+            background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px",
+            padding: "0.75rem 1rem", marginBottom: "1.25rem",
+            fontSize: "0.875rem", color: "#991B1B", textAlign: "center",
+          }}>
+            Email o contraseña incorrectos. Intentá de nuevo.
+          </div>
+        )}
+
+        {/* Formulario email + contraseña */}
+        <form action={credentialsSignIn} style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.25rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#2C2C2A" }}>
+              Email
+            </label>
+            <input
+              type="email" name="email" required placeholder="tu@email.com"
+              style={{
+                padding: "0.75rem 1rem", borderRadius: "8px",
+                border: "1.5px solid #B5D4F4", fontSize: "0.95rem",
+                color: "#2C2C2A", outline: "none", background: "#F8FBFF",
+                width: "100%", boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#2C2C2A" }}>
+                Contraseña
+              </label>
+              <Link href="/recuperar-contrasena" style={{ fontSize: "0.8rem", color: "#185FA5", textDecoration: "none" }}>
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
+            <input
+              type="password" name="password" required placeholder="••••••••"
+              style={{
+                padding: "0.75rem 1rem", borderRadius: "8px",
+                border: "1.5px solid #B5D4F4", fontSize: "0.95rem",
+                color: "#2C2C2A", outline: "none", background: "#F8FBFF",
+                width: "100%", boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <button type="submit" style={{
+            width: "100%", padding: "0.8rem", borderRadius: "8px",
+            background: "#185FA5", color: "#FFFFFF", fontSize: "0.95rem",
+            fontWeight: 600, border: "none", cursor: "pointer", marginTop: "0.25rem",
+          }}>
+            Iniciar sesión
+          </button>
+        </form>
+
+        {/* Divisor */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "1.25rem" }}>
+          <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
+          <span style={{ fontSize: "0.8rem", color: "#888780" }}>o</span>
+          <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
+        </div>
+
+        {/* Botón Google */}
+        <form action={googleSignIn}>
+          <button type="submit" style={{
+            width: "100%", padding: "0.8rem", borderRadius: "8px",
+            background: "#FFFFFF", border: "1.5px solid #B5D4F4",
+            fontSize: "0.95rem", fontWeight: 500, color: "#2C2C2A",
+            cursor: "pointer", display: "flex", alignItems: "center",
+            justifyContent: "center", gap: "10px",
+          }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.807 31.657 29.314 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 12.955 3 4 11.955 4 23s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/>
+              <path fill="#FF3D00" d="M6.306 14.691l6.571 4.817C14.651 16.018 18.961 13 24 13c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 16.318 3 9.656 7.337 6.306 14.691z"/>
+              <path fill="#4CAF50" d="M24 43c5.241 0 9.735-1.737 12.98-4.712l-5.99-4.998C29.9 34.669 27.17 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43z"/>
+              <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303C34.617 31.657 30.124 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43c8.837 0 16-7.163 16-16 0-1.341-.138-2.651-.389-3.917z"/>
+            </svg>
+            Continuar con Google
+          </button>
+        </form>
+
+        {/* Fallback Google */}
+        <div style={{ textAlign: "center", marginTop: "0.75rem" }}>
+          <a
+            href={`/api/auth/signin?provider=google&callbackUrl=${encodeURIComponent(callbackUrl)}`}
+            style={{ fontSize: "0.8rem", color: "#378ADD", textDecoration: "none" }}
+          >
+            ¿Problemas? Probar inicio con enlace directo
+          </a>
+        </div>
+
+      </div>
     </div>
   );
 }
