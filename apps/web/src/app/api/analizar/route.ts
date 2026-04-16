@@ -1,4 +1,6 @@
 ﻿import https from "https";
+import { auth } from "@/auth";
+import { checkAndIncrementUsage } from "@/lib/usage";
 
 export const runtime = "nodejs";
 
@@ -27,9 +29,43 @@ Este analisis es orientativo y no reemplaza la consulta con un profesional de la
 }
 
 export async function POST(request: Request) {
+  // ✅ LÍMITE DE USO (al inicio)
+  const session = await auth();
+
+  if (!session?.user?.email) {
+    return new Response(JSON.stringify({ error: "No autenticado" }), {
+      status: 401,
+    });
+  }
+
+  const usage = await checkAndIncrementUsage(session.user.email);
+
+  if (!usage.allowed) {
+    if (usage.reason === "daily") {
+      return new Response(
+        JSON.stringify({
+          error: "Alcanzaste el límite de 5 consultas diarias. Volvé mañana.",
+        }),
+        { status: 429 }
+      );
+    }
+
+    if (usage.reason === "monthly") {
+      return new Response(
+        JSON.stringify({
+          error: "Alcanzaste el límite de 30 consultas mensuales.",
+        }),
+        { status: 429 }
+      );
+    }
+  }
+
+  // ✅ LÓGICA ORIGINAL (sin cambios)
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "Falta GEMINI_API_KEY" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Falta GEMINI_API_KEY" }), {
+      status: 500,
+    });
   }
 
   const body = await request.json();
@@ -37,7 +73,10 @@ export async function POST(request: Request) {
   const healthProfile = body.health_profile as HealthProfile;
 
   if (!foodDescription) {
-    return new Response(JSON.stringify({ error: "Falta food_description" }), { status: 400 });
+    return new Response(
+      JSON.stringify({ error: "Falta food_description" }),
+      { status: 400 }
+    );
   }
 
   const prompt = buildPrompt(healthProfile || {}, foodDescription);
@@ -69,7 +108,8 @@ export async function POST(request: Request) {
               if (line.startsWith("data: ")) {
                 try {
                   const json = JSON.parse(line.slice(6));
-                  const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                  const text =
+                    json.candidates?.[0]?.content?.parts?.[0]?.text;
                   if (text) controller.enqueue(text);
                 } catch {}
               }
