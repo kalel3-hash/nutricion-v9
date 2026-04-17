@@ -19,6 +19,11 @@ Describí brevemente lo que ves (ingredientes visibles, método de cocción apro
 
   return `Sos un asistente de análisis nutricional experto. ${intro}
 
+En la PRIMERA LÍNEA de tu respuesta escribí exactamente esto (sin asteriscos ni formato):
+IDENTIFICACIÓN: [nombre del alimento o producto, porción estimada o peso aproximado visible]
+
+Luego dejá una línea en blanco y continuá con los 4 bloques.
+
 Perfil clínico del usuario: ${profileJson}
 
 Responde EXACTAMENTE con estos 4 bloques. En el BLOQUE 1 el puntaje SIEMPRE debe estar en el formato EXACTO "X/10" donde X es un número del 1 al 10:
@@ -42,75 +47,53 @@ Este análisis es orientativo y no reemplaza la consulta con un profesional de l
 export async function POST(request: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "Falta GEMINI_API_KEY" }), {
-      status: 500,
-    });
+    return new Response(JSON.stringify({ error: "Falta GEMINI_API_KEY" }), { status: 500 });
   }
 
   try {
-    // ✅ LÍMITE DE USO (primera lógica dentro del try)
     const session = await auth();
-
     if (!session?.user?.email) {
-      return new Response(JSON.stringify({ error: "No autenticado" }), {
-        status: 401,
-      });
+      return new Response(JSON.stringify({ error: "No autenticado" }), { status: 401 });
     }
 
     const usage = await checkAndIncrementUsage(session.user.email);
-
     if (!usage.allowed) {
       if (usage.reason === "daily") {
         return new Response(
-          JSON.stringify({
-            error:
-              "Alcanzaste el límite de 5 consultas diarias. Volvé mañana.",
-          }),
+          JSON.stringify({ error: "Alcanzaste el límite de 5 consultas diarias. Volvé mañana." }),
           { status: 429 }
         );
       }
-
       if (usage.reason === "monthly") {
         return new Response(
-          JSON.stringify({
-            error: "Alcanzaste el límite de 30 consultas mensuales.",
-          }),
+          JSON.stringify({ error: "Alcanzaste el límite de 30 consultas mensuales." }),
           { status: 429 }
         );
       }
     }
 
-    // ✅ LÓGICA ORIGINAL (sin cambios)
     const formData = await request.formData();
     const file = formData.get("image") as File;
     const type = (formData.get("type") as PhotoType) ?? "alimento";
     const healthProfileStr = formData.get("health_profile") as string;
-    const healthProfile: HealthProfile = healthProfileStr
-      ? JSON.parse(healthProfileStr)
-      : {};
+    const healthProfile: HealthProfile = healthProfileStr ? JSON.parse(healthProfileStr) : {};
 
     if (!file) {
-      return new Response(
-        JSON.stringify({ error: "No se recibió imagen" }),
-        { status: 400 }
-      );
+      return new Response(JSON.stringify({ error: "No se recibió imagen" }), { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const imageBase64 = buffer.toString("base64");
     const mimeType = file.type || "image/jpeg";
-
     const prompt = buildPhotoPrompt(healthProfile, type);
 
     const payload = JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { inline_data: { mime_type: mimeType, data: imageBase64 } },
-            { text: prompt },
-          ],
-        },
-      ],
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: mimeType, data: imageBase64 } },
+          { text: prompt },
+        ],
+      }],
       generationConfig: { temperature: 0 },
     });
 
@@ -136,8 +119,7 @@ export async function POST(request: Request) {
                 if (line.startsWith("data: ")) {
                   try {
                     const json = JSON.parse(line.slice(6));
-                    const text =
-                      json.candidates?.[0]?.content?.parts?.[0]?.text;
+                    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (text) controller.enqueue(text);
                   } catch {}
                 }
@@ -156,11 +138,9 @@ export async function POST(request: Request) {
     return new Response(stream, {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
+
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Error desconocido";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-    });
+    const message = err instanceof Error ? err.message : "Error desconocido";
+    return new Response(JSON.stringify({ error: message }), { status: 500 });
   }
 }

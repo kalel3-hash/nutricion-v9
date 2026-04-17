@@ -14,76 +14,97 @@ export default function RecuperarContrasenaPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     const supabase = createClient();
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email.trim(),
       { redirectTo: `${window.location.origin}/nueva-contrasena` }
     );
-
     setLoading(false);
-
-    if (resetError) {
-      setError(resetError.message);
-      return;
-    }
-
+    if (resetError) { setError(resetError.message); return; }
     setSuccess(true);
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-6 py-12">
-        <Link href="/" aria-label="Inicio VitalCross AI">
-          <Image src="/Logo.png" alt="VitalCross AI" width={240} height={80} className="object-contain mb-2" />
-        </Link>
+    <div style={{ minHeight: "100vh", background: "#F0F6FF", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}>
 
-        <h1 className="text-center text-3xl font-bold tracking-tight text-gray-900 mt-4">
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", marginBottom: "2rem" }}>
+        <Image src="/Logo.png" alt="VitalCross AI" width={48} height={48} style={{ objectFit: "contain" }} />
+        <span style={{ fontSize: "18px", fontWeight: 700 }}>
+          <span style={{ color: "#185FA5" }}>Vital</span>
+          <span style={{ color: "#2C2C2A" }}>Cross AI</span>
+        </span>
+      </Link>
+
+      <div style={{
+        background: "#FFFFFF", borderRadius: "16px", border: "1px solid #B5D4F4",
+        boxShadow: "0 4px 24px rgba(24,95,165,0.08)",
+        padding: "2.5rem 2rem", width: "100%", maxWidth: "420px",
+      }}>
+        <h1 style={{ margin: "0 0 0.5rem", fontSize: "1.4rem", fontWeight: 700, color: "#2C2C2A", textAlign: "center" }}>
           Recuperar contraseña
         </h1>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p style={{ margin: "0 0 2rem", fontSize: "0.9rem", color: "#5F5E5A", textAlign: "center", lineHeight: 1.6 }}>
           Ingresá tu email y te enviamos un link para restablecer tu contraseña
         </p>
 
         {success ? (
-          <div className="mt-8 w-full rounded-2xl bg-green-50 p-6 text-center ring-1 ring-green-200">
-            <p className="text-green-800 font-semibold text-lg mb-2">✓ Email enviado</p>
-            <p className="text-green-700 text-sm">
-              Revisá tu bandeja de entrada y hacé click en el link que te enviamos.
-            </p>
-            <Link href="/login" className="mt-4 inline-block text-sm font-medium text-green-700 underline">
-              Volver al login
-            </Link>
+          <div style={{ textAlign: "center" }}>
+            <div style={{
+              background: "#EAF3DE", border: "1px solid #C0DD97", borderRadius: "12px",
+              padding: "1.5rem", marginBottom: "1.5rem",
+            }}>
+              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>✓</div>
+              <p style={{ margin: "0 0 0.5rem", fontWeight: 700, color: "#27500A", fontSize: "1rem" }}>Email enviado</p>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: "#27500A", lineHeight: 1.6 }}>
+                Revisá tu bandeja de entrada y hacé click en el link que te enviamos.
+              </p>
+            </div>
+            <Link href="/login" style={{
+              display: "inline-block", padding: "0.75rem 1.5rem", borderRadius: "8px",
+              background: "#185FA5", color: "#FFFFFF", fontWeight: 600,
+              fontSize: "0.9rem", textDecoration: "none",
+            }}>Volver al login</Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-8 w-full space-y-4 rounded-2xl bg-white/80 p-6 shadow-sm ring-1 ring-gray-100 sm:p-8">
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             {error && (
-              <p className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm text-red-600">{error}</p>
+              <div style={{
+                background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px",
+                padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B",
+              }}>{error}</div>
             )}
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <div>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#2C2C2A", marginBottom: "6px" }}>
+                Email
+              </label>
               <input
-                id="email" type="email" required
-                value={email} onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                type="email" required value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="correo@ejemplo.com"
+                style={{
+                  width: "100%", padding: "0.75rem 1rem", borderRadius: "8px",
+                  border: "1.5px solid #B5D4F4", fontSize: "0.95rem", color: "#2C2C2A",
+                  background: "#F8FBFF", outline: "none", boxSizing: "border-box",
+                }}
               />
             </div>
-            <button
-              type="submit" disabled={loading}
-              className="flex w-full items-center justify-center rounded-2xl bg-green-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-green-700 disabled:opacity-60"
-            >
+            <button type="submit" disabled={loading} style={{
+              padding: "0.875rem", borderRadius: "8px",
+              background: loading ? "#378ADD" : "#185FA5", color: "#FFFFFF",
+              fontSize: "0.95rem", fontWeight: 700, border: "none",
+              cursor: loading ? "not-allowed" : "pointer",
+            }}>
               {loading ? "Enviando…" : "Enviar link de recuperación"}
             </button>
           </form>
         )}
 
-        <p className="mt-6 text-center text-sm text-gray-500">
-          <Link href="/login" className="font-medium text-green-700 hover:underline">
-            Volver al login
+        <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+          <Link href="/login" style={{ fontSize: "0.875rem", color: "#185FA5", textDecoration: "none", fontWeight: 500 }}>
+            ← Volver al login
           </Link>
-        </p>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

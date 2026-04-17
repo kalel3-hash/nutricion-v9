@@ -7,7 +7,6 @@ import Image from "next/image";
 type ProfileResponse = { profile: any | null; error?: string };
 type PhotoType = "alimento" | "etiqueta";
 
-// ── Parser de bloques ──────────────────────────────────────────────────────
 type Block = { key: string; title: string; content: string };
 
 function parseBlocks(text: string): Block[] {
@@ -18,16 +17,13 @@ function parseBlocks(text: string): Block[] {
     titles.push({ index: match.index, raw: match[0], label: match[1].trim() });
   }
   if (titles.length === 0) return [{ key: "raw", title: "Análisis", content: text }];
-
   return titles.map((t, i) => {
     const start = t.index + t.raw.length;
     const end = i + 1 < titles.length ? titles[i + 1].index : text.length;
-    const content = text.slice(start, end).trim();
-    return { key: t.label, title: t.label, content };
+    return { key: t.label, title: t.label, content: text.slice(start, end).trim() };
   });
 }
 
-// ── Estilos por bloque ─────────────────────────────────────────────────────
 const blockStyles: Record<string, { bg: string; border: string; titleColor: string; icon: string }> = {
   default:                  { bg: "#F8FBFF",  border: "#B5D4F4", titleColor: "#0C447C", icon: "📋" },
   PUNTAJE:                  { bg: "#F8FBFF",  border: "#B5D4F4", titleColor: "#0C447C", icon: "🎯" },
@@ -43,7 +39,6 @@ function getStyle(label: string) {
   return blockStyles.default;
 }
 
-// ── Renderizado especial para fuentes con links ────────────────────────────
 function renderSources(content: string) {
   const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
   return lines.map((line, i) => {
@@ -67,8 +62,7 @@ function renderSources(content: string) {
       <div key={i} style={{
         display: "flex", flexDirection: "column", gap: "6px",
         padding: "0.875rem", borderRadius: "8px",
-        background: "#FFFFFF", border: "1px solid #D3D1C7",
-        marginBottom: "0.75rem",
+        background: "#FFFFFF", border: "1px solid #D3D1C7", marginBottom: "0.75rem",
       }}>
         <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.65, color: "#2C2C2A" }}>
           <strong style={{ color: "#444441" }}>{i + 1}.</strong> {cleanLine}
@@ -92,7 +86,6 @@ function renderSources(content: string) {
   });
 }
 
-// ── Renderizado de contenido en párrafos ───────────────────────────────────
 function renderContent(content: string, titleColor: string) {
   const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
   return lines.map((line, i) => {
@@ -119,7 +112,6 @@ function renderContent(content: string, titleColor: string) {
   });
 }
 
-// ── Componente principal ───────────────────────────────────────────────────
 export default function AnalizarClient() {
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -127,8 +119,8 @@ export default function AnalizarClient() {
   const [analysis, setAnalysis] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [identification, setIdentification] = useState("");
 
-  // ── NUEVO: estado de uso ──
   const [usage, setUsage] = useState<{
     daily_used: number;
     daily_limit: number;
@@ -150,8 +142,6 @@ export default function AnalizarClient() {
         const json = (await res.json()) as ProfileResponse;
         if (!mounted) return;
         setProfile(json.profile ?? null);
-
-        // ── NUEVO: cargar usage ──
         const usageRes = await fetch("/api/usage");
         if (usageRes.ok) {
           const usageData = await usageRes.json();
@@ -169,13 +159,11 @@ export default function AnalizarClient() {
     return () => { mounted = false; };
   }, []);
 
-  // ── NUEVO: refrescar contadores ──
   const refreshUsage = async () => {
     const res = await fetch("/api/usage");
     if (res.ok) setUsage(await res.json());
   };
 
-  // ── NUEVO: limite alcanzado ──
   const limitReached = usage !== null && (
     usage.daily_used >= usage.daily_limit ||
     usage.monthly_used >= usage.monthly_limit
@@ -187,6 +175,7 @@ export default function AnalizarClient() {
     setPhotoFile(null);
     setAnalysis("");
     setError("");
+    setIdentification("");
     fileInputRef.current?.click();
   };
 
@@ -219,6 +208,8 @@ export default function AnalizarClient() {
       const { done, value } = await reader.read();
       if (done) break;
       text += decoder.decode(value);
+      const idMatch = text.match(/^IDENTIFICACIÓN:\s*(.+)/m);
+      if (idMatch) setIdentification(idMatch[1].trim());
       setAnalysis(text);
     }
     return text;
@@ -226,14 +217,13 @@ export default function AnalizarClient() {
 
   const handleAnalyzeText = async () => {
     if (!foodDescription.trim()) return;
-    setLoading(true); setAnalysis(""); setError("");
+    setLoading(true); setAnalysis(""); setError(""); setIdentification("");
     try {
       const response = await fetch("/api/analizar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ food_description: foodDescription, health_profile: profile }),
       });
-      // ── NUEVO: manejo 429 ──
       if (response.status === 429) {
         const errData = await response.json();
         setError(errData.error ?? "Límite de consultas alcanzado.");
@@ -243,7 +233,7 @@ export default function AnalizarClient() {
       if (!response.ok) throw new Error("Error en el motor de IA");
       const text = await streamResponse(response);
       await saveToHistory(text, foodDescription);
-      await refreshUsage(); // ── NUEVO ──
+      await refreshUsage();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexión");
     } finally {
@@ -253,14 +243,13 @@ export default function AnalizarClient() {
 
   const handleAnalyzePhoto = async () => {
     if (!photoFile) return;
-    setLoading(true); setAnalysis(""); setError("");
+    setLoading(true); setAnalysis(""); setError(""); setIdentification("");
     try {
       const formData = new FormData();
       formData.append("image", photoFile);
       formData.append("type", photoType);
       formData.append("health_profile", JSON.stringify(profile ?? {}));
       const response = await fetch("/api/analizar-foto", { method: "POST", body: formData });
-      // ── NUEVO: manejo 429 ──
       if (response.status === 429) {
         const errData = await response.json();
         setError(errData.error ?? "Límite de consultas alcanzado.");
@@ -271,7 +260,7 @@ export default function AnalizarClient() {
       const text = await streamResponse(response);
       const label = photoType === "etiqueta" ? "Etiqueta nutricional (foto)" : "Alimento analizado por foto";
       await saveToHistory(text, label);
-      await refreshUsage(); // ── NUEVO ──
+      await refreshUsage();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexión");
     } finally {
@@ -341,12 +330,11 @@ export default function AnalizarClient() {
           </div>
         )}
 
-        {/* ── NUEVO: Banner de contadores ── */}
+        {/* Banner de contadores */}
         {usage && (
           <div style={{
             background: "#FFFFFF", border: "1px solid #B5D4F4",
-            borderRadius: "10px", padding: "0.875rem 1.25rem",
-            marginBottom: "1.25rem",
+            borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1.25rem",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
               <div style={{ textAlign: "center" }}>
@@ -468,7 +456,7 @@ export default function AnalizarClient() {
             background: loading ? "#378ADD" : "#185FA5", color: "#FFFFFF",
             fontSize: "0.95rem", fontWeight: 700, border: "none",
             cursor: loading || !foodDescription.trim() || limitReached ? "not-allowed" : "pointer",
-            opacity: !foodDescription.trim() && !loading || limitReached ? 0.5 : 1,
+            opacity: (!foodDescription.trim() && !loading) || limitReached ? 0.5 : 1,
           }}>
             {loading ? "Analizando…" : "Analizar ahora"}
           </button>
@@ -486,7 +474,27 @@ export default function AnalizarClient() {
           </div>
         )}
 
-        {/* ── RESULTADO FORMATEADO ── */}
+        {/* IDENTIFICACIÓN POR FOTO */}
+        {identification && (
+          <div style={{
+            background: "#E6F1FB", border: "1px solid #85B7EB",
+            borderRadius: "10px", padding: "0.875rem 1.25rem",
+            marginBottom: "0.75rem",
+            display: "flex", alignItems: "flex-start", gap: "10px",
+          }}>
+            <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>🔍</span>
+            <div>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#185FA5", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                La IA identificó
+              </span>
+              <p style={{ margin: "2px 0 0", fontSize: "0.9rem", color: "#0C447C", fontWeight: 500, lineHeight: 1.5 }}>
+                {identification}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* RESULTADO FORMATEADO */}
         {analysis && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {score !== null && (
