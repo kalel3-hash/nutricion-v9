@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { compactProfile } from "@/lib/usage";
 
 type ProfileResponse = { profile: any | null; error?: string };
 type PhotoType = "alimento" | "etiqueta";
@@ -248,7 +249,8 @@ export default function AnalizarClient() {
       const formData = new FormData();
       formData.append("image", photoFile);
       formData.append("type", photoType);
-      formData.append("health_profile", JSON.stringify(compactProfile(profile ?? {})));      const response = await fetch("/api/analizar-foto", { method: "POST", body: formData });
+      formData.append("health_profile", JSON.stringify(compactProfile(profile ?? {})));
+      const response = await fetch("/api/analizar-foto", { method: "POST", body: formData });
       if (response.status === 429) {
         const errData = await response.json();
         setError(errData.error ?? "Límite de consultas alcanzado.");
