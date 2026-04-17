@@ -136,9 +136,7 @@ export async function checkAndIncrementUsage(
 /**
  * Obtiene el estado de uso (solo lectura, nunca escribe)
  */
-export async function getUsageStatus(
-  email: string
-): Promise<UsageStatus> {
+export async function getUsageStatus(email: string): Promise<UsageStatus> {
   const today = getTodayDate();
   const currentMonth = getFirstDayOfMonth();
 
@@ -148,7 +146,6 @@ export async function getUsageStatus(
     .eq("owner_email", email)
     .single();
 
-  // Si no existe registro
   if (!row) {
     return {
       allowed: true,
@@ -164,14 +161,8 @@ export async function getUsageStatus(
   let dailyCount = row.daily_count ?? 0;
   let monthlyCount = row.monthly_count ?? 0;
 
-  // Reset lógico (sin escribir)
-  if (row.daily_reset_date !== today) {
-    dailyCount = 0;
-  }
-
-  if (row.monthly_reset_month !== currentMonth) {
-    monthlyCount = 0;
-  }
+  if (row.daily_reset_date !== today) dailyCount = 0;
+  if (row.monthly_reset_month !== currentMonth) monthlyCount = 0;
 
   const dailyRemaining = Math.max(0, DAILY_LIMIT - dailyCount);
   const monthlyRemaining = Math.max(0, MONTHLY_LIMIT - monthlyCount);
@@ -184,8 +175,15 @@ export async function getUsageStatus(
     monthly_used: monthlyCount,
     monthly_limit: MONTHLY_LIMIT,
     monthly_remaining: monthlyRemaining,
-    // Elimina campos null, undefined, arrays vacíos y strings vacíos
-export function compactProfile(profile: Record<string, unknown>): Record<string, unknown> {
+  };
+}
+
+/**
+ * Elimina campos null, undefined, arrays vacíos y strings vacíos
+ */
+export function compactProfile(
+  profile: Record<string, unknown>
+): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(profile).filter(([_, v]) => {
       if (v === null || v === undefined) return false;
@@ -194,6 +192,4 @@ export function compactProfile(profile: Record<string, unknown>): Record<string,
       return true;
     })
   );
-}
-  };
 }
