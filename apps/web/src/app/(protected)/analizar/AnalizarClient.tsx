@@ -222,7 +222,7 @@ export default function AnalizarClient() {
       const response = await fetch("/api/analizar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ food_description: foodDescription, health_profile: profile }),
+        body: JSON.stringify({ food_description: foodDescription, health_profile: compactProfile(profile ?? {}) }),
       });
       if (response.status === 429) {
         const errData = await response.json();
@@ -248,8 +248,7 @@ export default function AnalizarClient() {
       const formData = new FormData();
       formData.append("image", photoFile);
       formData.append("type", photoType);
-      formData.append("health_profile", JSON.stringify(profile ?? {}));
-      const response = await fetch("/api/analizar-foto", { method: "POST", body: formData });
+      formData.append("health_profile", JSON.stringify(compactProfile(profile ?? {})));      const response = await fetch("/api/analizar-foto", { method: "POST", body: formData });
       if (response.status === 429) {
         const errData = await response.json();
         setError(errData.error ?? "Límite de consultas alcanzado.");

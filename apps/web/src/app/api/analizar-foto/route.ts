@@ -8,40 +8,37 @@ type HealthProfile = Record<string, unknown>;
 type PhotoType = "alimento" | "etiqueta";
 
 function buildPhotoPrompt(healthProfile: HealthProfile, type: PhotoType) {
-  const profileJson = JSON.stringify(healthProfile, null, 2);
+  const perfil = Object.keys(healthProfile).length > 0
+    ? JSON.stringify(healthProfile)
+    : "sin datos clínicos";
 
-  const intro =
-    type === "etiqueta"
-      ? `Analizá esta etiqueta de información nutricional de un producto alimentario.
-Primero identificá el producto y extraé los valores nutricionales principales (calorías, proteínas, grasas, carbohidratos, sodio, azúcares, etc.).`
-      : `Identificá qué alimento o plato aparece en la imagen.
-Describí brevemente lo que ves (ingredientes visibles, método de cocción aproximado, porción estimada).`;
+  const intro = type === "etiqueta"
+    ? "Analizá la etiqueta nutricional de la imagen. Extraé calorías, proteínas, grasas, carbohidratos, sodio y azúcares."
+    : "Identificá el alimento o plato de la imagen. Estimá ingredientes, cocción y porción.";
 
-  return `Sos un asistente de análisis nutricional experto. ${intro}
+  return `${intro}
 
-En la PRIMERA LÍNEA de tu respuesta escribí exactamente esto (sin asteriscos ni formato):
-IDENTIFICACIÓN: [nombre del alimento o producto, porción estimada o peso aproximado visible]
+Perfil clínico del paciente: ${perfil}
 
-Luego dejá una línea en blanco y continuá con los 4 bloques.
+PRIMERA LÍNEA obligatoria:
+IDENTIFICACIÓN: [nombre del alimento, porción estimada]
 
-Perfil clínico del usuario: ${profileJson}
-
-Responde EXACTAMENTE con estos 4 bloques. En el BLOQUE 1 el puntaje SIEMPRE debe estar en el formato EXACTO "X/10" donde X es un número del 1 al 10:
+Luego respondé EXACTAMENTE con estos 4 bloques:
 
 BLOQUE 1 - PUNTAJE:
-[numero]/10 - [etiqueta: PROHIBIDO/DESACONSEJADO/NEUTRO/RECOMENDABLE/ALTAMENTE RECOMENDABLE]
-[resumen de 2-3 líneas sobre el alimento identificado]
+[X]/10 - [PROHIBIDO/DESACONSEJADO/NEUTRO/RECOMENDABLE/ALTAMENTE RECOMENDABLE]
+[2-3 líneas de resumen]
 
 BLOQUE 2 - ANÁLISIS PERSONALIZADO:
-[análisis vinculando el alimento con los marcadores clínicos del usuario]
+[vinculá el alimento con los marcadores clínicos del paciente]
 
 BLOQUE 3 - SUGERENCIAS DE MEJORA:
-[porciones recomendadas y modificaciones posibles]
+[porción recomendada y modificaciones posibles]
 
 BLOQUE 4 - FUENTES:
-[mínimo 2 referencias científicas]
+[2 referencias científicas]
 
-Este análisis es orientativo y no reemplaza la consulta con un profesional de la salud.`;
+Análisis orientativo. No reemplaza consulta profesional.`;
 }
 
 export async function POST(request: Request) {

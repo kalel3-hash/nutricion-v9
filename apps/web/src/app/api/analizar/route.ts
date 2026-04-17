@@ -7,25 +7,29 @@ export const runtime = "nodejs";
 type HealthProfile = Record<string, unknown>;
 
 function buildPrompt(healthProfile: HealthProfile, foodDescription: string) {
-  const profileJson = JSON.stringify(healthProfile, null, 2);
-  return `Sos un asistente de analisis nutricional. Perfil del usuario: ${profileJson}. Alimento: ${foodDescription}.
+  const perfil = Object.keys(healthProfile).length > 0
+    ? JSON.stringify(healthProfile)
+    : "sin datos clínicos";
 
-Responde EXACTAMENTE con estos 4 bloques. En el BLOQUE 1 el puntaje SIEMPRE debe estar en el formato EXACTO "X/10" donde X es un numero del 1 al 10:
+  return `Analizá nutricionalmente este alimento para el paciente con este perfil clínico: ${perfil}
+Alimento: ${foodDescription}
+
+Respondé EXACTAMENTE con estos 4 bloques:
 
 BLOQUE 1 - PUNTAJE:
-[numero]/10 - [etiqueta: PROHIBIDO/DESACONSEJADO/NEUTRO/RECOMENDABLE/ALTAMENTE RECOMENDABLE]
-[resumen de 2-3 lineas]
+[X]/10 - [PROHIBIDO/DESACONSEJADO/NEUTRO/RECOMENDABLE/ALTAMENTE RECOMENDABLE]
+[2-3 líneas de resumen]
 
-BLOQUE 2 - ANALISIS PERSONALIZADO:
-[analisis vinculando el alimento con los marcadores clinicos del usuario]
+BLOQUE 2 - ANÁLISIS PERSONALIZADO:
+[vinculá el alimento con los marcadores clínicos del paciente]
 
 BLOQUE 3 - SUGERENCIAS DE MEJORA:
-[porciones recomendadas y modificaciones posibles]
+[porción recomendada y modificaciones posibles]
 
 BLOQUE 4 - FUENTES:
-[minimo 2 referencias cientificas]
+[2 referencias científicas]
 
-Este analisis es orientativo y no reemplaza la consulta con un profesional de la salud.`;
+Análisis orientativo. No reemplaza consulta profesional.`;
 }
 
 export async function POST(request: Request) {
