@@ -2,14 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
-
-const cards = [
-  { icon: "🧬", title: "Perfil de salud", subtitle: "Cargá tus datos clínicos", href: "/perfil" },
-  { icon: "🥗", title: "Analizar alimento", subtitle: "Describí o fotografiá un alimento", href: "/analizar" },
-  { icon: "📈", title: "Mi evolución", subtitle: "Ver historial y gráficos", href: "/evolucion" },
-] as const;
 
 const flipCards = [
   {
@@ -36,6 +30,45 @@ export default function DashboardPage() {
   const [signingOut, setSigningOut] = useState(false);
   const [flipped, setFlipped] = useState<number | null>(null);
 
+  const [profileStatus, setProfileStatus] = useState<"loading" | "completo" | "incompleto">("loading");
+  const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number } | null>(null);
+  const [avgScore, setAvgScore] = useState<number | null>(null);
+  const [totalAnalysis, setTotalAnalysis] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Perfil
+    fetch("/api/profile")
+      .then(r => r.json())
+      .then(d => {
+        const p = d.profile;
+        const completo = p && p.full_name && p.age && p.weight_kg && p.height_cm;
+        setProfileStatus(completo ? "completo" : "incompleto");
+      })
+      .catch(() => setProfileStatus("incompleto"));
+
+    // Uso
+    fetch("/api/usage")
+      .then(r => r.json())
+      .then(d => setUsage({ daily_used: d.daily_used, daily_limit: d.daily_limit }))
+      .catch(() => {});
+
+    // Historial
+    fetch("/api/history")
+      .then(r => r.json())
+      .then(d => {
+        const items = d.history ?? [];
+        const withScore = items.filter((h: any) => h.score !== null && h.score !== undefined);
+        if (withScore.length > 0) {
+          const avg = withScore.reduce((acc: number, h: any) => acc + h.score, 0) / withScore.length;
+          setAvgScore(Math.round(avg * 10) / 10);
+        } else {
+          setAvgScore(null);
+        }
+        setTotalAnalysis(items.length);
+      })
+      .catch(() => {});
+  }, []);
+
   async function handleSignOut() {
     setSigningOut(true);
     await signOut({ callbackUrl: "/login" });
@@ -43,10 +76,61 @@ export default function DashboardPage() {
 
   const toggle = (i: number) => setFlipped(prev => prev === i ? null : i);
 
+  // Colores puntaje
+  const scoreColor = (s: number) => {
+    if (s <= 3) return { text: "#991B1B", bg: "#FEE2E2", border: "#FECACA" };
+    if (s <= 6) return { text: "#854F0B", bg: "#FAEEDA", border: "#FAC775" };
+    return { text: "#27500A", bg: "#EAF3DE", border: "#C0DD97" };
+  };
+
+  // Consultas disponibles
+  const disponibles = usage ? usage.daily_limit - usage.daily_used : null;
+  const usageColor = disponibles === null ? "#185FA5"
+    : disponibles === 0 ? "#991B1B"
+    : disponibles === 1 ? "#854F0B"
+    : "#185FA5";
+
+  const cards = [
+    {
+      icon: "🧬",
+      title: "Perfil de salud",
+      href: "/perfil",
+      badge: profileStatus === "loading" ? null
+        : profileStatus === "completo"
+          ? { label: "Completo", bg: "#EAF3DE", border: "#C0DD97", text: "#27500A" }
+          : { label: "Incompleto", bg: "#FAEEDA", border: "#FAC775", text: "#854F0B" },
+      subtitle: profileStatus === "loading" ? "Cargando…"
+        : profileStatus === "completo" ? "Tu perfil clínico está cargado"
+        : "Completá tus datos clínicos",
+    },
+    {
+      icon: "🥗",
+      title: "Analizar alimento",
+      href: "/analizar",
+      badge: disponibles === null ? null
+        : disponibles === 0
+          ? { label: "Sin consultas hoy", bg: "#FEE2E2", border: "#FECACA", text: "#991B1B" }
+          : { label: `${disponibles}/${usage?.daily_limit} disponibles hoy`, bg: "#E6F1FB", border: "#B5D4F4", text: usageColor },
+      subtitle: disponibles === null ? "Cargando…"
+        : disponibles === 0 ? "Límite diario alcanzado"
+        : "Describí o fotografiá un alimento",
+    },
+    {
+      icon: "📈",
+      title: "Mi evolución",
+      href: "/evolucion",
+      badge: avgScore === null ? null
+        : { ...scoreColor(avgScore), label: `Promedio: ${avgScore}/10` },
+      subtitle: totalAnalysis === null ? "Cargando…"
+        : totalAnalysis === 0 ? "Aún no tenés análisis"
+        : `${totalAnalysis} análisis realizados`,
+    },
+  ];
+
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
 
-      {/* ── NAVBAR ── */}
+      {/* NAVBAR */}
       <nav style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "0.875rem 2rem", background: "#FFFFFF",
@@ -72,7 +156,7 @@ export default function DashboardPage() {
         </button>
       </nav>
 
-      {/* ── MAIN ── */}
+      {/* MAIN */}
       <main style={{ maxWidth: "900px", margin: "0 auto", padding: "3rem 1.5rem" }}>
 
         {/* Saludo */}
@@ -83,7 +167,7 @@ export default function DashboardPage() {
           <p style={{ margin: 0, fontSize: "0.95rem", color: "#5F5E5A" }}>¿Qué querés hacer hoy?</p>
         </div>
 
-        {/* Tarjetas compactas de navegación */}
+        {/* Tarjetas */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.875rem", marginBottom: "3rem" }}>
           {cards.map((card) => (
             <Link key={card.title} href={card.href} style={{
@@ -105,9 +189,21 @@ export default function DashboardPage() {
             >
               <span style={{ fontSize: "1.6rem", flexShrink: 0 }} aria-hidden>{card.icon}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 style={{ margin: "0 0 0.15rem", fontSize: "0.9rem", fontWeight: 700, color: "#2C2C2A" }}>
-                  {card.title}
-                </h2>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "0.2rem", flexWrap: "wrap" }}>
+                  <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#2C2C2A" }}>
+                    {card.title}
+                  </h2>
+                  {card.badge && (
+                    <span style={{
+                      fontSize: "0.68rem", fontWeight: 700, padding: "1px 7px",
+                      borderRadius: "20px", background: card.badge.bg,
+                      border: `1px solid ${card.badge.border}`, color: card.badge.text,
+                      whiteSpace: "nowrap",
+                    }}>
+                      {card.badge.label}
+                    </span>
+                  )}
+                </div>
                 <p style={{ margin: 0, fontSize: "0.78rem", color: "#5F5E5A", lineHeight: 1.4 }}>
                   {card.subtitle}
                 </p>
@@ -119,7 +215,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* ── CÓMO FUNCIONA — Flip cards ── */}
+        {/* CÓMO FUNCIONA — Flip cards */}
         <div style={{ borderTop: "1px solid #B5D4F4", paddingTop: "2.5rem" }}>
           <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.15rem", fontWeight: 700, color: "#2C2C2A" }}>
             ¿Cómo funciona VitalCross AI?
@@ -128,7 +224,6 @@ export default function DashboardPage() {
             Hacé click en cada tarjeta para ver los detalles.
           </p>
 
-          {/* Estilos para perspectiva 3D */}
           <style>{`
             .flip-card { perspective: 1000px; cursor: pointer; }
             .flip-inner {
@@ -174,8 +269,6 @@ export default function DashboardPage() {
                 aria-label={`Ver detalle: ${card.title}`}
               >
                 <div className={`flip-inner${flipped === i ? " flipped" : ""}`}>
-
-                  {/* FRENTE */}
                   <div className="flip-front">
                     <div style={{
                       width: "56px", height: "56px", borderRadius: "50%",
@@ -207,8 +300,6 @@ export default function DashboardPage() {
                       Click para ver más
                     </p>
                   </div>
-
-                  {/* DORSO */}
                   <div className="flip-back">
                     <div style={{
                       width: "44px", height: "44px", borderRadius: "50%",
@@ -232,7 +323,6 @@ export default function DashboardPage() {
                       {card.desc}
                     </p>
                   </div>
-
                 </div>
               </div>
             ))}
