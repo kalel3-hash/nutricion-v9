@@ -28,14 +28,24 @@ const rowStyle: React.CSSProperties = {
 };
 
 const GOALS = [
-  { value: "bajar_peso",              label: "Bajar de peso" },
-  { value: "mantener_peso",           label: "Mantener peso" },
-  { value: "subir_peso",              label: "Subir de peso" },
-  { value: "controlar_glucemia",      label: "Controlar glucemia" },
-  { value: "mejorar_colesterol",      label: "Mejorar colesterol" },
-  { value: "mejorar_presion",         label: "Mejorar presión arterial" },
-  { value: "alimentacion_saludable",  label: "Alimentación más saludable en general" },
+  { value: "bajar_peso",                    label: "Bajar de peso" },
+  { value: "mantener_peso",                 label: "Mantener peso" },
+  { value: "subir_peso",                    label: "Subir de peso" },
+  { value: "reducir_grasa_corporal",        label: "Reducir grasa corporal" },
+  { value: "aumentar_masa_muscular",        label: "Aumentar masa muscular" },
+  { value: "controlar_glucemia",            label: "Controlar glucemia" },
+  { value: "prevenir_diabetes",             label: "Prevenir diabetes" },
+  { value: "mejorar_colesterol",            label: "Mejorar colesterol" },
+  { value: "mejorar_trigliceridos",         label: "Mejorar triglicéridos" },
+  { value: "reducir_riesgo_cardiovascular", label: "Reducir riesgo cardiovascular" },
+  { value: "mejorar_presion",               label: "Mejorar presión arterial" },
+  { value: "reducir_cansancio_fatiga",      label: "Reducir cansancio y fatiga" },
+  { value: "mejorar_salud_intestinal",      label: "Mejorar salud intestinal" },
+  { value: "reducir_inflamacion",           label: "Reducir inflamación" },
+  { value: "alimentacion_saludable",        label: "Alimentación más saludable en general" },
 ];
+
+const KNOWN_VALUES = GOALS.map(g => g.value);
 
 export default function PerfilFormClient() {
   const [nombre, setNombre] = useState("");
@@ -56,7 +66,8 @@ export default function PerfilFormClient() {
   const [conditions, setConditions] = useState("");
   const [medications, setMedications] = useState("");
   const [allergies, setAllergies] = useState("");
-  const [mainGoals, setMainGoals] = useState<string[]>([]);   // ← ahora es array
+  const [mainGoals, setMainGoals] = useState<string[]>([]);
+  const [otrosGoal, setOtrosGoal] = useState("");
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState<{ type: "ok" | "error" | ""; msg: string }>({ type: "", msg: "" });
   const [loading, setLoading] = useState(false);
@@ -86,6 +97,7 @@ export default function PerfilFormClient() {
       const json = await res.json();
       const p = json?.profile;
       if (!p) return;
+
       const parts = (p.full_name ?? "").split(" ");
       setNombre(parts[0] ?? "");
       setApellido(parts.slice(1).join(" ") ?? "");
@@ -106,16 +118,15 @@ export default function PerfilFormClient() {
       setMedications((p.medications ?? []).join(", "));
       setAllergies((p.allergies ?? []).join(", "));
 
-      // main_goal puede ser string (legacy) o array
       const raw = p.main_goal ?? "";
-      if (Array.isArray(raw)) {
-        setMainGoals(raw);
-      } else if (typeof raw === "string" && raw.trim()) {
-        setMainGoals([raw]);
-      } else {
-        setMainGoals([]);
-      }
+      const rawArray: string[] = Array.isArray(raw)
+        ? raw
+        : typeof raw === "string" && raw.trim()
+          ? raw.split(",").map((s: string) => s.trim()).filter(Boolean)
+          : [];
 
+      setMainGoals(rawArray.filter(g => KNOWN_VALUES.includes(g)));
+      setOtrosGoal(rawArray.filter(g => !KNOWN_VALUES.includes(g)).join(", "));
       setNotes(p.notes ?? "");
     };
     load();
@@ -163,6 +174,10 @@ export default function PerfilFormClient() {
     setLoading(true);
     setStatus({ type: "", msg: "" });
     try {
+      const allGoals = [
+        ...mainGoals,
+        ...(otrosGoal.trim() ? [otrosGoal.trim()] : []),
+      ];
       const body = {
         full_name: `${nombre.trim()} ${apellido.trim()}`.trim(),
         age: age ? parseInt(age) : null,
@@ -181,7 +196,7 @@ export default function PerfilFormClient() {
         conditions: conditions ? conditions.split(",").map(s => s.trim()).filter(Boolean) : [],
         medications: medications ? medications.split(",").map(s => s.trim()).filter(Boolean) : [],
         allergies: allergies ? allergies.split(",").map(s => s.trim()).filter(Boolean) : [],
-        main_goal: mainGoals.length > 0 ? mainGoals.join(", ") : null,
+        main_goal: allGoals.length > 0 ? allGoals.join(", ") : null,
         notes: notes || null,
       };
 
@@ -367,7 +382,7 @@ export default function PerfilFormClient() {
               placeholder="Ej: maní, gluten (separadas por coma)" />
           </div>
 
-          {/* OBJETIVOS — Checkboxes */}
+          {/* Objetivos — checkboxes */}
           <div>
             <label style={labelStyle}>Objetivos principales</label>
             <p style={{ margin: "0 0 0.75rem", fontSize: "0.78rem", color: "#888780" }}>
@@ -385,8 +400,7 @@ export default function PerfilFormClient() {
                       padding: "0.7rem 1rem", borderRadius: "8px", cursor: "pointer",
                       border: `1.5px solid ${checked ? "#185FA5" : "#B5D4F4"}`,
                       background: checked ? "#E6F1FB" : "#F8FBFF",
-                      transition: "all 0.15s",
-                      userSelect: "none",
+                      transition: "all 0.15s", userSelect: "none",
                     }}
                   >
                     <div style={{
@@ -407,6 +421,38 @@ export default function PerfilFormClient() {
                   </label>
                 );
               })}
+
+              {/* Otros — campo libre */}
+              <label style={{
+                display: "flex", alignItems: "center", gap: "12px",
+                padding: "0.7rem 1rem", borderRadius: "8px",
+                border: `1.5px solid ${otrosGoal.trim() ? "#185FA5" : "#B5D4F4"}`,
+                background: otrosGoal.trim() ? "#E6F1FB" : "#F8FBFF",
+                transition: "all 0.15s",
+              }}>
+                <div style={{
+                  width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0,
+                  border: `2px solid ${otrosGoal.trim() ? "#185FA5" : "#B5D4F4"}`,
+                  background: otrosGoal.trim() ? "#185FA5" : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {otrosGoal.trim() && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={otrosGoal}
+                  onChange={e => setOtrosGoal(e.target.value)}
+                  placeholder="Otros objetivos (escribí acá...)"
+                  style={{
+                    border: "none", background: "transparent", outline: "none",
+                    fontSize: "0.88rem", color: "#2C2C2A", width: "100%",
+                  }}
+                />
+              </label>
             </div>
           </div>
 
