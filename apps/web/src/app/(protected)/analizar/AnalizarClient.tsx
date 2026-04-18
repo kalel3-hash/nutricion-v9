@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { compactProfile } from "@/lib/usage";
+import { compactProfile } from "@/lib/utils";
 
 type ProfileResponse = { profile: any | null; error?: string };
 type PhotoType = "alimento" | "etiqueta";

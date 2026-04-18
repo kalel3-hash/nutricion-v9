@@ -117,9 +117,7 @@ export async function checkAndIncrementUsage(
       monthly_count: newMonthlyCount,
       monthly_reset_month: monthlyResetMonth,
     },
-    {
-      onConflict: "owner_email",
-    }
+    { onConflict: "owner_email" }
   );
 
   return {
@@ -176,20 +174,4 @@ export async function getUsageStatus(email: string): Promise<UsageStatus> {
     monthly_limit: MONTHLY_LIMIT,
     monthly_remaining: monthlyRemaining,
   };
-}
-
-/**
- * Elimina campos null, undefined, arrays vacíos y strings vacíos
- */
-export function compactProfile(
-  profile: Record<string, unknown>
-): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(profile).filter(([_, v]) => {
-      if (v === null || v === undefined) return false;
-      if (typeof v === "string" && v.trim() === "") return false;
-      if (Array.isArray(v) && v.length === 0) return false;
-      return true;
-    })
-  );
 }
