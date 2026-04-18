@@ -2,65 +2,48 @@
 
 import { useEffect, useState, useRef } from "react";
 
-// ── Estilos reutilizables ──────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "0.7rem 1rem",
-  borderRadius: "8px",
-  border: "1.5px solid #B5D4F4",
-  fontSize: "0.9rem",
-  color: "#2C2C2A",
-  background: "#F8FBFF",
-  outline: "none",
-  boxSizing: "border-box",
+  width: "100%", padding: "0.7rem 1rem", borderRadius: "8px",
+  border: "1.5px solid #B5D4F4", fontSize: "0.9rem", color: "#2C2C2A",
+  background: "#F8FBFF", outline: "none", boxSizing: "border-box",
 };
 
 const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: "0.8rem",
-  fontWeight: 600,
-  color: "#5F5E5A",
-  marginBottom: "5px",
-  textTransform: "uppercase",
-  letterSpacing: "0.4px",
+  display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#5F5E5A",
+  marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.4px",
 };
 
 const sectionTitleStyle: React.CSSProperties = {
-  fontSize: "1rem",
-  fontWeight: 700,
-  color: "#185FA5",
-  margin: "0 0 1.25rem",
-  paddingBottom: "0.5rem",
-  borderBottom: "2px solid #E6F1FB",
+  fontSize: "1rem", fontWeight: 700, color: "#185FA5",
+  margin: "0 0 1.25rem", paddingBottom: "0.5rem", borderBottom: "2px solid #E6F1FB",
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "#FFFFFF",
-  borderRadius: "14px",
-  border: "1px solid #B5D4F4",
-  boxShadow: "0 2px 12px rgba(24,95,165,0.06)",
-  padding: "1.75rem",
-  marginBottom: "1.25rem",
+  background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4",
+  boxShadow: "0 2px 12px rgba(24,95,165,0.06)", padding: "1.75rem", marginBottom: "1.25rem",
 };
 
 const rowStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "1rem",
+  display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem",
 };
 
-// ── Componente ──────────────────────────────────────────────────────────────
-export default function PerfilFormClient() {
+const GOALS = [
+  { value: "bajar_peso",              label: "Bajar de peso" },
+  { value: "mantener_peso",           label: "Mantener peso" },
+  { value: "subir_peso",              label: "Subir de peso" },
+  { value: "controlar_glucemia",      label: "Controlar glucemia" },
+  { value: "mejorar_colesterol",      label: "Mejorar colesterol" },
+  { value: "mejorar_presion",         label: "Mejorar presión arterial" },
+  { value: "alimentacion_saludable",  label: "Alimentación más saludable en general" },
+];
 
-  // Datos básicos
+export default function PerfilFormClient() {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
-
-  // Datos clínicos
   const [cholesterol, setCholesterol] = useState("");
   const [hdl, setHdl] = useState("");
   const [ldl, setLdl] = useState("");
@@ -70,28 +53,22 @@ export default function PerfilFormClient() {
   const [creatinine, setCreatinine] = useState("");
   const [urea, setUrea] = useState("");
   const [tsh, setTsh] = useState("");
-
-  // Otros datos
   const [conditions, setConditions] = useState("");
   const [medications, setMedications] = useState("");
   const [allergies, setAllergies] = useState("");
-  const [mainGoal, setMainGoal] = useState("");
+  const [mainGoals, setMainGoals] = useState<string[]>([]);   // ← ahora es array
   const [notes, setNotes] = useState("");
-
-  // UI
   const [status, setStatus] = useState<{ type: "ok" | "error" | ""; msg: string }>({ type: "", msg: "" });
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrMsg, setOcrMsg] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // IMC calculado automáticamente
   const imc = (() => {
     const w = parseFloat(weight);
     const h = parseFloat(height) / 100;
     if (!w || !h || h <= 0) return "";
-    const val = w / (h * h);
-    return val.toFixed(1);
+    return (w / (h * h)).toFixed(1);
   })();
 
   const imcLabel = (() => {
@@ -103,19 +80,15 @@ export default function PerfilFormClient() {
     return "Obesidad";
   })();
 
-  // ── Carga inicial desde /api/profile ──────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       const res = await fetch("/api/profile");
       const json = await res.json();
       const p = json?.profile;
       if (!p) return;
-
-      // Separar full_name en nombre y apellido
       const parts = (p.full_name ?? "").split(" ");
       setNombre(parts[0] ?? "");
       setApellido(parts.slice(1).join(" ") ?? "");
-
       setAge((p.age ?? "").toString());
       setSex(p.sex ?? "");
       setWeight((p.weight_kg ?? "").toString());
@@ -132,13 +105,28 @@ export default function PerfilFormClient() {
       setConditions((p.conditions ?? []).join(", "));
       setMedications((p.medications ?? []).join(", "));
       setAllergies((p.allergies ?? []).join(", "));
-      setMainGoal(p.main_goal ?? "");
+
+      // main_goal puede ser string (legacy) o array
+      const raw = p.main_goal ?? "";
+      if (Array.isArray(raw)) {
+        setMainGoals(raw);
+      } else if (typeof raw === "string" && raw.trim()) {
+        setMainGoals([raw]);
+      } else {
+        setMainGoals([]);
+      }
+
       setNotes(p.notes ?? "");
     };
     load();
   }, []);
 
-  // ── OCR: subir PDF o imagen ───────────────────────────────────────────────
+  const toggleGoal = (value: string) => {
+    setMainGoals(prev =>
+      prev.includes(value) ? prev.filter(g => g !== value) : [...prev, value]
+    );
+  };
+
   const handleOcr = async (file: File) => {
     setOcrLoading(true);
     setOcrMsg("Analizando el archivo con IA...");
@@ -147,12 +135,7 @@ export default function PerfilFormClient() {
       formData.append("pdf", file);
       const res = await fetch("/api/ocr-pdf", { method: "POST", body: formData });
       const json = await res.json();
-
-      if (json.error) {
-        setOcrMsg(`Error: ${json.error}`);
-        return;
-      }
-
+      if (json.error) { setOcrMsg(`Error: ${json.error}`); return; }
       const v = json.values ?? {};
       if (v.total_cholesterol_mg_dl != null) setCholesterol(v.total_cholesterol_mg_dl.toString());
       if (v.hdl_mg_dl != null) setHdl(v.hdl_mg_dl.toString());
@@ -163,7 +146,6 @@ export default function PerfilFormClient() {
       if (v.creatinine_mg_dl != null) setCreatinine(v.creatinine_mg_dl.toString());
       if (v.urea_mg_dl != null) setUrea(v.urea_mg_dl.toString());
       if (v.tsh_miu_l != null) setTsh(v.tsh_miu_l.toString());
-
       setOcrMsg("✅ Datos extraídos correctamente. Revisalos y guardá el perfil.");
     } catch {
       setOcrMsg("Error al procesar el archivo.");
@@ -177,7 +159,6 @@ export default function PerfilFormClient() {
     if (file) handleOcr(file);
   };
 
-  // ── Guardar perfil ────────────────────────────────────────────────────────
   const save = async () => {
     setLoading(true);
     setStatus({ type: "", msg: "" });
@@ -200,7 +181,7 @@ export default function PerfilFormClient() {
         conditions: conditions ? conditions.split(",").map(s => s.trim()).filter(Boolean) : [],
         medications: medications ? medications.split(",").map(s => s.trim()).filter(Boolean) : [],
         allergies: allergies ? allergies.split(",").map(s => s.trim()).filter(Boolean) : [],
-        main_goal: mainGoal || null,
+        main_goal: mainGoals.length > 0 ? mainGoals.join(", ") : null,
         notes: notes || null,
       };
 
@@ -210,7 +191,6 @@ export default function PerfilFormClient() {
         body: JSON.stringify(body),
       });
       const json = await res.json();
-
       if (json.ok) {
         setStatus({ type: "ok", msg: "Perfil guardado correctamente." });
       } else {
@@ -226,37 +206,22 @@ export default function PerfilFormClient() {
   return (
     <div>
 
-      {/* ── OCR: subir estudios ── */}
+      {/* OCR */}
       <div style={cardStyle}>
         <h2 style={sectionTitleStyle}>Cargar estudios clínicos</h2>
         <p style={{ margin: "0 0 1.25rem", fontSize: "0.875rem", color: "#5F5E5A", lineHeight: 1.6 }}>
           Subí un PDF o una foto de tus análisis de laboratorio y la IA va a extraer los valores automáticamente.
         </p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/pdf,image/*"
-          style={{ display: "none" }}
-          onChange={handleFileChange}
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={ocrLoading}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "0.75rem 1.5rem",
-            borderRadius: "8px",
-            background: ocrLoading ? "#E6F1FB" : "#185FA5",
-            color: ocrLoading ? "#378ADD" : "#FFFFFF",
-            border: "none",
-            fontSize: "0.9rem",
-            fontWeight: 600,
-            cursor: ocrLoading ? "not-allowed" : "pointer",
-          }}
-        >
+        <input ref={fileInputRef} type="file" accept="application/pdf,image/*"
+          style={{ display: "none" }} onChange={handleFileChange} />
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={ocrLoading} style={{
+          display: "flex", alignItems: "center", gap: "8px",
+          padding: "0.75rem 1.5rem", borderRadius: "8px",
+          background: ocrLoading ? "#E6F1FB" : "#185FA5",
+          color: ocrLoading ? "#378ADD" : "#FFFFFF",
+          border: "none", fontSize: "0.9rem", fontWeight: 600,
+          cursor: ocrLoading ? "not-allowed" : "pointer",
+        }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -264,20 +229,16 @@ export default function PerfilFormClient() {
           {ocrLoading ? "Procesando..." : "Subir PDF o foto de estudios"}
         </button>
         {ocrMsg && (
-          <p style={{
-            marginTop: "0.75rem", fontSize: "0.85rem",
-            color: ocrMsg.startsWith("✅") ? "#27500A" : "#991B1B",
-          }}>
+          <p style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: ocrMsg.startsWith("✅") ? "#27500A" : "#991B1B" }}>
             {ocrMsg}
           </p>
         )}
       </div>
 
-      {/* ── Datos básicos ── */}
+      {/* Datos básicos */}
       <div style={cardStyle}>
         <h2 style={sectionTitleStyle}>Datos básicos</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-
           <div style={rowStyle}>
             <div>
               <label style={labelStyle}>Nombre</label>
@@ -288,7 +249,6 @@ export default function PerfilFormClient() {
               <input style={inputStyle} value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Ej: García" />
             </div>
           </div>
-
           <div style={rowStyle}>
             <div>
               <label style={labelStyle}>Edad</label>
@@ -304,7 +264,6 @@ export default function PerfilFormClient() {
               </select>
             </div>
           </div>
-
           <div style={rowStyle}>
             <div>
               <label style={labelStyle}>Peso (kg)</label>
@@ -315,46 +274,29 @@ export default function PerfilFormClient() {
               <input style={inputStyle} type="number" value={height} onChange={e => setHeight(e.target.value)} placeholder="Ej: 170" />
             </div>
           </div>
-
-          {/* IMC calculado */}
           <div>
             <label style={labelStyle}>IMC — Índice de masa corporal</label>
             <div style={{
-              ...inputStyle,
-              background: imc ? "#E6F1FB" : "#F8FBFF",
-              color: imc ? "#185FA5" : "#888780",
-              fontWeight: imc ? 600 : 400,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              ...inputStyle, background: imc ? "#E6F1FB" : "#F8FBFF",
+              color: imc ? "#185FA5" : "#888780", fontWeight: imc ? 600 : 400,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
               <span>{imc ? `${imc} kg/m²` : "Se calcula con peso y altura"}</span>
               {imcLabel && (
-                <span style={{
-                  fontSize: "0.78rem",
-                  background: "#185FA5",
-                  color: "#fff",
-                  padding: "2px 10px",
-                  borderRadius: "20px",
-                  fontWeight: 600,
-                }}>
+                <span style={{ fontSize: "0.78rem", background: "#185FA5", color: "#fff", padding: "2px 10px", borderRadius: "20px", fontWeight: 600 }}>
                   {imcLabel}
                 </span>
               )}
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* ── Datos clínicos ── */}
+      {/* Datos clínicos */}
       <div style={cardStyle}>
         <h2 style={sectionTitleStyle}>Datos clínicos</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-
-          <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", color: "#888780" }}>
-            Perfil lipídico (mg/dL)
-          </p>
+          <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", color: "#888780" }}>Perfil lipídico (mg/dL)</p>
           <div style={rowStyle}>
             <div>
               <label style={labelStyle}>Colesterol total</label>
@@ -375,10 +317,7 @@ export default function PerfilFormClient() {
               <input style={inputStyle} type="number" value={triglycerides} onChange={e => setTriglycerides(e.target.value)} placeholder="Ej: 150" step="0.1" />
             </div>
           </div>
-
-          <p style={{ margin: "0.5rem 0 0.5rem", fontSize: "0.8rem", color: "#888780" }}>
-            Glucemia
-          </p>
+          <p style={{ margin: "0.5rem 0 0.5rem", fontSize: "0.8rem", color: "#888780" }}>Glucemia</p>
           <div style={rowStyle}>
             <div>
               <label style={labelStyle}>Glucemia en ayunas (mg/dL)</label>
@@ -389,10 +328,7 @@ export default function PerfilFormClient() {
               <input style={inputStyle} type="number" value={hba1c} onChange={e => setHba1c(e.target.value)} placeholder="Ej: 5.4" step="0.1" />
             </div>
           </div>
-
-          <p style={{ margin: "0.5rem 0 0.5rem", fontSize: "0.8rem", color: "#888780" }}>
-            Función renal
-          </p>
+          <p style={{ margin: "0.5rem 0 0.5rem", fontSize: "0.8rem", color: "#888780" }}>Función renal</p>
           <div style={rowStyle}>
             <div>
               <label style={labelStyle}>Creatinina (mg/dL)</label>
@@ -403,53 +339,75 @@ export default function PerfilFormClient() {
               <input style={inputStyle} type="number" value={urea} onChange={e => setUrea(e.target.value)} placeholder="Ej: 30" step="0.1" />
             </div>
           </div>
-
-          <p style={{ margin: "0.5rem 0 0.5rem", fontSize: "0.8rem", color: "#888780" }}>
-            Tiroides
-          </p>
+          <p style={{ margin: "0.5rem 0 0.5rem", fontSize: "0.8rem", color: "#888780" }}>Tiroides</p>
           <div>
             <label style={labelStyle}>TSH (mUI/L)</label>
             <input style={{ ...inputStyle, maxWidth: "50%" }} type="number" value={tsh} onChange={e => setTsh(e.target.value)} placeholder="Ej: 2.1" step="0.01" />
           </div>
-
         </div>
       </div>
 
-      {/* ── Condiciones y medicación ── */}
+      {/* Condiciones, medicación y objetivos */}
       <div style={cardStyle}>
         <h2 style={sectionTitleStyle}>Condiciones, medicación y objetivos</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-
           <div>
             <label style={labelStyle}>Condiciones de salud</label>
             <input style={inputStyle} value={conditions} onChange={e => setConditions(e.target.value)}
               placeholder="Ej: diabetes tipo 2, hipertensión (separadas por coma)" />
           </div>
-
           <div>
             <label style={labelStyle}>Medicamentos</label>
             <input style={inputStyle} value={medications} onChange={e => setMedications(e.target.value)}
               placeholder="Ej: metformina, losartán (separados por coma)" />
           </div>
-
           <div>
             <label style={labelStyle}>Alergias alimentarias</label>
             <input style={inputStyle} value={allergies} onChange={e => setAllergies(e.target.value)}
               placeholder="Ej: maní, gluten (separadas por coma)" />
           </div>
 
+          {/* OBJETIVOS — Checkboxes */}
           <div>
-            <label style={labelStyle}>Objetivo principal</label>
-            <select style={inputStyle} value={mainGoal} onChange={e => setMainGoal(e.target.value)}>
-              <option value="">Seleccionar objetivo</option>
-              <option value="bajar_peso">Bajar de peso</option>
-              <option value="mantener_peso">Mantener peso</option>
-              <option value="subir_peso">Subir de peso</option>
-              <option value="controlar_glucemia">Controlar glucemia</option>
-              <option value="mejorar_colesterol">Mejorar colesterol</option>
-              <option value="mejorar_presion">Mejorar presión arterial</option>
-              <option value="alimentacion_saludable">Alimentación más saludable en general</option>
-            </select>
+            <label style={labelStyle}>Objetivos principales</label>
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.78rem", color: "#888780" }}>
+              Podés elegir uno o varios.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              {GOALS.map((goal) => {
+                const checked = mainGoals.includes(goal.value);
+                return (
+                  <label
+                    key={goal.value}
+                    onClick={() => toggleGoal(goal.value)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "12px",
+                      padding: "0.7rem 1rem", borderRadius: "8px", cursor: "pointer",
+                      border: `1.5px solid ${checked ? "#185FA5" : "#B5D4F4"}`,
+                      background: checked ? "#E6F1FB" : "#F8FBFF",
+                      transition: "all 0.15s",
+                      userSelect: "none",
+                    }}
+                  >
+                    <div style={{
+                      width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0,
+                      border: `2px solid ${checked ? "#185FA5" : "#B5D4F4"}`,
+                      background: checked ? "#185FA5" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {checked && (
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                          <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    <span style={{ fontSize: "0.88rem", color: checked ? "#0C447C" : "#2C2C2A", fontWeight: checked ? 600 : 400 }}>
+                      {goal.label}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div>
@@ -461,16 +419,13 @@ export default function PerfilFormClient() {
               placeholder="Cualquier dato adicional que la IA deba tener en cuenta..."
             />
           </div>
-
         </div>
       </div>
 
-      {/* ── Estado y botón guardar ── */}
+      {/* Estado y botón */}
       {status.msg && (
         <div style={{
-          padding: "0.75rem 1rem",
-          borderRadius: "8px",
-          marginBottom: "1rem",
+          padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1rem",
           fontSize: "0.875rem",
           background: status.type === "ok" ? "#EAF3DE" : "#FEE2E2",
           color: status.type === "ok" ? "#27500A" : "#991B1B",
@@ -480,23 +435,13 @@ export default function PerfilFormClient() {
         </div>
       )}
 
-      <button
-        onClick={save}
-        disabled={loading}
-        style={{
-          width: "100%",
-          padding: "0.9rem",
-          borderRadius: "10px",
-          background: "#185FA5",
-          color: "#FFFFFF",
-          fontSize: "1rem",
-          fontWeight: 600,
-          border: "none",
-          cursor: loading ? "not-allowed" : "pointer",
-          opacity: loading ? 0.7 : 1,
-          marginBottom: "2rem",
-        }}
-      >
+      <button onClick={save} disabled={loading} style={{
+        width: "100%", padding: "0.9rem", borderRadius: "10px",
+        background: "#185FA5", color: "#FFFFFF", fontSize: "1rem",
+        fontWeight: 600, border: "none",
+        cursor: loading ? "not-allowed" : "pointer",
+        opacity: loading ? 0.7 : 1, marginBottom: "2rem",
+      }}>
         {loading ? "Guardando..." : "Guardar perfil"}
       </button>
 
