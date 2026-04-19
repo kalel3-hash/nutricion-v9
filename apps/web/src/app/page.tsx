@@ -64,7 +64,6 @@ function FlipCard({
         transition: "transform 0.55s cubic-bezier(0.4,0,0.2,1)",
         transform: flipped ? "rotateY(180deg)" : "none",
       }}>
-        {/* FRENTE */}
         <div style={{
           position: "absolute", width: "100%", height: "100%",
           backfaceVisibility: "hidden", borderRadius: "14px",
@@ -94,11 +93,9 @@ function FlipCard({
             <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#2C2C2A", textAlign: "center", lineHeight: 1.35, fontStyle: "italic" }}>{front.text}</p>
           )}
           <p style={{ margin: "0.65rem 0 0", fontSize: "0.66rem", color: isRed ? "#B5D4F4" : "rgba(255,255,255,0.35)", textAlign: "center" }}>
-            Click para ver más →
+            Tocá para ver más →
           </p>
         </div>
-
-        {/* DORSO */}
         <div style={{
           position: "absolute", width: "100%", height: "100%",
           backfaceVisibility: "hidden", borderRadius: "14px",
@@ -124,27 +121,35 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF", fontFamily: "system-ui, sans-serif" }}>
 
+      <style>{`
+        .landing-nav-secondary { display: inline-block; }
+        @media (max-width: 480px) {
+          .landing-nav-secondary { display: none; }
+        }
+      `}</style>
+
       {/* NAVBAR */}
       <nav style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "1rem 2rem", background: "#FFFFFF",
+        padding: "0.75rem 1.25rem", background: "#FFFFFF",
         borderBottom: "1px solid #B5D4F4", position: "sticky", top: 0, zIndex: 50,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Image src="/Logo.png" alt="VitalCross AI" width={56} height={56} style={{ objectFit: "contain" }} />
-          <span style={{ fontSize: "15px", fontWeight: 600 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Image src="/Logo.png" alt="VitalCross AI" width={44} height={44} style={{ objectFit: "contain" }} />
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>
             <span style={{ color: "#185FA5" }}>Vital</span>
             <span style={{ color: "#2C2C2A" }}>Cross AI</span>
           </span>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <Link href="/login" style={{
-            padding: "7px 18px", borderRadius: "8px", border: "1.5px solid #185FA5",
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <Link href="/login" className="landing-nav-secondary" style={{
+            padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #185FA5",
             background: "transparent", color: "#185FA5", fontSize: "13px", fontWeight: 500, textDecoration: "none",
           }}>Iniciar sesión</Link>
           <Link href="/register" style={{
-            padding: "7px 18px", borderRadius: "8px",
-            background: "#185FA5", color: "#FFFFFF", fontSize: "13px", fontWeight: 500, textDecoration: "none",
+            padding: "7px 16px", borderRadius: "8px",
+            background: "#185FA5", color: "#FFFFFF", fontSize: "13px", fontWeight: 500,
+            textDecoration: "none", whiteSpace: "nowrap",
           }}>Crear cuenta gratis</Link>
         </div>
       </nav>
@@ -216,13 +221,13 @@ export default function HomePage() {
       </section>
 
       {/* CONTRASTE */}
-      <section style={{ padding: "3.5rem 2rem", maxWidth: "960px", margin: "0 auto" }}>
+      <section style={{ padding: "3.5rem 1.5rem", maxWidth: "960px", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
           <h2 style={{ margin: "0 0 0.5rem", fontSize: "clamp(1.3rem, 3vw, 1.75rem)", fontWeight: 700, color: "#2C2C2A" }}>
             ¿Te suena familiar alguna de estas situaciones?
           </h2>
           <p style={{ margin: 0, color: "#888780", fontSize: "0.88rem" }}>
-            Hacé click en cada tarjeta para entender qué puede estar pasando realmente.
+            Tocá cada tarjeta para entender qué puede estar pasando realmente.
           </p>
         </div>
 
@@ -255,7 +260,7 @@ export default function HomePage() {
       {/* CÓMO FUNCIONA */}
       <section style={{
         background: "linear-gradient(135deg, #0C447C 0%, #185FA5 100%)",
-        padding: "3.5rem 2rem",
+        padding: "3.5rem 1.5rem",
       }}>
         <div style={{ maxWidth: "960px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "2rem" }}>
@@ -263,7 +268,7 @@ export default function HomePage() {
               ¿Cómo funciona?
             </h2>
             <p style={{ margin: 0, color: "rgba(255,255,255,0.6)", fontSize: "0.88rem" }}>
-              Hacé click en cada paso para ver los detalles.
+              Tocá cada paso para ver los detalles.
             </p>
           </div>
 
@@ -283,7 +288,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA FINAL */}
-      <section style={{ padding: "4rem 2rem", textAlign: "center" }}>
+      <section style={{ padding: "4rem 1.5rem", textAlign: "center" }}>
         <div style={{ maxWidth: "520px", margin: "0 auto" }}>
           <h2 style={{
             margin: "0 0 0.75rem", fontWeight: 800, color: "#2C2C2A",
