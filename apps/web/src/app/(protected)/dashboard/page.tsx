@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect } from "react";
-import { signOut } from "next-auth/react";
+import Link from "next/link";
+import NavbarProtegido from "@/components/NavbarProtegido";
 
 const flipCards = [
   {
@@ -21,7 +20,6 @@ const flipCards = [
 ];
 
 export default function DashboardPage() {
-  const [signingOut, setSigningOut] = useState(false);
   const [flipped, setFlipped] = useState<number | null>(null);
   const [profileStatus, setProfileStatus] = useState<"loading" | "completo" | "incompleto">("loading");
   const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number } | null>(null);
@@ -55,11 +53,6 @@ export default function DashboardPage() {
       })
       .catch(() => {});
   }, []);
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    await signOut({ callbackUrl: "/login" });
-  }
 
   const toggle = (i: number) => setFlipped(prev => prev === i ? null : i);
 
@@ -105,29 +98,8 @@ export default function DashboardPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
 
-      {/* NAVBAR */}
-      <nav style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "0.875rem 2rem", background: "#FFFFFF",
-        borderBottom: "1px solid #B5D4F4", position: "sticky", top: 0, zIndex: 50,
-      }}>
-        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <Image src="/Logo.png" alt="VitalCross AI" width={56} height={56} style={{ objectFit: "contain" }} />
-          <span style={{ fontSize: "15px", fontWeight: 600 }}>
-            <span style={{ color: "#185FA5" }}>Vital</span>
-            <span style={{ color: "#2C2C2A" }}>Cross AI</span>
-          </span>
-        </Link>
-        <button type="button" onClick={handleSignOut} disabled={signingOut} style={{
-          padding: "7px 18px", borderRadius: "8px", border: "1.5px solid #B5D4F4",
-          background: "transparent", color: "#5F5E5A", fontSize: "13px",
-          fontWeight: 500, cursor: signingOut ? "not-allowed" : "pointer", opacity: signingOut ? 0.6 : 1,
-        }}>
-          {signingOut ? "Saliendo…" : "Cerrar sesión"}
-        </button>
-      </nav>
+      <NavbarProtegido />
 
-      {/* MAIN */}
       <main style={{ maxWidth: "900px", margin: "0 auto", padding: "3rem 1.5rem" }}>
 
         <div style={{ marginBottom: "2rem" }}>
@@ -172,13 +144,13 @@ export default function DashboardPage() {
                 <p style={{ margin: 0, fontSize: "0.78rem", color: "#5F5E5A", lineHeight: 1.4 }}>{card.subtitle}</p>
               </div>
               <svg style={{ flexShrink: 0 }} width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="#185FA5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="#185FA5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
           ))}
         </div>
 
-        {/* CÓMO FUNCIONA — Flip cards */}
+        {/* CÓMO FUNCIONA */}
         <div style={{ borderTop: "1px solid #B5D4F4", paddingTop: "2.5rem" }}>
           <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.15rem", fontWeight: 700, color: "#2C2C2A" }}>
             ¿Cómo funciona VitalCross AI?

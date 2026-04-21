@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import NavbarProtegido from "@/components/NavbarProtegido";
 
 type Item = {
   id: string;
@@ -52,32 +52,10 @@ export default function HistorialClient() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
 
-      {/* ── NAVBAR ── */}
-      <nav style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "0.875rem 2rem", background: "#FFFFFF",
-        borderBottom: "1px solid #B5D4F4", position: "sticky", top: 0, zIndex: 50,
-      }}>
-        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <Image src="/Logo.png" alt="VitalCross AI" width={56} height={56} style={{ objectFit: "contain" }} />
-          <span style={{ fontSize: "15px", fontWeight: 600 }}>
-            <span style={{ color: "#185FA5" }}>Vital</span>
-            <span style={{ color: "#2C2C2A" }}>Cross AI</span>
-          </span>
-        </Link>
-        <Link href="/dashboard" style={{
-          padding: "7px 18px", borderRadius: "8px", border: "1.5px solid #B5D4F4",
-          background: "transparent", color: "#5F5E5A", fontSize: "13px",
-          fontWeight: 500, textDecoration: "none",
-        }}>
-          ← Volver
-        </Link>
-      </nav>
+      <NavbarProtegido />
 
-      {/* ── MAIN ── */}
       <main style={{ maxWidth: "720px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
-        {/* Encabezado */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
           <div>
             <h1 style={{ margin: "0 0 0.3rem", fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>
@@ -102,7 +80,6 @@ export default function HistorialClient() {
           </button>
         </div>
 
-        {/* Error */}
         {error && (
           <div style={{
             background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px",
@@ -113,14 +90,12 @@ export default function HistorialClient() {
           </div>
         )}
 
-        {/* Loading */}
         {loading && (
           <p style={{ color: "#5F5E5A", fontSize: "0.9rem", textAlign: "center", padding: "3rem 0" }}>
             Cargando historial…
           </p>
         )}
 
-        {/* Vacío */}
         {!loading && items.length === 0 && (
           <div style={{
             background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4",
@@ -139,7 +114,6 @@ export default function HistorialClient() {
           </div>
         )}
 
-        {/* Lista */}
         {!loading && items.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
             {items.map((it) => {
@@ -154,7 +128,6 @@ export default function HistorialClient() {
                   boxShadow: "0 2px 8px rgba(24,95,165,0.05)",
                   overflow: "hidden",
                 }}>
-                  {/* Fila principal */}
                   <div style={{
                     display: "flex", alignItems: "center",
                     justifyContent: "space-between", gap: "1rem",
@@ -174,7 +147,6 @@ export default function HistorialClient() {
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: "0.875rem", flexShrink: 0 }}>
-                      {/* Badge puntaje */}
                       {s !== null && colors && (
                         <div style={{
                           padding: "4px 12px", borderRadius: "20px",
@@ -184,8 +156,6 @@ export default function HistorialClient() {
                           {s}/10
                         </div>
                       )}
-
-                      {/* Botón expandir */}
                       <button
                         onClick={() => toggle(it.id)}
                         style={{
@@ -200,7 +170,6 @@ export default function HistorialClient() {
                     </div>
                   </div>
 
-                  {/* Análisis expandido */}
                   {opened && it.analysis_result && (
                     <div style={{
                       borderTop: "1px solid #E6F1FB",
@@ -235,7 +204,6 @@ export default function HistorialClient() {
           </div>
         )}
 
-        {/* Link a nuevo análisis */}
         {!loading && items.length > 0 && (
           <div style={{ textAlign: "center", marginTop: "2rem" }}>
             <Link href="/analizar" style={{
@@ -246,7 +214,6 @@ export default function HistorialClient() {
             </Link>
           </div>
         )}
-
       </main>
     </div>
   );

@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
+import NavbarProtegido from "@/components/NavbarProtegido";
 
 type EvolutionRow = {
   id: string;
@@ -43,7 +43,6 @@ export default function EvolucionClient() {
     load();
   }, []);
 
-  // Datos para el gráfico (orden cronológico)
   const chartData = [...rows]
     .filter((r) => r.score !== null)
     .reverse()
@@ -57,7 +56,6 @@ export default function EvolucionClient() {
   const scores = rows.filter((r) => r.score !== null).map((r) => r.score as number);
   const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : null;
   const best = scores.length ? Math.max(...scores) : null;
-  const worst = scores.length ? Math.min(...scores) : null;
 
   if (loading) {
     return (
@@ -70,29 +68,8 @@ export default function EvolucionClient() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
 
-      {/* ── NAVBAR ── */}
-      <nav style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "0.875rem 2rem", background: "#FFFFFF",
-        borderBottom: "1px solid #B5D4F4", position: "sticky", top: 0, zIndex: 50,
-      }}>
-        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <Image src="/Logo.png" alt="VitalCross AI" width={56} height={56} style={{ objectFit: "contain" }} />
-          <span style={{ fontSize: "15px", fontWeight: 600 }}>
-            <span style={{ color: "#185FA5" }}>Vital</span>
-            <span style={{ color: "#2C2C2A" }}>Cross AI</span>
-          </span>
-        </Link>
-        <Link href="/dashboard" style={{
-          padding: "7px 18px", borderRadius: "8px", border: "1.5px solid #B5D4F4",
-          background: "transparent", color: "#5F5E5A", fontSize: "13px",
-          fontWeight: 500, textDecoration: "none",
-        }}>
-          ← Volver
-        </Link>
-      </nav>
+      <NavbarProtegido />
 
-      {/* ── MAIN ── */}
       <main style={{ maxWidth: "720px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         <div style={{ marginBottom: "2rem" }}>
@@ -134,7 +111,6 @@ export default function EvolucionClient() {
 
         {rows.length > 0 && (
           <>
-            {/* ── Métricas resumen ── */}
             <div style={{
               display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
               gap: "1rem", marginBottom: "1.5rem",
@@ -159,7 +135,6 @@ export default function EvolucionClient() {
               ))}
             </div>
 
-            {/* ── Gráfico de línea ── */}
             {chartData.length > 1 && (
               <div style={{
                 background: "#FFFFFF", borderRadius: "14px",
@@ -180,7 +155,8 @@ export default function EvolucionClient() {
                       labelFormatter={(label) => `Fecha: ${label}`}
                     />
                     {avg && (
-                      <ReferenceLine y={parseFloat(avg)} stroke="#B5D4F4" strokeDasharray="4 4" label={{ value: `Prom. ${avg}`, fontSize: 11, fill: "#378ADD" }} />
+                      <ReferenceLine y={parseFloat(avg)} stroke="#B5D4F4" strokeDasharray="4 4"
+                        label={{ value: `Prom. ${avg}`, fontSize: 11, fill: "#378ADD" }} />
                     )}
                     <Line
                       type="monotone" dataKey="score"
@@ -193,7 +169,6 @@ export default function EvolucionClient() {
               </div>
             )}
 
-            {/* ── Lista ── */}
             <div style={{
               background: "#FFFFFF", borderRadius: "14px",
               border: "1px solid #B5D4F4", overflow: "hidden",
@@ -246,7 +221,6 @@ export default function EvolucionClient() {
             </div>
           </>
         )}
-
       </main>
     </div>
   );
