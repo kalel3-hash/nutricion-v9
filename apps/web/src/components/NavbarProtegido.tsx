@@ -39,10 +39,11 @@ function IconEmail() {
 }
 
 function SocialLink({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
+  const isMailto = href.startsWith("mailto");
   return (
     
       href={href}
-      target={href.startsWith("mailto") ? undefined : "_blank"}
+      target={isMailto ? undefined : "_blank"}
       rel="noopener noreferrer"
       title={title}
       style={{

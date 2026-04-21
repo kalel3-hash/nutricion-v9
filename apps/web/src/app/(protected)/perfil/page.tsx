@@ -1,8 +1,6 @@
 import { auth } from "@/auth";
-import dynamic from "next/dynamic";
 import PerfilFormClient from "./PerfilFormClient";
-
-const NavbarProtegido = dynamic(() => import("@/components/NavbarProtegido"), { ssr: false });
+import NavbarWrapper from "./NavbarWrapper";
 
 export default async function PerfilPage() {
   const session = await auth();
@@ -11,7 +9,7 @@ export default async function PerfilPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
 
-      <NavbarProtegido />
+      <NavbarWrapper />
 
       <main style={{ maxWidth: "700px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
         <div style={{ marginBottom: "2rem" }}>
