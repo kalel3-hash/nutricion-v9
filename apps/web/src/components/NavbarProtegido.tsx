@@ -38,21 +38,36 @@ function IconEmail() {
   );
 }
 
-function SocialLink({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
-  const isMailto = href.startsWith("mailto");
+const socialLinkStyle = {
+  display: "flex", alignItems: "center", justifyContent: "center",
+  width: "34px", height: "34px", borderRadius: "8px",
+  background: "#E6F1FB", color: "#185FA5",
+  textDecoration: "none", flexShrink: 0,
+  transition: "background 0.18s",
+} as React.CSSProperties;
+
+function SocialLinkExterno({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
   return (
     
       href={href}
-      target={isMailto ? undefined : "_blank"}
+      target="_blank"
       rel="noopener noreferrer"
       title={title}
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        width: "34px", height: "34px", borderRadius: "8px",
-        background: "#E6F1FB", color: "#185FA5",
-        textDecoration: "none", flexShrink: 0,
-        transition: "background 0.18s",
-      }}
+      style={socialLinkStyle}
+      onMouseEnter={e => (e.currentTarget.style.background = "#B5D4F4")}
+      onMouseLeave={e => (e.currentTarget.style.background = "#E6F1FB")}
+    >
+      {children}
+    </a>
+  );
+}
+
+function SocialLinkEmail({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
+  return (
+    
+      href={href}
+      title={title}
+      style={socialLinkStyle}
       onMouseEnter={e => (e.currentTarget.style.background = "#B5D4F4")}
       onMouseLeave={e => (e.currentTarget.style.background = "#E6F1FB")}
     >
@@ -75,7 +90,6 @@ export default function NavbarProtegido() {
         .nav-title { font-size: 15px; font-weight: 700; text-decoration: none; }
         @media (max-width: 540px) {
           .nav-title { font-size: 13px; }
-          .nav-social-btn { width: 28px !important; height: 28px !important; }
           .nav-cerrar { display: none !important; }
         }
       `}</style>
@@ -114,18 +128,18 @@ export default function NavbarProtegido() {
 
         {/* DERECHA — Redes + Cerrar sesión */}
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
-          <SocialLink href="https://www.facebook.com/Vitalcrossai" title="Facebook">
+          <SocialLinkExterno href="https://www.facebook.com/Vitalcrossai" title="Facebook">
             <IconFacebook />
-          </SocialLink>
-          <SocialLink href="https://www.instagram.com/vitalcross_ai/" title="Instagram">
+          </SocialLinkExterno>
+          <SocialLinkExterno href="https://www.instagram.com/vitalcross_ai/" title="Instagram">
             <IconInstagram />
-          </SocialLink>
-          <SocialLink href="https://www.tiktok.com/@vitalcrossai" title="TikTok">
+          </SocialLinkExterno>
+          <SocialLinkExterno href="https://www.tiktok.com/@vitalcrossai" title="TikTok">
             <IconTikTok />
-          </SocialLink>
-          <SocialLink href="mailto:info@vitalcrossai.com.ar" title="Email: info@vitalcrossai.com.ar">
+          </SocialLinkExterno>
+          <SocialLinkEmail href="mailto:info@vitalcrossai.com.ar" title="Email: info@vitalcrossai.com.ar">
             <IconEmail />
-          </SocialLink>
+          </SocialLinkEmail>
 
           <div style={{ width: "1px", height: "20px", background: "#B5D4F4", margin: "0 4px", flexShrink: 0 }} />
 

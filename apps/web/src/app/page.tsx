@@ -114,7 +114,6 @@ function FlipCard({
   );
 }
 
-// Íconos SVG inline
 function IconFacebook() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
@@ -148,21 +147,36 @@ function IconEmail() {
   );
 }
 
-function SocialLink({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
-  const isMailto = href.startsWith("mailto");
+const socialStyle: React.CSSProperties = {
+  display: "flex", alignItems: "center", justifyContent: "center",
+  width: "34px", height: "34px", borderRadius: "8px",
+  background: "#E6F1FB", color: "#185FA5",
+  textDecoration: "none", flexShrink: 0,
+  transition: "background 0.18s",
+};
+
+function SocialLinkExterno({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
   return (
     
       href={href}
-      target={isMailto ? undefined : "_blank"}
+      target="_blank"
       rel="noopener noreferrer"
       title={title}
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        width: "34px", height: "34px", borderRadius: "8px",
-        background: "#E6F1FB", color: "#185FA5",
-        textDecoration: "none", flexShrink: 0,
-        transition: "background 0.18s",
-      }}
+      style={socialStyle}
+      onMouseEnter={e => (e.currentTarget.style.background = "#B5D4F4")}
+      onMouseLeave={e => (e.currentTarget.style.background = "#E6F1FB")}
+    >
+      {children}
+    </a>
+  );
+}
+
+function SocialLinkEmail({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
+  return (
+    
+      href={href}
+      title={title}
+      style={socialStyle}
       onMouseEnter={e => (e.currentTarget.style.background = "#B5D4F4")}
       onMouseLeave={e => (e.currentTarget.style.background = "#E6F1FB")}
     >
@@ -181,7 +195,6 @@ export default function HomePage() {
       <style>{`
         .nav-title { font-size: 15px; font-weight: 700; }
         @media (max-width: 480px) {
-          .nav-social-label { display: none; }
           .nav-title { font-size: 13px; }
         }
       `}</style>
@@ -219,18 +232,18 @@ export default function HomePage() {
 
         {/* DERECHA — Redes sociales */}
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
-          <SocialLink href="https://www.facebook.com/Vitalcrossai" title="Facebook">
+          <SocialLinkExterno href="https://www.facebook.com/Vitalcrossai" title="Facebook">
             <IconFacebook />
-          </SocialLink>
-          <SocialLink href="https://www.instagram.com/vitalcross_ai/" title="Instagram">
+          </SocialLinkExterno>
+          <SocialLinkExterno href="https://www.instagram.com/vitalcross_ai/" title="Instagram">
             <IconInstagram />
-          </SocialLink>
-          <SocialLink href="https://www.tiktok.com/@vitalcrossai" title="TikTok">
+          </SocialLinkExterno>
+          <SocialLinkExterno href="https://www.tiktok.com/@vitalcrossai" title="TikTok">
             <IconTikTok />
-          </SocialLink>
-          <SocialLink href="mailto:info@vitalcrossai.com.ar" title="Email: info@vitalcrossai.com.ar">
+          </SocialLinkExterno>
+          <SocialLinkEmail href="mailto:info@vitalcrossai.com.ar" title="Email: info@vitalcrossai.com.ar">
             <IconEmail />
-          </SocialLink>
+          </SocialLinkEmail>
         </div>
       </nav>
 
