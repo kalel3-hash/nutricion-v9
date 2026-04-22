@@ -156,33 +156,11 @@ const socialStyle: React.CSSProperties = {
 };
 
 function SocialLinkExterno({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
-  return (
-    
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={title}
-      style={socialStyle}
-      onMouseEnter={e => (e.currentTarget.style.background = "#B5D4F4")}
-      onMouseLeave={e => (e.currentTarget.style.background = "#E6F1FB")}
-    >
-      {children}
-    </a>
-  );
+  return <a href={href} target="_blank" rel="noopener noreferrer" title={title} style={socialStyle} onMouseEnter={e => (e.currentTarget.style.background = "#B5D4F4")} onMouseLeave={e => (e.currentTarget.style.background = "#E6F1FB")}>{children}</a>;
 }
 
 function SocialLinkEmail({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
-  return (
-    
-      href={href}
-      title={title}
-      style={socialStyle}
-      onMouseEnter={e => (e.currentTarget.style.background = "#B5D4F4")}
-      onMouseLeave={e => (e.currentTarget.style.background = "#E6F1FB")}
-    >
-      {children}
-    </a>
-  );
+  return <a href={href} title={title} style={socialStyle} onMouseEnter={e => (e.currentTarget.style.background = "#B5D4F4")} onMouseLeave={e => (e.currentTarget.style.background = "#E6F1FB")}>{children}</a>;
 }
 
 export default function HomePage() {
