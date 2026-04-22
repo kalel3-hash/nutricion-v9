@@ -75,19 +75,11 @@ function FaqItem({ q, a, highlight = false }: { q: string; a: string; highlight?
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
           {highlight && (
-            <span style={{
-              fontSize: "0.65rem", fontWeight: 700, color: "#185FA5",
-              background: "#E6F1FB", border: "1px solid #B5D4F4",
-              borderRadius: "20px", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: 0,
-            }}>IMPORTANTE</span>
+            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#185FA5", background: "#E6F1FB", border: "1px solid #B5D4F4", borderRadius: "20px", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: 0 }}>IMPORTANTE</span>
           )}
           <span style={{ fontSize: "0.95rem", fontWeight: 600, color: "#2C2C2A", lineHeight: 1.4 }}>{q}</span>
         </div>
-        <div style={{
-          width: "28px", height: "28px", borderRadius: "50%", flexShrink: 0,
-          background: open ? "#185FA5" : "#E6F1FB",
-          display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s",
-        }}>
+        <div style={{ width: "28px", height: "28px", borderRadius: "50%", flexShrink: 0, background: open ? "#185FA5" : "#E6F1FB", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d={open ? "M2 8l4-4 4 4" : "M2 4l4 4 4-4"} stroke={open ? "#FFFFFF" : "#185FA5"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -109,12 +101,7 @@ export default function FaqsPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF", fontFamily: "system-ui, sans-serif" }}>
 
-      <nav style={{
-        display: "grid", gridTemplateColumns: "1fr auto 1fr",
-        alignItems: "center", padding: "0.4rem 1.25rem",
-        background: "#FFFFFF", borderBottom: "1px solid #B5D4F4",
-        position: "sticky", top: 0, zIndex: 50,
-      }}>
+      <nav style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "0.4rem 1.25rem", background: "#FFFFFF", borderBottom: "1px solid #B5D4F4", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <Link href="/" style={{ fontSize: "15px", fontWeight: 700, textDecoration: "none" }}>
             <span style={{ color: "#185FA5" }}>Vital</span><span style={{ color: "#2C2C2A" }}>Cross AI</span>
@@ -123,9 +110,10 @@ export default function FaqsPage() {
         <div style={{ display: "flex", justifyContent: "center" }}>
           <Link href="/"><Image src="/Logo.png" alt="VitalCross AI" width={80} height={80} style={{ objectFit: "contain", display: "block" }} /></Link>
         </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-          <Link href="/login" style={{ padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #185FA5", color: "#185FA5", fontSize: "13px", fontWeight: 500, textDecoration: "none" }}>Iniciar sesion</Link>
-          <Link href="/register" style={{ padding: "7px 16px", borderRadius: "8px", background: "#185FA5", color: "#FFFFFF", fontSize: "13px", fontWeight: 500, textDecoration: "none" }}>Crear cuenta</Link>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Link href="/dashboard" style={{ padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #B5D4F4", color: "#5F5E5A", fontSize: "13px", fontWeight: 500, textDecoration: "none" }}>
+            ← Volver
+          </Link>
         </div>
       </nav>
 
@@ -157,10 +145,9 @@ export default function FaqsPage() {
           <p style={{ margin: "0 0 1.75rem", fontSize: "0.9rem", color: "rgba(255,255,255,0.75)", lineHeight: 1.7 }}>
             Para ayudarte a entender mejor tu alimentacion, sin reemplazar la consulta medica. La informacion es una herramienta poderosa cuando se usa con responsabilidad y criterio profesional.
           </p>
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/register" style={{ padding: "12px 2rem", borderRadius: "8px", background: "#FFFFFF", color: "#185FA5", fontSize: "0.9rem", fontWeight: 700, textDecoration: "none" }}>Crear cuenta gratis</Link>
-            <Link href="/login" style={{ padding: "12px 2rem", borderRadius: "8px", border: "2px solid rgba(255,255,255,0.35)", background: "transparent", color: "#FFFFFF", fontSize: "0.9rem", fontWeight: 500, textDecoration: "none" }}>Ya tengo cuenta</Link>
-          </div>
+          <Link href="/dashboard" style={{ display: "inline-block", padding: "12px 2rem", borderRadius: "8px", background: "#FFFFFF", color: "#185FA5", fontSize: "0.9rem", fontWeight: 700, textDecoration: "none" }}>
+            Volver al dashboard
+          </Link>
         </div>
 
         <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap" }}>
