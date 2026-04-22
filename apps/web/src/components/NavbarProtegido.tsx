@@ -105,7 +105,6 @@ export default function NavbarProtegido() {
         gap: "8px",
       }}>
 
-        {/* IZQUIERDA — Título */}
         <div style={{ display: "flex", alignItems: "center" }}>
           <Link href="/dashboard" className="nav-title">
             <span style={{ color: "#185FA5" }}>Vital</span>
@@ -113,7 +112,6 @@ export default function NavbarProtegido() {
           </Link>
         </div>
 
-        {/* CENTRO — Logo */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
           <Link href="/dashboard">
             <Image
@@ -126,7 +124,6 @@ export default function NavbarProtegido() {
           </Link>
         </div>
 
-        {/* DERECHA — Redes + Cerrar sesión */}
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
           <SocialLinkExterno href="https://www.facebook.com/Vitalcrossai" title="Facebook">
             <IconFacebook />
@@ -155,7 +152,7 @@ export default function NavbarProtegido() {
               opacity: signingOut ? 0.6 : 1, whiteSpace: "nowrap", flexShrink: 0,
             }}
           >
-            {signingOut ? "Saliendo…" : "Cerrar sesión"}
+            {signingOut ? "Saliendo..." : "Cerrar sesion"}
           </button>
         </div>
       </nav>
