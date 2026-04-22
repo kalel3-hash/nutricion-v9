@@ -6,16 +6,16 @@ import NavbarProtegido from "@/components/NavbarProtegido";
 
 const flipCards = [
   {
-    step: "1", icon: "🧬", title: "Cargá tu perfil clínico",
-    desc: "Ingresá tus marcadores de laboratorio: colesterol, glucemia, HbA1c, función renal y más. También podés subir un PDF y la IA los extrae automáticamente.",
+    step: "1", icon: "🧬", title: "Carga tu perfil clinico",
+    desc: "Ingresa tus marcadores de laboratorio: colesterol, glucemia, HbA1c, funcion renal y mas. Tambien podes subir un PDF y la IA los extrae automaticamente.",
   },
   {
-    step: "2", icon: "🥗", title: "Analizá un alimento",
-    desc: "Describí o fotografiá cualquier alimento. La IA lo evalúa en función de tu perfil real y te da un puntaje personalizado del 1 al 10.",
+    step: "2", icon: "🥗", title: "Analiza un alimento",
+    desc: "Describi o fotografia cualquier alimento. La IA lo evalua en funcion de tu perfil real y te da un puntaje personalizado del 1 al 10.",
   },
   {
-    step: "3", icon: "📈", title: "Seguí tu evolución",
-    desc: "Consultá tu historial de análisis, visualizá tendencias y tomá mejores decisiones sobre tu alimentación con el tiempo.",
+    step: "3", icon: "📈", title: "Segui tu evolucion",
+    desc: "Consulta tu historial de analisis, visualiza tendencias y toma mejores decisiones sobre tu alimentacion con el tiempo.",
   },
 ];
 
@@ -72,9 +72,9 @@ export default function DashboardPage() {
         : profileStatus === "completo"
           ? { label: "Completo", bg: "#EAF3DE", border: "#C0DD97", text: "#27500A" }
           : { label: "Incompleto", bg: "#FAEEDA", border: "#FAC775", text: "#854F0B" },
-      subtitle: profileStatus === "loading" ? "Cargando…"
-        : profileStatus === "completo" ? "Tu perfil clínico está cargado"
-        : "Completá tus datos clínicos",
+      subtitle: profileStatus === "loading" ? "Cargando..."
+        : profileStatus === "completo" ? "Tu perfil clinico esta cargado"
+        : "Completa tus datos clinicos",
     },
     {
       icon: "🥗", title: "Analizar alimento", href: "/analizar",
@@ -82,31 +82,31 @@ export default function DashboardPage() {
         : disponibles === 0
           ? { label: "Sin consultas hoy", bg: "#FEE2E2", border: "#FECACA", text: "#991B1B" }
           : { label: `${disponibles}/${usage?.daily_limit} disponibles hoy`, bg: "#E6F1FB", border: "#B5D4F4", text: usageColor },
-      subtitle: disponibles === null ? "Cargando…"
-        : disponibles === 0 ? "Límite diario alcanzado"
-        : "Describí o fotografiá un alimento",
+      subtitle: disponibles === null ? "Cargando..."
+        : disponibles === 0 ? "Limite diario alcanzado"
+        : "Describi o fotografia un alimento",
     },
     {
-      icon: "📈", title: "Mi evolución", href: "/evolucion",
+      icon: "📈", title: "Mi evolucion", href: "/evolucion",
       badge: avgScore === null ? null : { ...scoreColor(avgScore), label: `Promedio: ${avgScore}/10` },
-      subtitle: totalAnalysis === null ? "Cargando…"
-        : totalAnalysis === 0 ? "Aún no tenés análisis"
-        : `${totalAnalysis} análisis realizados`,
+      subtitle: totalAnalysis === null ? "Cargando..."
+        : totalAnalysis === 0 ? "Aun no tenes analisis"
+        : `${totalAnalysis} analisis realizados`,
     },
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
+    <div style={{ minHeight: "100vh", background: "#F0F6FF", display: "flex", flexDirection: "column" }}>
 
-      <NavbarProtegido />
+      <NavbarProtegido extraLinks={[{ label: "Preguntas frecuentes", href: "/faqs" }]} />
 
-      <main style={{ maxWidth: "900px", margin: "0 auto", padding: "3rem 1.5rem" }}>
+      <main style={{ maxWidth: "900px", width: "100%", margin: "0 auto", padding: "3rem 1.5rem", flex: 1 }}>
 
         <div style={{ marginBottom: "2rem" }}>
           <h1 style={{ margin: "0 0 0.4rem", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700, color: "#2C2C2A" }}>
             Bienvenido a <span style={{ color: "#185FA5" }}>VitalCross AI</span>
           </h1>
-          <p style={{ margin: 0, fontSize: "0.95rem", color: "#5F5E5A" }}>¿Qué querés hacer hoy?</p>
+          <p style={{ margin: 0, fontSize: "0.95rem", color: "#5F5E5A" }}>Que queres hacer hoy?</p>
         </div>
 
         {/* Tarjetas */}
@@ -161,26 +161,11 @@ export default function DashboardPage() {
 
           <style>{`
             .flip-card { perspective: 1000px; cursor: pointer; }
-            .flip-inner {
-              position: relative; width: 100%; height: 220px;
-              transform-style: preserve-3d;
-              transition: transform 0.55s cubic-bezier(0.4,0,0.2,1);
-            }
+            .flip-inner { position: relative; width: 100%; height: 220px; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); }
             .flip-inner.flipped { transform: rotateY(180deg); }
-            .flip-front, .flip-back {
-              position: absolute; width: 100%; height: 100%;
-              backface-visibility: hidden; border-radius: 14px;
-              border: 1px solid #B5D4F4;
-              display: flex; flex-direction: column;
-              align-items: center; justify-content: center;
-              padding: 1.75rem; box-sizing: border-box;
-            }
+            .flip-front, .flip-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 14px; border: 1px solid #B5D4F4; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.75rem; box-sizing: border-box; }
             .flip-front { background: #FFFFFF; box-shadow: 0 2px 12px rgba(24,95,165,0.06); }
-            .flip-back {
-              background: linear-gradient(135deg, #185FA5 0%, #378ADD 100%);
-              transform: rotateY(180deg);
-              box-shadow: 0 4px 20px rgba(24,95,165,0.2);
-            }
+            .flip-back { background: linear-gradient(135deg, #185FA5 0%, #378ADD 100%); transform: rotateY(180deg); box-shadow: 0 4px 20px rgba(24,95,165,0.2); }
             .flip-card:hover .flip-front { border-color: #378ADD; box-shadow: 0 4px 20px rgba(24,95,165,0.14); }
           `}</style>
 
@@ -189,27 +174,13 @@ export default function DashboardPage() {
               <div key={card.step} className="flip-card" onClick={() => toggle(i)} role="button" aria-label={`Ver detalle: ${card.title}`}>
                 <div className={`flip-inner${flipped === i ? " flipped" : ""}`}>
                   <div className="flip-front">
-                    <div style={{
-                      width: "56px", height: "56px", borderRadius: "50%",
-                      background: "#E6F1FB", display: "flex", alignItems: "center",
-                      justifyContent: "center", fontSize: "1.75rem", marginBottom: "1rem",
-                    }}>{card.icon}</div>
-                    <div style={{
-                      width: "28px", height: "28px", borderRadius: "50%",
-                      background: "#185FA5", display: "flex", alignItems: "center",
-                      justifyContent: "center", fontSize: "0.8rem", fontWeight: 700,
-                      color: "#FFFFFF", marginBottom: "0.75rem",
-                    }}>{card.step}</div>
+                    <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "#E6F1FB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.75rem", marginBottom: "1rem" }}>{card.icon}</div>
+                    <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#185FA5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "#FFFFFF", marginBottom: "0.75rem" }}>{card.step}</div>
                     <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#2C2C2A", textAlign: "center", lineHeight: 1.3 }}>{card.title}</h3>
                     <p style={{ margin: "0.5rem 0 0", fontSize: "0.75rem", color: "#888780", textAlign: "center" }}>Click para ver mas</p>
                   </div>
                   <div className="flip-back">
-                    <div style={{
-                      width: "44px", height: "44px", borderRadius: "50%",
-                      background: "rgba(255,255,255,0.15)", display: "flex",
-                      alignItems: "center", justifyContent: "center",
-                      fontSize: "1.5rem", marginBottom: "1rem",
-                    }}>{card.icon}</div>
+                    <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", marginBottom: "1rem" }}>{card.icon}</div>
                     <h3 style={{ margin: "0 0 0.75rem", fontSize: "0.95rem", fontWeight: 700, color: "#FFFFFF", textAlign: "center" }}>{card.title}</h3>
                     <p style={{ margin: 0, fontSize: "0.85rem", color: "rgba(255,255,255,0.85)", textAlign: "center", lineHeight: 1.65 }}>{card.desc}</p>
                   </div>
@@ -219,6 +190,32 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* FOOTER */}
+      <footer style={{
+        background: "#FFFFFF", borderTop: "1px solid #B5D4F4",
+        padding: "1.25rem 2rem", textAlign: "center",
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1.25rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+          <Link href="/terminos" style={{ fontSize: "0.78rem", color: "#5F5E5A", textDecoration: "none", fontWeight: 500 }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#185FA5")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#5F5E5A")}
+          >Terminos y Condiciones</Link>
+          <span style={{ color: "#B5D4F4", fontSize: "0.78rem" }}>·</span>
+          <Link href="/privacidad" style={{ fontSize: "0.78rem", color: "#5F5E5A", textDecoration: "none", fontWeight: 500 }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#185FA5")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#5F5E5A")}
+          >Politica de Privacidad</Link>
+          <span style={{ color: "#B5D4F4", fontSize: "0.78rem" }}>·</span>
+          <Link href="/faqs" style={{ fontSize: "0.78rem", color: "#5F5E5A", textDecoration: "none", fontWeight: 500 }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#185FA5")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#5F5E5A")}
+          >Preguntas frecuentes</Link>
+        </div>
+        <p style={{ margin: 0, color: "#B5D4F4", fontSize: "0.72rem" }}>
+          VitalCross AI · Analisis nutricional personalizado con inteligencia artificial
+        </p>
+      </footer>
     </div>
   );
 }
