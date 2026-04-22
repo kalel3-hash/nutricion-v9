@@ -150,13 +150,13 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* CÓMO FUNCIONA */}
+        {/* COMO FUNCIONA */}
         <div style={{ borderTop: "1px solid #B5D4F4", paddingTop: "2.5rem" }}>
           <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.15rem", fontWeight: 700, color: "#2C2C2A" }}>
-            ¿Cómo funciona VitalCross AI?
+            Como funciona VitalCross AI?
           </h2>
           <p style={{ margin: "0 0 2rem", fontSize: "0.85rem", color: "#888780" }}>
-            Hacé click en cada tarjeta para ver los detalles.
+            Hace click en cada tarjeta para ver los detalles.
           </p>
 
           <style>{`
@@ -201,7 +201,7 @@ export default function DashboardPage() {
                       color: "#FFFFFF", marginBottom: "0.75rem",
                     }}>{card.step}</div>
                     <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#2C2C2A", textAlign: "center", lineHeight: 1.3 }}>{card.title}</h3>
-                    <p style={{ margin: "0.5rem 0 0", fontSize: "0.75rem", color: "#888780", textAlign: "center" }}>Click para ver más</p>
+                    <p style={{ margin: "0.5rem 0 0", fontSize: "0.75rem", color: "#888780", textAlign: "center" }}>Click para ver mas</p>
                   </div>
                   <div className="flip-back">
                     <div style={{
