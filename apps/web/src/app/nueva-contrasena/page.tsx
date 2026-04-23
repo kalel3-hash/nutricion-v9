@@ -34,7 +34,7 @@ export default function NuevaContrasenaPage() {
     const timeout = setTimeout(() => {
       setChecking(false);
       setSessionReady(false);
-    }, 3000);
+    }, 8000);
 
     return () => {
       subscription.unsubscribe();
