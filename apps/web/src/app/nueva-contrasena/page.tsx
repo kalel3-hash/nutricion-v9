@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,18 +11,61 @@ export default function NuevaContrasenaPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Leer el hash de la URL para obtener el token de recuperacion
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.replace("#", ""));
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    const type = params.get("type");
+
+    if (accessToken && type === "recovery") {
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken || "" })
+        .then(({ error }) => {
+          if (error) {
+            setError("El link de recuperacion es invalido o expiro. Solicitá uno nuevo.");
+          } else {
+            setSessionReady(true);
+          }
+        });
+    } else {
+      // Si no hay token en el hash, verificar si ya hay sesion activa
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          setSessionReady(true);
+        } else {
+          setError("El link de recuperacion es invalido o expiro. Solicitá uno nuevo.");
+        }
+      });
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres"); return; }
-    if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
+    if (password.length < 6) {
+      setError("La contrasena debe tener al menos 6 caracteres");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Las contrasenas no coinciden");
+      return;
+    }
     setLoading(true);
     const supabase = createClient();
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (updateError) { setError(updateError.message); return; }
-    router.push("/dashboard");
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+    await supabase.auth.signOut();
+    router.push("/login?mensaje=contrasena-actualizada");
   }
 
   return (
@@ -42,10 +85,10 @@ export default function NuevaContrasenaPage() {
         padding: "2.5rem 2rem", width: "100%", maxWidth: "420px",
       }}>
         <h1 style={{ margin: "0 0 0.5rem", fontSize: "1.4rem", fontWeight: 700, color: "#2C2C2A", textAlign: "center" }}>
-          Nueva contraseña
+          Nueva contrasena
         </h1>
         <p style={{ margin: "0 0 2rem", fontSize: "0.9rem", color: "#5F5E5A", textAlign: "center" }}>
-          Ingresá tu nueva contraseña
+          Ingresa tu nueva contrasena
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -53,45 +96,61 @@ export default function NuevaContrasenaPage() {
             <div style={{
               background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px",
               padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B",
-            }}>{error}</div>
+            }}>
+              {error}
+              {error.includes("expiro") && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <Link href="/recuperar-contrasena" style={{ color: "#991B1B", fontWeight: 600 }}>
+                    Solicitar nuevo link
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
+
           <div>
             <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#2C2C2A", marginBottom: "6px" }}>
-              Nueva contraseña
+              Nueva contrasena
             </label>
             <input
               type="password" required value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Minimo 6 caracteres"
+              disabled={!sessionReady}
               style={{
                 width: "100%", padding: "0.75rem 1rem", borderRadius: "8px",
                 border: "1.5px solid #B5D4F4", fontSize: "0.95rem", color: "#2C2C2A",
-                background: "#F8FBFF", outline: "none", boxSizing: "border-box",
+                background: sessionReady ? "#F8FBFF" : "#F0F0F0", outline: "none", boxSizing: "border-box" as const,
               }}
             />
           </div>
           <div>
             <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#2C2C2A", marginBottom: "6px" }}>
-              Confirmar contraseña
+              Confirmar contrasena
             </label>
             <input
               type="password" required value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Repetí la contraseña"
+              placeholder="Repeti la contrasena"
+              disabled={!sessionReady}
               style={{
                 width: "100%", padding: "0.75rem 1rem", borderRadius: "8px",
                 border: "1.5px solid #B5D4F4", fontSize: "0.95rem", color: "#2C2C2A",
-                background: "#F8FBFF", outline: "none", boxSizing: "border-box",
+                background: sessionReady ? "#F8FBFF" : "#F0F0F0", outline: "none", boxSizing: "border-box" as const,
               }}
             />
           </div>
-          <button type="submit" disabled={loading} style={{
-            padding: "0.875rem", borderRadius: "8px",
-            background: loading ? "#378ADD" : "#185FA5", color: "#FFFFFF",
-            fontSize: "0.95rem", fontWeight: 700, border: "none",
-            cursor: loading ? "not-allowed" : "pointer",
-          }}>
-            {loading ? "Guardando…" : "Guardar nueva contraseña"}
+          <button
+            type="submit"
+            disabled={loading || !sessionReady}
+            style={{
+              padding: "0.875rem", borderRadius: "8px",
+              background: loading || !sessionReady ? "#378ADD" : "#185FA5", color: "#FFFFFF",
+              fontSize: "0.95rem", fontWeight: 700, border: "none",
+              cursor: loading || !sessionReady ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading ? "Guardando..." : "Guardar nueva contrasena"}
           </button>
         </form>
       </div>
