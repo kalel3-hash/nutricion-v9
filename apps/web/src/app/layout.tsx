@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import Script from "next/script";
 
 const geistSans = Geist({
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "VitalCross AI",
-  description: "Análisis nutricional personalizado según tus análisis clínicos reales",
+  description: "Analisis nutricional personalizado segun tus analisis clinicos reales",
 };
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
@@ -53,10 +54,12 @@ export default function RootLayout({
             </Script>
           </>
         )}
-        <ServiceWorkerRegistration />
-        <main className="flex-1">
-          {children}
-        </main>
+        <SessionProviderWrapper>
+          <ServiceWorkerRegistration />
+          <main className="flex-1">
+            {children}
+          </main>
+        </SessionProviderWrapper>
       </body>
     </html>
   );
