@@ -1,355 +1,75 @@
-"use client";
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { createClient } from "@supabase/supabase-js";
 
-import { useState, useMemo } from "react";
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-type User = {
-  email: string;
-  full_name: string;
-  created_at: string;
-  profile_complete: boolean;
-  daily_count: number;
-  monthly_count: number;
-  total_count: number;
-};
+export async function GET() {
+  const session = await auth();
 
-type Summary = {
-  total_users: number;
-  perfiles_completos: number;
-  consultas_hoy: number;
-  consultas_mes: number;
-};
-
-export default function AdminClient({
-  users,
-  summary,
-}: {
-  users: User[];
-  summary: Summary;
-}) {
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("todos");
-  const [sortBy, setSortBy] = useState<"created_at" | "total_count" | "monthly_count">("created_at");
-
-  const filtered = useMemo(() => {
-    return users
-      .filter((u) => {
-        const q = search.toLowerCase();
-        const matchSearch =
-          u.email.toLowerCase().includes(q) ||
-          u.full_name.toLowerCase().includes(q);
-        const matchFilter =
-          filter === "todos" ||
-          (filter === "completo" && u.profile_complete) ||
-          (filter === "incompleto" && !u.profile_complete);
-        return matchSearch && matchFilter;
-      })
-      .sort((a, b) => {
-        if (sortBy === "created_at")
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        return b[sortBy] - a[sortBy];
-      });
-  }, [users, search, filter, sortBy]);
-
-  function initials(name: string, email: string) {
-    if (name.trim()) {
-      return name
-        .split(" ")
-        .slice(0, 2)
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase();
-    }
-    return email.slice(0, 2).toUpperCase();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("es-AR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit",
-    });
+  if (session.user.email !== process.env.ADMIN_EMAIL) {
+    return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  const maxTotal = Math.max(...users.map((u) => u.total_count), 1);
+  const { data: profiles } = await supabaseAdmin
+    .from("health_profiles")
+    .select("owner_email, full_name, created_at, age, sex, weight_kg, height_cm, fasting_glucose_mg_dl, total_cholesterol_mg_dl")
+    .order("created_at", { ascending: false });
 
-  return (
-    <div style={{ padding: "2rem", maxWidth: 1100, margin: "0 auto" }}>
+  const { data: usage } = await supabaseAdmin
+    .from("usage_limits")
+    .select("owner_email, daily_count, monthly_count");
 
-      {/* Header */}
-      <div style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 500, color: "#0C447C", marginBottom: 4 }}>
-          Panel de administración
-        </h1>
-        <p style={{ fontSize: 14, color: "#5F5E5A" }}>
-          Usuarios registrados y uso de consultas — VitalCross AI
-        </p>
-      </div>
+  const { data: history } = await supabaseAdmin
+    .from("analysis_history")
+    .select("owner_email");
 
-      {/* Tarjetas resumen */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12,
-          marginBottom: "1.5rem",
-        }}
-      >
-        {[
-          { label: "Usuarios totales", value: summary.total_users, color: "#185FA5" },
-          { label: "Perfiles completos", value: summary.perfiles_completos, color: "#3B6D11" },
-          { label: "Consultas hoy", value: summary.consultas_hoy, color: "#854F0B" },
-          { label: "Consultas este mes", value: summary.consultas_mes, color: "#2C2C2A" },
-        ].map((s) => (
-          <div
-            key={s.label}
-            style={{
-              background: "#F0F6FF",
-              borderRadius: 8,
-              padding: "1rem",
-              border: "0.5px solid #B5D4F4",
-            }}
-          >
-            <div style={{ fontSize: 12, color: "#5F5E5A", marginBottom: 6 }}>{s.label}</div>
-            <div style={{ fontSize: 26, fontWeight: 500, color: s.color }}>{s.value}</div>
-          </div>
-        ))}
-      </div>
+  const totalByEmail: Record<string, number> = {};
+  (history || []).forEach((row) => {
+    totalByEmail[row.owner_email] = (totalByEmail[row.owner_email] || 0) + 1;
+  });
 
-      {/* Barra de búsqueda y filtros */}
-      <div style={{ display: "flex", gap: 8, marginBottom: "1rem", flexWrap: "wrap" }}>
-        <input
-          type="text"
-          placeholder="Buscar por nombre o email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            flex: 1,
-            minWidth: 200,
-            padding: "8px 12px",
-            fontSize: 13,
-            border: "0.5px solid #B5D4F4",
-            borderRadius: 8,
-            background: "#fff",
-            color: "#2C2C2A",
-            outline: "none",
-          }}
-        />
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          style={{
-            padding: "8px 12px",
-            fontSize: 13,
-            border: "0.5px solid #B5D4F4",
-            borderRadius: 8,
-            background: "#fff",
-            color: "#2C2C2A",
-          }}
-        >
-          <option value="todos">Todos los usuarios</option>
-          <option value="completo">Perfil completo</option>
-          <option value="incompleto">Sin perfil</option>
-        </select>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          style={{
-            padding: "8px 12px",
-            fontSize: 13,
-            border: "0.5px solid #B5D4F4",
-            borderRadius: 8,
-            background: "#fff",
-            color: "#2C2C2A",
-          }}
-        >
-          <option value="created_at">Ordenar: más reciente</option>
-          <option value="total_count">Ordenar: más consultas totales</option>
-          <option value="monthly_count">Ordenar: más consultas este mes</option>
-        </select>
-      </div>
+  const usageByEmail: Record<string, { daily_count: number; monthly_count: number }> = {};
+  (usage || []).forEach((row) => {
+    usageByEmail[row.owner_email] = {
+      daily_count: row.daily_count,
+      monthly_count: row.monthly_count,
+    };
+  });
 
-      {/* Tabla */}
-      <div
-        style={{
-          border: "0.5px solid #B5D4F4",
-          borderRadius: 12,
-          overflow: "hidden",
-          background: "#fff",
-        }}
-      >
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "#E6F1FB" }}>
-              {["Nombre", "Email", "Registro", "Perfil", "Hoy", "Este mes", "Total"].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    fontWeight: 500,
-                    fontSize: 12,
-                    color: "#185FA5",
-                    borderBottom: "0.5px solid #B5D4F4",
-                  }}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr>
-                <td
-                  colSpan={7}
-                  style={{ padding: "2rem", textAlign: "center", color: "#888780" }}
-                >
-                  No se encontraron usuarios.
-                </td>
-              </tr>
-            )}
-            {filtered.map((u, i) => {
-              const ini = initials(u.full_name, u.email);
-              const barPct = Math.round((u.total_count / maxTotal) * 100);
-              return (
-                <tr
-                  key={u.email}
-                  style={{
-                    borderBottom:
-                      i < filtered.length - 1 ? "0.5px solid #E6F1FB" : "none",
-                  }}
-                >
-                  {/* Nombre */}
-                  <td style={{ padding: "10px 12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          background: "#B5D4F4",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 11,
-                          fontWeight: 500,
-                          color: "#0C447C",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {ini}
-                      </div>
-                      <span style={{ color: "#2C2C2A", whiteSpace: "nowrap" }}>
-                        {u.full_name || "—"}
-                      </span>
-                    </div>
-                  </td>
+  const users = (profiles || []).map((p) => {
+    const isComplete = !!(
+      p.age &&
+      p.sex &&
+      p.weight_kg &&
+      p.height_cm &&
+      (p.fasting_glucose_mg_dl || p.total_cholesterol_mg_dl)
+    );
+    const u = usageByEmail[p.owner_email] || { daily_count: 0, monthly_count: 0 };
+    return {
+      email: p.owner_email,
+      full_name: p.full_name || "",
+      created_at: p.created_at,
+      profile_complete: isComplete,
+      daily_count: u.daily_count,
+      monthly_count: u.monthly_count,
+      total_count: totalByEmail[p.owner_email] || 0,
+    };
+  });
 
-                  {/* Email */}
-                  <td
-                    style={{
-                      padding: "10px 12px",
-                      color: "#5F5E5A",
-                      maxWidth: 200,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {u.email}
-                  </td>
+  const summary = {
+    total_users: users.length,
+    perfiles_completos: users.filter((u) => u.profile_complete).length,
+    consultas_hoy: users.reduce((s, u) => s + u.daily_count, 0),
+    consultas_mes: users.reduce((s, u) => s + u.monthly_count, 0),
+  };
 
-                  {/* Fecha */}
-                  <td style={{ padding: "10px 12px", color: "#888780", whiteSpace: "nowrap" }}>
-                    {formatDate(u.created_at)}
-                  </td>
-
-                  {/* Perfil */}
-                  <td style={{ padding: "10px 12px" }}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "2px 8px",
-                        borderRadius: 99,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        background: u.profile_complete ? "#EAF3DE" : "#FAEEDA",
-                        color: u.profile_complete ? "#27500A" : "#633806",
-                      }}
-                    >
-                      {u.profile_complete ? "Completo" : "Incompleto"}
-                    </span>
-                  </td>
-
-                  {/* Hoy */}
-                  <td style={{ padding: "10px 12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 6,
-                          background: "#E6F1FB",
-                          borderRadius: 99,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${Math.round((u.daily_count / 5) * 100)}%`,
-                            height: "100%",
-                            background: u.daily_count >= 5 ? "#991B1B" : "#185FA5",
-                            borderRadius: 99,
-                          }}
-                        />
-                      </div>
-                      <span style={{ fontSize: 12, color: "#5F5E5A", minWidth: 14 }}>
-                        {u.daily_count}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Mes */}
-                  <td style={{ padding: "10px 12px", color: "#2C2C2A" }}>
-                    {u.monthly_count}
-                  </td>
-
-                  {/* Total */}
-                  <td style={{ padding: "10px 12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 6,
-                          background: "#E6F1FB",
-                          borderRadius: 99,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${barPct}%`,
-                            height: "100%",
-                            background: "#378ADD",
-                            borderRadius: 99,
-                          }}
-                        />
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: "#2C2C2A", minWidth: 20 }}>
-                        {u.total_count}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <p style={{ marginTop: "1rem", fontSize: 12, color: "#888780" }}>
-        {filtered.length} usuario{filtered.length !== 1 ? "s" : ""} mostrado
-        {filtered.length !== 1 ? "s" : ""} · Datos en tiempo real desde Supabase
-      </p>
-    </div>
-  );
+  return NextResponse.json({ users, summary });
 }
