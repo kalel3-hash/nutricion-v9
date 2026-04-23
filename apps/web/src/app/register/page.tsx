@@ -21,19 +21,19 @@ export default function RegisterPage() {
     setSuccess(false);
 
     if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      setError("Las contrasenas no coinciden.");
       return;
     }
 
     if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+      setError("La contrasena debe tener al menos 6 caracteres.");
       return;
     }
 
     setLoading(true);
     const supabase = createClient();
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -45,6 +45,18 @@ export default function RegisterPage() {
 
     if (signUpError) {
       setError(signUpError.message);
+      return;
+    }
+
+    // Si el usuario ya existia, Supabase devuelve data.user pero sin session
+    // y con identities vacio
+    if (data?.user && data.user.identities && data.user.identities.length === 0) {
+      setError("Este email ya esta registrado. Intenta iniciar sesion.");
+      return;
+    }
+
+    if (!data?.user) {
+      setError("No se pudo crear la cuenta. Intenta de nuevo.");
       return;
     }
 
@@ -94,7 +106,7 @@ export default function RegisterPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
 
-      {/* ── NAVBAR ── */}
+      {/* NAVBAR */}
       <nav style={{
         display: "flex",
         alignItems: "center",
@@ -111,7 +123,7 @@ export default function RegisterPage() {
         </Link>
       </nav>
 
-      {/* ── CONTENIDO ── */}
+      {/* CONTENIDO */}
       <main style={{
         display: "flex",
         alignItems: "center",
@@ -129,7 +141,7 @@ export default function RegisterPage() {
           padding: "2.5rem 2rem",
         }}>
 
-          {/* Logo + título */}
+          {/* Logo + titulo */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "2rem" }}>
             <Image src="/Logo.png" alt="VitalCross AI" width={120} height={120} style={{ objectFit: "contain" }} priority />
             <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>
@@ -140,7 +152,7 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Estado: éxito */}
+          {/* Estado: exito */}
           {success ? (
             <div style={{ textAlign: "center" }}>
               <div style={{
@@ -152,7 +164,7 @@ export default function RegisterPage() {
                 fontSize: "0.875rem",
                 color: "#27500A",
               }}>
-                ¡Cuenta creada! Revisá tu email para confirmar tu cuenta.
+                Cuenta creada exitosamente. Ya podés iniciar sesion.
               </div>
               <Link href="/login" style={{
                 display: "block",
@@ -165,7 +177,7 @@ export default function RegisterPage() {
                 textDecoration: "none",
                 textAlign: "center",
               }}>
-                Ir a iniciar sesión
+                Ir a iniciar sesion
               </Link>
             </div>
           ) : (
@@ -186,7 +198,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Botón Google */}
+              {/* Boton Google */}
               <button
                 type="button"
                 onClick={handleGoogleOAuth}
@@ -215,7 +227,7 @@ export default function RegisterPage() {
                   <path fill="#4CAF50" d="M24 43c5.241 0 9.735-1.737 12.98-4.712l-5.99-4.998C29.9 34.669 27.17 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43z"/>
                   <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303C34.617 31.657 30.124 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43c8.837 0 16-7.163 16-16 0-1.341-.138-2.651-.389-3.917z"/>
                 </svg>
-                {oauthLoading ? "Redirigiendo…" : "Continuar con Google"}
+                {oauthLoading ? "Redirigiendo..." : "Continuar con Google"}
               </button>
 
               {/* Divisor */}
@@ -246,20 +258,20 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="password" style={labelStyle}>Contraseña</label>
+                  <label htmlFor="password" style={labelStyle}>Contrasena</label>
                   <input
                     id="password" name="password" type="password" autoComplete="new-password" required
                     value={password} onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres" style={inputStyle}
+                    placeholder="Minimo 6 caracteres" style={inputStyle}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" style={labelStyle}>Confirmar contraseña</label>
+                  <label htmlFor="confirmPassword" style={labelStyle}>Confirmar contrasena</label>
                   <input
                     id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required
                     value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repetí la contraseña" style={inputStyle}
+                    placeholder="Repeti la contrasena" style={inputStyle}
                   />
                 </div>
 
@@ -280,16 +292,16 @@ export default function RegisterPage() {
                     marginTop: "0.25rem",
                   }}
                 >
-                  {loading ? "Creando cuenta…" : "Crear cuenta"}
+                  {loading ? "Creando cuenta..." : "Crear cuenta"}
                 </button>
               </form>
 
               {/* Link a login */}
               <div style={{ borderTop: "1px solid #E6F1FB", marginTop: "1.5rem", paddingTop: "1.25rem", textAlign: "center" }}>
                 <p style={{ margin: 0, fontSize: "0.875rem", color: "#5F5E5A" }}>
-                  ¿Ya tenés cuenta?{" "}
+                  Ya tenes cuenta?{" "}
                   <Link href="/login" style={{ color: "#185FA5", fontWeight: 600, textDecoration: "none" }}>
-                    Iniciar sesión
+                    Iniciar sesion
                   </Link>
                 </p>
               </div>
