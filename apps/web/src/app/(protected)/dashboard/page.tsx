@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import NavbarProtegido from "@/components/NavbarProtegido";
 
 const flipCards = [
@@ -20,6 +21,7 @@ const flipCards = [
 ];
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
   const [flipped, setFlipped] = useState<number | null>(null);
   const [profileStatus, setProfileStatus] = useState<"loading" | "completo" | "incompleto">("loading");
   const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number } | null>(null);
@@ -65,6 +67,13 @@ export default function DashboardPage() {
   const disponibles = usage ? usage.daily_limit - usage.daily_used : null;
   const usageColor = disponibles === null ? "#185FA5" : disponibles === 0 ? "#991B1B" : disponibles === 1 ? "#854F0B" : "#185FA5";
 
+  // Nombre para mostrar: nombre completo del perfil de Google, o primera parte del email
+  const userName = session?.user?.name
+    ? session.user.name.split(" ")[0]
+    : session?.user?.email
+      ? session.user.email.split("@")[0]
+      : null;
+
   const cards = [
     {
       icon: "🧬", title: "Perfil de salud", href: "/perfil",
@@ -102,10 +111,19 @@ export default function DashboardPage() {
 
       <main style={{ maxWidth: "900px", width: "100%", margin: "0 auto", padding: "3rem 1.5rem", flex: 1 }}>
 
+        {/* SALUDO */}
         <div style={{ marginBottom: "2rem" }}>
-          <h1 style={{ margin: "0 0 0.4rem", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700, color: "#2C2C2A" }}>
-            Bienvenido a <span style={{ color: "#185FA5" }}>VitalCross AI</span>
+          <h1 style={{ margin: "0 0 0.3rem", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700, color: "#2C2C2A" }}>
+            {userName
+              ? <>Bienvenido, <span style={{ color: "#185FA5" }}>{userName}</span></>
+              : <>Bienvenido a <span style={{ color: "#185FA5" }}>VitalCross AI</span></>
+            }
           </h1>
+          {session?.user?.email && (
+            <p style={{ margin: "0 0 0.2rem", fontSize: "0.85rem", color: "#888780" }}>
+              {session.user.email}
+            </p>
+          )}
           <p style={{ margin: 0, fontSize: "0.95rem", color: "#5F5E5A" }}>Que queres hacer hoy?</p>
         </div>
 
@@ -192,10 +210,7 @@ export default function DashboardPage() {
       </main>
 
       {/* FOOTER */}
-      <footer style={{
-        background: "#FFFFFF", borderTop: "1px solid #B5D4F4",
-        padding: "1.25rem 2rem", textAlign: "center",
-      }}>
+      <footer style={{ background: "#FFFFFF", borderTop: "1px solid #B5D4F4", padding: "1.25rem 2rem", textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1.25rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
           <Link href="/terminos" style={{ fontSize: "0.78rem", color: "#5F5E5A", textDecoration: "none", fontWeight: 500 }}
             onMouseEnter={e => (e.currentTarget.style.color = "#185FA5")}
