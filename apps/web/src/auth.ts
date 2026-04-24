@@ -11,29 +11,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Contraseña", type: "password" },
+        password: { label: "Contrasena", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        // Validamos el usuario contra Supabase Auth
-        // (misma forma en que se registran en /register)
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-        );
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+        console.log("=== AUTH DEBUG ===");
+        console.log("URL:", supabaseUrl);
+        console.log("KEY prefix:", serviceKey?.slice(0, 20));
+        console.log("Email:", credentials.email);
+
+        const supabase = createClient(supabaseUrl, serviceKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        });
 
         const { data, error } = await supabase.auth.signInWithPassword({
           email: credentials.email as string,
           password: credentials.password as string,
         });
 
-        if (error || !data.user) {
-          // Credenciales incorrectas → NextAuth redirige a /login?error=CredentialsSignin
-          return null;
-        }
+        console.log("Supabase error:", JSON.stringify(error));
+        console.log("Supabase user:", data?.user?.email);
+        console.log("=== END DEBUG ===");
 
-        // Devolvemos el usuario para que NextAuth cree la sesión JWT
+        if (error || !data.user) return null;
+
         return {
           id: data.user.id,
           email: data.user.email,
@@ -43,10 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
 
-  pages: {
-    signIn: "/login",
-  },
-
+  pages: { signIn: "/login" },
   session: { strategy: "jwt" },
 
   callbacks: {
@@ -54,17 +59,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         const dest = new URL(url);
         const base = new URL(baseUrl);
-
         if (dest.origin === base.origin) {
-          if (dest.pathname === "/") {
-            return `${baseUrl}/dashboard`;
-          }
+          if (dest.pathname === "/") return `${baseUrl}/dashboard`;
           return url;
         }
-      } catch {
-        // si algo falla, mandamos al dashboard
-      }
-
+      } catch { }
       return `${baseUrl}/dashboard`;
     },
   },
