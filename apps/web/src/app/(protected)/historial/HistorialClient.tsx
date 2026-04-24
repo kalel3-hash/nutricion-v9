@@ -52,7 +52,7 @@ export default function HistorialClient() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
 
-      <NavbarProtegido />
+      <NavbarProtegido showSignOut={false} />
 
       <main style={{ maxWidth: "720px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 

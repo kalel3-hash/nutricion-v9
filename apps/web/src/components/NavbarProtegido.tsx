@@ -33,7 +33,13 @@ function SM({ href, title, children }: { href: string; title: string; children: 
 
 type ExtraLink = { label: string; href: string };
 
-export default function NavbarProtegido({ extraLinks }: { extraLinks?: ExtraLink[] }) {
+export default function NavbarProtegido({
+  extraLinks,
+  showSignOut = true,
+}: {
+  extraLinks?: ExtraLink[];
+  showSignOut?: boolean;
+}) {
   const [signingOut, setSigningOut] = useState(false);
   async function handleSignOut() {
     setSigningOut(true);
@@ -66,11 +72,17 @@ export default function NavbarProtegido({ extraLinks }: { extraLinks?: ExtraLink
           <SE href="https://www.facebook.com/Vitalcrossai" title="Facebook"><IconFacebook /></SE>
           <SE href="https://www.instagram.com/vitalcross_ai/" title="Instagram"><IconInstagram /></SE>
           <SE href="https://www.tiktok.com/@vitalcrossai" title="TikTok"><IconTikTok /></SE>
-          <SM href="mailto:info@vitalcrossai.com.ar" title="Email: info@vitalcrossai.com.ar"><IconEmail /></SM>
+          <SM href="mailto:info@vitalcrossai.com.ar" title="Email"><IconEmail /></SM>
           <div style={{ width: "1px", height: "22px", background: "#B5D4F4", margin: "0 6px", flexShrink: 0 }} />
-          <button type="button" onClick={handleSignOut} disabled={signingOut} className="nav-cerrar" style={{ padding: "6px 14px", borderRadius: "8px", border: "1.5px solid #B5D4F4", background: "transparent", color: "#5F5E5A", fontSize: "12px", fontWeight: 500, cursor: signingOut ? "not-allowed" : "pointer", opacity: signingOut ? 0.6 : 1, whiteSpace: "nowrap", flexShrink: 0 }}>
-            {signingOut ? "Saliendo..." : "Cerrar sesion"}
-          </button>
+          {showSignOut ? (
+            <button type="button" onClick={handleSignOut} disabled={signingOut} className="nav-cerrar" style={{ padding: "6px 14px", borderRadius: "8px", border: "1.5px solid #B5D4F4", background: "transparent", color: "#5F5E5A", fontSize: "12px", fontWeight: 500, cursor: signingOut ? "not-allowed" : "pointer", opacity: signingOut ? 0.6 : 1, whiteSpace: "nowrap", flexShrink: 0 }}>
+              {signingOut ? "Saliendo..." : "Cerrar sesion"}
+            </button>
+          ) : (
+            <Link href="/dashboard" style={{ padding: "6px 14px", borderRadius: "8px", border: "1.5px solid #B5D4F4", background: "transparent", color: "#5F5E5A", fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap", flexShrink: 0, textDecoration: "none" }}>
+              ← Volver
+            </Link>
+          )}
         </div>
       </nav>
     </>
