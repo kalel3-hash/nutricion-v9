@@ -42,30 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
 
   callbacks: {
-    async jwt({ token, user }) {
-      console.log("=== JWT CALLBACK ===");
-      console.log("user:", JSON.stringify(user));
-      console.log("token:", JSON.stringify(token));
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      console.log("=== SESSION CALLBACK ===");
-      console.log("token:", JSON.stringify(token));
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
-      }
-      return session;
-    },
     async redirect({ url, baseUrl }) {
-      console.log("=== REDIRECT CALLBACK ===");
-      console.log("url:", url, "baseUrl:", baseUrl);
       try {
         const dest = new URL(url);
         const base = new URL(baseUrl);
