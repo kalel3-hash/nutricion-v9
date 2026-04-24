@@ -16,29 +16,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-        console.log("=== AUTH DEBUG ===");
-        console.log("URL:", supabaseUrl);
-        console.log("KEY prefix:", serviceKey?.slice(0, 20));
-        console.log("Email:", credentials.email);
-
-        const supabase = createClient(supabaseUrl, serviceKey, {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        });
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { auth: { autoRefreshToken: false, persistSession: false } }
+        );
 
         const { data, error } = await supabase.auth.signInWithPassword({
           email: credentials.email as string,
           password: credentials.password as string,
         });
-
-        console.log("Supabase error:", JSON.stringify(error));
-        console.log("Supabase user:", data?.user?.email);
-        console.log("=== END DEBUG ===");
 
         if (error || !data.user) return null;
 
@@ -55,7 +42,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
 
   callbacks: {
+    async jwt({ token, user }) {
+      console.log("=== JWT CALLBACK ===");
+      console.log("user:", JSON.stringify(user));
+      console.log("token:", JSON.stringify(token));
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      console.log("=== SESSION CALLBACK ===");
+      console.log("token:", JSON.stringify(token));
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+      }
+      return session;
+    },
     async redirect({ url, baseUrl }) {
+      console.log("=== REDIRECT CALLBACK ===");
+      console.log("url:", url, "baseUrl:", baseUrl);
       try {
         const dest = new URL(url);
         const base = new URL(baseUrl);
