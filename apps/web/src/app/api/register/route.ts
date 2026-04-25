@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * IMPORTANTE:
- * Forzamos Node.js porque supabase admin NO funciona en Edge
+ * Fuerza ejecución en Node.js (Supabase Admin NO funciona en Edge)
  */
 export const runtime = "nodejs";
+
+/**
+ * Evita cualquier optimización estática
+ */
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
