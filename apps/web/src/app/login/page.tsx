@@ -1,82 +1,73 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { signIn } from "@/auth";
-import { redirect } from "next/navigation";
-import { AuthError } from "next-auth";
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ callbackUrl?: string; error?: string }>;
-}) {
-  const params = await searchParams;
-  const callbackUrl = params?.callbackUrl || "/dashboard";
-  const hasError = params?.error === "CredentialsSignin" || params?.error === "credentials";
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  async function googleSignIn() {
-    "use server";
-    await signIn("google", { redirectTo: callbackUrl });
+  async function handleCredentials(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (result?.error) {
+        setError("Email o contrasena incorrectos. Intenta de nuevo.");
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
+    } catch {
+      setError("Error de conexion. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function credentialsSignIn(formData: FormData) {
-    "use server";
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    try {
-      await signIn("credentials", { email, password, redirectTo: callbackUrl });
-    } catch (error) {
-      if (error instanceof AuthError) {
-        redirect("/login?error=CredentialsSignin");
-      }
-      throw error;
-    }
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    await signIn("google", { callbackUrl: "/dashboard" });
   }
 
   return (
     <>
       <style>{`
-        .login-wrapper {
-          min-height: 100vh;
-          display: flex;
-          font-family: system-ui, sans-serif;
-        }
+        .login-wrapper { min-height: 100vh; display: flex; font-family: system-ui, sans-serif; }
         .login-branding {
           flex: 1;
           background: linear-gradient(160deg, #0C447C 0%, #185FA5 50%, #378ADD 100%);
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: flex-start;
-          padding: 4rem 5rem;
-          position: relative;
-          overflow: hidden;
+          display: flex; flex-direction: column; justify-content: center;
+          align-items: flex-start; padding: 4rem 5rem;
+          position: relative; overflow: hidden;
         }
         .login-form-panel {
-          width: 460px;
-          flex-shrink: 0;
-          background: #FFFFFF;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 3rem;
-          border-left: 1px solid #B5D4F4;
+          width: 460px; flex-shrink: 0; background: #FFFFFF;
+          display: flex; flex-direction: column; justify-content: center;
+          padding: 3rem; border-left: 1px solid #B5D4F4;
         }
         @media (max-width: 768px) {
           .login-wrapper { flex-direction: column; }
           .login-branding { display: none; }
-          .login-form-panel {
-            width: 100%;
-            border-left: none;
-            padding: 2rem 1.5rem;
-            justify-content: flex-start;
-            padding-top: 3rem;
-          }
+          .login-form-panel { width: 100%; border-left: none; padding: 2rem 1.5rem; justify-content: flex-start; padding-top: 3rem; }
         }
       `}</style>
 
       <div className="login-wrapper">
 
-        {/* PANEL IZQUIERDO - Branding */}
+        {/* PANEL IZQUIERDO */}
         <div className="login-branding">
           <div style={{ position: "absolute", top: "-80px", right: "-80px", width: "320px", height: "320px", borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
           <div style={{ position: "absolute", bottom: "-60px", left: "-60px", width: "240px", height: "240px", borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
@@ -115,7 +106,7 @@ export default async function LoginPage({
           </p>
         </div>
 
-        {/* PANEL DERECHO - Formulario */}
+        {/* PANEL DERECHO */}
         <div className="login-form-panel">
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "2rem" }}>
@@ -134,30 +125,34 @@ export default async function LoginPage({
             </p>
           </div>
 
-          {hasError && (
+          {error && (
             <div style={{ background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", marginBottom: "1.25rem", fontSize: "0.875rem", color: "#991B1B", textAlign: "center" }}>
-              Email o contrasena incorrectos. Intenta de nuevo.
+              {error}
             </div>
           )}
 
-          {/* GOOGLE PRIMERO */}
-          <form action={googleSignIn} style={{ marginBottom: "1.25rem" }}>
-            <button type="submit" style={{
+          {/* GOOGLE */}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={googleLoading || loading}
+            style={{
               width: "100%", padding: "0.875rem", borderRadius: "8px",
               background: "#FFFFFF", border: "1.5px solid #B5D4F4",
               fontSize: "0.95rem", fontWeight: 600, color: "#2C2C2A",
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-            }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
-                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.807 31.657 29.314 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 12.955 3 4 11.955 4 23s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/>
-                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.817C14.651 16.018 18.961 13 24 13c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 16.318 3 9.656 7.337 6.306 14.691z"/>
-                <path fill="#4CAF50" d="M24 43c5.241 0 9.735-1.737 12.98-4.712l-5.99-4.998C29.9 34.669 27.17 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43z"/>
-                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303C34.617 31.657 30.124 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43c8.837 0 16-7.163 16-16 0-1.341-.138-2.651-.389-3.917z"/>
-              </svg>
-              Continuar con Google
-            </button>
-          </form>
+              boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: "1.25rem",
+              opacity: googleLoading ? 0.6 : 1,
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.807 31.657 29.314 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 12.955 3 4 11.955 4 23s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/>
+              <path fill="#FF3D00" d="M6.306 14.691l6.571 4.817C14.651 16.018 18.961 13 24 13c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C33.491 5.095 28.973 3 24 3 16.318 3 9.656 7.337 6.306 14.691z"/>
+              <path fill="#4CAF50" d="M24 43c5.241 0 9.735-1.737 12.98-4.712l-5.99-4.998C29.9 34.669 27.17 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43z"/>
+              <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303C34.617 31.657 30.124 35 24 35c-5.29 0-9.768-3.317-11.396-7.946l-6.53 5.032C9.384 38.556 16.129 43 24 43c8.837 0 16-7.163 16-16 0-1.341-.138-2.651-.389-3.917z"/>
+            </svg>
+            {googleLoading ? "Redirigiendo..." : "Continuar con Google"}
+          </button>
 
           {/* DIVISOR */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "1.25rem" }}>
@@ -166,15 +161,16 @@ export default async function LoginPage({
             <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
           </div>
 
-          {/* EMAIL / CONTRASENA */}
-          <form action={credentialsSignIn} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {/* FORMULARIO */}
+          <form onSubmit={handleCredentials} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#2C2C2A" }}>Email</label>
-              <input type="email" name="email" required placeholder="tu@email.com" style={{
-                padding: "0.75rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4",
-                fontSize: "0.95rem", color: "#2C2C2A", outline: "none", background: "#F8FBFF",
-                width: "100%", boxSizing: "border-box",
-              }} />
+              <input
+                type="email" required
+                value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="tu@email.com"
+                style={{ padding: "0.75rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4", fontSize: "0.95rem", color: "#2C2C2A", outline: "none", background: "#F8FBFF", width: "100%", boxSizing: "border-box" }}
+              />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -183,18 +179,19 @@ export default async function LoginPage({
                   Olvidaste tu contrasena?
                 </Link>
               </div>
-              <input type="password" name="password" required placeholder="••••••••" style={{
-                padding: "0.75rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4",
-                fontSize: "0.95rem", color: "#2C2C2A", outline: "none", background: "#F8FBFF",
-                width: "100%", boxSizing: "border-box",
-              }} />
+              <input
+                type="password" required
+                value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                style={{ padding: "0.75rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4", fontSize: "0.95rem", color: "#2C2C2A", outline: "none", background: "#F8FBFF", width: "100%", boxSizing: "border-box" }}
+              />
             </div>
-            <button type="submit" style={{
-              width: "100%", padding: "0.8rem", borderRadius: "8px",
-              background: "#185FA5", color: "#FFFFFF", fontSize: "0.95rem",
-              fontWeight: 600, border: "none", cursor: "pointer", marginTop: "0.25rem",
-            }}>
-              Iniciar sesion
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ width: "100%", padding: "0.8rem", borderRadius: "8px", background: loading ? "#378ADD" : "#185FA5", color: "#FFFFFF", fontSize: "0.95rem", fontWeight: 600, border: "none", cursor: loading ? "not-allowed" : "pointer", marginTop: "0.25rem", opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? "Iniciando sesion..." : "Iniciar sesion"}
             </button>
           </form>
         </div>
