@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-/**
- * Fuerza ejecución en Node.js (Supabase Admin NO funciona en Edge)
- */
 export const runtime = "nodejs";
-
-/**
- * Evita cualquier optimización estática
- */
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -37,14 +30,11 @@ export async function POST(req: Request) {
     });
 
     if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ user: data.user });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Error interno al crear el usuario." },
       { status: 500 }
