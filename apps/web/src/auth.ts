@@ -4,6 +4,8 @@ import Credentials from "next-auth/providers/credentials";
 import { createClient } from "@supabase/supabase-js";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
+
   providers: [
     Google,
 
