@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { signIn } from "@/auth";
 import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 
 export default async function LoginPage({
   searchParams,
@@ -23,8 +24,11 @@ export default async function LoginPage({
     const password = formData.get("password") as string;
     try {
       await signIn("credentials", { email, password, redirectTo: callbackUrl });
-    } catch {
-      redirect("/login?error=CredentialsSignin");
+    } catch (error) {
+      if (error instanceof AuthError) {
+        redirect("/login?error=CredentialsSignin");
+      }
+      throw error;
     }
   }
 
@@ -72,7 +76,7 @@ export default async function LoginPage({
 
       <div className="login-wrapper">
 
-        {/* PANEL IZQUIERDO — Branding */}
+        {/* PANEL IZQUIERDO - Branding */}
         <div className="login-branding">
           <div style={{ position: "absolute", top: "-80px", right: "-80px", width: "320px", height: "320px", borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
           <div style={{ position: "absolute", bottom: "-60px", left: "-60px", width: "240px", height: "240px", borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
@@ -86,15 +90,15 @@ export default async function LoginPage({
           </h1>
 
           <p style={{ margin: "0 0 1.5rem", fontSize: "clamp(1.1rem, 2vw, 1.35rem)", fontWeight: 500, color: "#B5D4F4", lineHeight: 1.4, position: "relative", zIndex: 1 }}>
-            Tu nutrición, personalizada<br />según tu salud real.
+            Tu nutricion, personalizada<br />segun tu salud real.
           </p>
 
           <p style={{ margin: "0 0 3rem", fontSize: "0.95rem", color: "rgba(255,255,255,0.7)", lineHeight: 1.75, maxWidth: "380px", position: "relative", zIndex: 1 }}>
-            Analizá cualquier alimento considerando tus marcadores clínicos reales: colesterol, glucemia, función renal, medicamentos y más.
+            Analiza cualquier alimento considerando tus marcadores clinicos reales: colesterol, glucemia, funcion renal, medicamentos y mas.
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", position: "relative", zIndex: 1 }}>
-            {["Análisis personalizado con IA", "Basado en tus estudios clínicos", "OCR automático de PDF de laboratorio"].map((item) => (
+            {["Analisis personalizado con IA", "Basado en tus estudios clinicos", "OCR automatico de PDF de laboratorio"].map((item) => (
               <div key={item} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
@@ -107,11 +111,11 @@ export default async function LoginPage({
           </div>
 
           <p style={{ position: "absolute", bottom: "2rem", left: "5rem", fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", margin: 0, zIndex: 1 }}>
-            © 2026 VitalCross AI
+            2026 VitalCross AI
           </p>
         </div>
 
-        {/* PANEL DERECHO — Formulario */}
+        {/* PANEL DERECHO - Formulario */}
         <div className="login-form-panel">
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "2rem" }}>
@@ -123,16 +127,16 @@ export default async function LoginPage({
           </div>
 
           <div style={{ marginBottom: "2rem" }}>
-            <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>Iniciar sesión</h2>
+            <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>Iniciar sesion</h2>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "#5F5E5A" }}>
-              ¿No tenés cuenta?{" "}
+              No tenes cuenta?{" "}
               <Link href="/register" style={{ color: "#185FA5", fontWeight: 600, textDecoration: "none" }}>Crear cuenta gratis</Link>
             </p>
           </div>
 
           {hasError && (
             <div style={{ background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", marginBottom: "1.25rem", fontSize: "0.875rem", color: "#991B1B", textAlign: "center" }}>
-              Email o contraseña incorrectos. Intentá de nuevo.
+              Email o contrasena incorrectos. Intenta de nuevo.
             </div>
           )}
 
@@ -158,11 +162,11 @@ export default async function LoginPage({
           {/* DIVISOR */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "1.25rem" }}>
             <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
-            <span style={{ fontSize: "0.8rem", color: "#888780" }}>o iniciá con tu cuenta</span>
+            <span style={{ fontSize: "0.8rem", color: "#888780" }}>o inicia con tu cuenta</span>
             <div style={{ flex: 1, height: "1px", background: "#B5D4F4" }} />
           </div>
 
-          {/* EMAIL / CONTRASEÑA */}
+          {/* EMAIL / CONTRASENA */}
           <form action={credentialsSignIn} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#2C2C2A" }}>Email</label>
@@ -174,9 +178,9 @@ export default async function LoginPage({
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#2C2C2A" }}>Contraseña</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "#2C2C2A" }}>Contrasena</label>
                 <Link href="/recuperar-contrasena" style={{ fontSize: "0.8rem", color: "#185FA5", textDecoration: "none" }}>
-                  ¿Olvidaste tu contraseña?
+                  Olvidaste tu contrasena?
                 </Link>
               </div>
               <input type="password" name="password" required placeholder="••••••••" style={{
@@ -190,17 +194,9 @@ export default async function LoginPage({
               background: "#185FA5", color: "#FFFFFF", fontSize: "0.95rem",
               fontWeight: 600, border: "none", cursor: "pointer", marginTop: "0.25rem",
             }}>
-              Iniciar sesión
+              Iniciar sesion
             </button>
           </form>
-
-          <div style={{ textAlign: "center", marginTop: "0.75rem" }}>
-            <a href={`/api/auth/signin?provider=google&callbackUrl=${encodeURIComponent(callbackUrl)}`}
-              style={{ fontSize: "0.8rem", color: "#378ADD", textDecoration: "none" }}>
-              ¿Problemas? Probar inicio con enlace directo
-            </a>
-          </div>
-
         </div>
       </div>
     </>
