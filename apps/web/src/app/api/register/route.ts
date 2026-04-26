@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,12 +15,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createAdminClient();
 
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -30,14 +27,23 @@ export async function POST(req: Request) {
     });
 
     if (error) {
+      console.error("[REGISTER_ERROR]", error);
       return NextResponse.json(
         { error: error.message },
         { status: 400 }
       );
     }
 
+    if (!data?.user?.id) {
+      return NextResponse.json(
+        { error: "User not created" },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ user: data.user });
   } catch (err) {
+    console.error("[REGISTER_FATAL]", err);
     return NextResponse.json(
       { error: "Error interno al crear el usuario." },
       { status: 500 }
