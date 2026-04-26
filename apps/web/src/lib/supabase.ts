@@ -26,7 +26,10 @@ export const SUPABASE_URL = (() => {
 
 export const SUPABASE_ANON_KEY = (() => {
   const key = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  if (!key.startsWith("sb_publishable_")) {
+  if (
+    !key.startsWith("sb_publishable_") &&
+    !key.startsWith("eyJ")
+  ) {
     throw new Error("[ENV] Invalid Supabase anon key");
   }
   return key;
