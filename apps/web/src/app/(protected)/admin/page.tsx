@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase";
 import AdminClient from "./AdminClient";
 
+/** ✅ IMPRESCINDIBLE: forzar render dinámico */
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const session = await auth();
 
@@ -12,7 +15,7 @@ export default async function AdminPage() {
 
   const supabaseAdmin = createAdminClient();
 
-  // ✅ Verificar que el usuario actual es admin
+  // ✅ Verificar rol admin
   const { data: myRole } = await supabaseAdmin
     .from("user_roles")
     .select("role")
@@ -31,17 +34,17 @@ export default async function AdminPage() {
     )
     .order("created_at", { ascending: false });
 
-  // ✅ Traer uso
+  // ✅ Uso
   const { data: usage } = await supabaseAdmin
     .from("usage_limits")
     .select("owner_email, daily_count, monthly_count");
 
-  // ✅ Traer historial
+  // ✅ Historial
   const { data: history } = await supabaseAdmin
     .from("analysis_history")
     .select("owner_email");
 
-  // ✅ Traer roles admin
+  // ✅ Roles
   const { data: roles } = await supabaseAdmin
     .from("user_roles")
     .select("user_id, role");
@@ -91,7 +94,7 @@ export default async function AdminPage() {
       daily_count: u.daily_count,
       monthly_count: u.monthly_count,
       total_count: totalByEmail[p.owner_email] || 0,
-      is_admin: adminSet.has(p.owner_id), // ✅ FIX CLAVE
+      is_admin: adminSet.has(p.owner_id),
     };
   });
 
