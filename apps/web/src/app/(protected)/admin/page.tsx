@@ -1,13 +1,15 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers"; // ✅ CLAVE
 import { createAdminClient } from "@/lib/supabase";
 import AdminClient from "./AdminClient";
 
-/** ✅ Necesario para que auth() funcione */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  headers(); // ✅ CLAVE: fuerza lectura de cookies
+
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -16,7 +18,6 @@ export default async function AdminPage() {
 
   const supabaseAdmin = createAdminClient();
 
-  // ✅ Verificar rol admin
   const { data: myRole } = await supabaseAdmin
     .from("user_roles")
     .select("role")
@@ -27,7 +28,6 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  // ✅ Perfiles
   const { data: profiles } = await supabaseAdmin
     .from("health_profiles")
     .select(
@@ -35,42 +35,34 @@ export default async function AdminPage() {
     )
     .order("created_at", { ascending: false });
 
-  // ✅ Uso
   const { data: usage } = await supabaseAdmin
     .from("usage_limits")
     .select("owner_email, daily_count, monthly_count");
 
-  // ✅ Historial
   const { data: history } = await supabaseAdmin
     .from("analysis_history")
     .select("owner_email");
 
-  // ✅ Roles
   const { data: roles } = await supabaseAdmin
     .from("user_roles")
     .select("user_id, role");
 
   const totalByEmail: Record<string, number> = {};
-  (history || []).forEach(row => {
-    totalByEmail[row.owner_email] =
-      (totalByEmail[row.owner_email] || 0) + 1;
+  (history || []).forEach(r => {
+    totalByEmail[r.owner_email] =
+      (totalByEmail[r.owner_email] || 0) + 1;
   });
 
-  const usageByEmail: Record<
-    string,
-    { daily_count: number; monthly_count: number }
-  > = {};
-  (usage || []).forEach(row => {
-    usageByEmail[row.owner_email] = {
-      daily_count: row.daily_count,
-      monthly_count: row.monthly_count,
+  const usageByEmail: Record<string, { daily_count: number; monthly_count: number }> = {};
+  (usage || []).forEach(r => {
+    usageByEmail[r.owner_email] = {
+      daily_count: r.daily_count,
+      monthly_count: r.monthly_count,
     };
   });
 
   const adminSet = new Set(
-    (roles || [])
-      .filter(r => r.role === "admin")
-      .map(r => r.user_id)
+    (roles || []).filter(r => r.role === "admin").map(r => r.user_id)
   );
 
   const users = (profiles || []).map(p => {
