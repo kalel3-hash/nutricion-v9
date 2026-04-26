@@ -10,8 +10,8 @@ type User = {
   daily_count: number;
   monthly_count: number;
   total_count: number;
+  is_admin: boolean; // ✅ FIX
 };
-
 type Summary = {
   total_users: number;
   perfiles_completos: number;
