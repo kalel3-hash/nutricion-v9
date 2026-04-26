@@ -2,76 +2,86 @@ import {
   createBrowserClient,
   createServerClient as createSupabaseServerClient,
 } from "@supabase/ssr";
+import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 
 /**
  * Guardrails de Supabase
- * Si algo está mal configurado, la app NO arranca.
  */
 
 function requireEnv(name: string): string {
   const value = process.env[name];
-
   if (!value || value.trim() === "") {
     throw new Error(`[ENV] Missing environment variable: ${name}`);
   }
-
   return value;
 }
 
-function getValidatedSupabaseEnv(): { url: string; anonKey: string } {
+export const SUPABASE_URL = (() => {
   const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-
-  if (!url.startsWith("https://")) {
-    throw new Error("[ENV] Supabase URL must start with https://");
+  if (!url.startsWith("https://") || !url.endsWith(".supabase.co")) {
+    throw new Error("[ENV] Invalid Supabase URL");
   }
+  return url;
+})();
 
-  if (!url.endsWith(".supabase.co")) {
-    throw new Error(
-      "[ENV] Supabase URL must end with .supabase.co (check .com vs .co)",
-    );
+export const SUPABASE_ANON_KEY = (() => {
+  const key = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  if (!key.startsWith("sb_publishable_")) {
+    throw new Error("[ENV] Invalid Supabase anon key");
   }
+  return key;
+})();
 
-  if (!anonKey.startsWith("sb_publishable_")) {
-    throw new Error(
-      "[ENV] NEXT_PUBLIC_SUPABASE_ANON_KEY must be a publishable key (sb_publishable_...)",
-    );
+export const SUPABASE_SERVICE_ROLE_KEY = (() => {
+  const key = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  if (!key.startsWith("sb_secret_")) {
+    throw new Error("[ENV] Invalid Supabase service role key");
   }
-
-  return { url, anonKey };
-}
+  return key;
+})();
 
 /**
- * Cliente Supabase para el navegador.
- * Usar SOLO en Client Components y eventos del cliente.
+ * Cliente para frontend
  */
 export function createClient() {
-  const { url, anonKey } = getValidatedSupabaseEnv();
-  return createBrowserClient(url, anonKey);
+  return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 /**
- * Cliente Supabase para el servidor (SSR, Server Components).
+ * Cliente para Server Components / SSR
  */
 export async function createServerClient() {
-  const { url, anonKey } = getValidatedSupabaseEnv();
   const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
 
-  return createSupabaseServerClient(url, anonKey, {
+  return createSupabaseServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // Llamado desde un contexto sin posibilidad de setear cookies
-        }
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          );
+        } catch {}
       },
     },
   });
+}
+
+/**
+ * ✅ Cliente ADMIN (SOLO backend /api)
+ */
+export function createAdminClient() {
+  return createSupabaseJsClient(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
 }
