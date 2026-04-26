@@ -18,7 +18,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        // ✅ Login SIEMPRE con anon key (no service role)
+        // ✅ Login SIEMPRE con anon key
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -46,10 +46,47 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
 
-  pages: { signIn: "/login" },
-  session: { strategy: "jwt" },
+  pages: {
+    signIn: "/login",
+  },
+
+  session: {
+    strategy: "jwt",
+  },
 
   callbacks: {
+    /**
+     * ✅ CLAVE ABSOLUTA:
+     * Evita que NextAuth redirija automáticamente a /login
+     * cuando se accede a /admin o /dashboard.
+     */
+    async authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+
+      // Rutas públicas
+      if (
+        pathname.startsWith("/login") ||
+        pathname.startsWith("/register") ||
+        pathname.startsWith("/api")
+      ) {
+        return true;
+      }
+
+      // Rutas protegidas que deben permitir sesión existente
+      if (
+        pathname.startsWith("/admin") ||
+        pathname.startsWith("/dashboard") ||
+        pathname.startsWith("/perfil") ||
+        pathname.startsWith("/analizar") ||
+        pathname.startsWith("/historial") ||
+        pathname.startsWith("/evolucion")
+      ) {
+        return !!auth;
+      }
+
+      return true;
+    },
+
     async redirect({ url, baseUrl }) {
       try {
         const dest = new URL(url);
