@@ -13,15 +13,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Contrasena", type: "password" },
+        password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        // ✅ Login SIEMPRE con anon key (no service role)
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          { auth: { autoRefreshToken: false, persistSession: false } }
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false,
+            },
+          }
         );
 
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -29,7 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           password: credentials.password as string,
         });
 
-        if (error || !data.user) return null;
+        if (error || !data?.user) return null;
 
         return {
           id: data.user.id,
@@ -47,12 +53,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async redirect({ url, baseUrl }) {
       try {
         const dest = new URL(url);
-        const base = new URL(baseUrl);
-        if (dest.origin === base.origin) {
+        if (dest.origin === baseUrl) {
           if (dest.pathname === "/") return `${baseUrl}/dashboard`;
           return url;
         }
-      } catch { }
+      } catch {}
       return `${baseUrl}/dashboard`;
     },
   },
