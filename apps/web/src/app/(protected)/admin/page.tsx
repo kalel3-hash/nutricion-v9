@@ -12,17 +12,22 @@ export default async function AdminPage() {
 
   const session = await auth();
 
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  // ⚠️ NO redirigir acá
+  // Solo verificar rol más abajo
 
   const supabaseAdmin = createAdminClient();
 
-  const { data: myRole } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", session.user.id)
-    .single();
+  const userId = session?.user?.id;
+
+if (!userId) {
+  redirect("/login");
+}
+
+const { data: myRole } = await supabaseAdmin
+  .from("user_roles")
+  .select("role")
+  .eq("user_id", userId)
+  .single();
 
   if (myRole?.role !== "admin") {
     redirect("/dashboard");
