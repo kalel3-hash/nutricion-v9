@@ -4,22 +4,41 @@ import {
 } from "@supabase/ssr";
 
 /**
- * Obtiene las variables de entorno necesarias para Supabase.
- * IMPORTANTE:
- * - URL: NEXT_PUBLIC_SUPABASE_URL
- * - KEY: NEXT_PUBLIC_SUPABASE_ANON_KEY  ✅ (NO publishable)
+ * Guardrails de Supabase
+ * Si algo está mal configurado, la app NO arranca.
  */
-function getSupabaseEnv(): { url: string; key: string } {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !key) {
+function requireEnv(name: string): string {
+  const value = process.env[name];
+
+  if (!value || value.trim() === "") {
+    throw new Error(`[ENV] Missing environment variable: ${name}`);
+  }
+
+  return value;
+}
+
+function getValidatedSupabaseEnv(): { url: string; anonKey: string } {
+  const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+
+  if (!url.startsWith("https://")) {
+    throw new Error("[ENV] Supabase URL must start with https://");
+  }
+
+  if (!url.endsWith(".supabase.co")) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "[ENV] Supabase URL must end with .supabase.co (check .com vs .co)",
     );
   }
 
-  return { url, key };
+  if (!anonKey.startsWith("sb_publishable_")) {
+    throw new Error(
+      "[ENV] NEXT_PUBLIC_SUPABASE_ANON_KEY must be a publishable key (sb_publishable_...)",
+    );
+  }
+
+  return { url, anonKey };
 }
 
 /**
@@ -27,20 +46,19 @@ function getSupabaseEnv(): { url: string; key: string } {
  * Usar SOLO en Client Components y eventos del cliente.
  */
 export function createClient() {
-  const { url, key } = getSupabaseEnv();
-  return createBrowserClient(url, key);
+  const { url, anonKey } = getValidatedSupabaseEnv();
+  return createBrowserClient(url, anonKey);
 }
 
 /**
- * Cliente Supabase para el servidor.
- * Usar en Server Components, Route Handlers y Server Actions.
+ * Cliente Supabase para el servidor (SSR, Server Components).
  */
 export async function createServerClient() {
-  const { url, key } = getSupabaseEnv();
+  const { url, anonKey } = getValidatedSupabaseEnv();
   const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
 
-  return createSupabaseServerClient(url, key, {
+  return createSupabaseServerClient(url, anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -51,7 +69,7 @@ export async function createServerClient() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Ignorado: llamado desde un Server Component sin response directa
+          // Llamado desde un contexto sin posibilidad de setear cookies
         }
       },
     },
