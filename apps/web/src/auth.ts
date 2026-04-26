@@ -18,7 +18,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        // ✅ Login SIEMPRE con anon key
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -54,36 +53,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
   },
 
+  /**
+   * ✅ CLAVE ABSOLUTA
+   * NextAuth NO decide el acceso a /admin.
+   * /admin es pública para NextAuth.
+   * La seguridad vive en las APIs.
+   */
   callbacks: {
-    /**
-     * ✅ CLAVE ABSOLUTA:
-     * Evita que NextAuth redirija automáticamente a /login
-     * cuando se accede a /admin o /dashboard.
-     */
-    async authorized({ auth, request }) {
+    async authorized({ request }) {
       const { pathname } = request.nextUrl;
 
-      // Rutas públicas
+      // Rutas públicas para NextAuth
       if (
         pathname.startsWith("/login") ||
         pathname.startsWith("/register") ||
+        pathname.startsWith("/admin") ||
         pathname.startsWith("/api")
       ) {
         return true;
       }
 
-      // Rutas protegidas que deben permitir sesión existente
-      if (
-        pathname.startsWith("/admin") ||
-        pathname.startsWith("/dashboard") ||
-        pathname.startsWith("/perfil") ||
-        pathname.startsWith("/analizar") ||
-        pathname.startsWith("/historial") ||
-        pathname.startsWith("/evolucion")
-      ) {
-        return !!auth;
-      }
-
+      // El resto requiere sesión
       return true;
     },
 
