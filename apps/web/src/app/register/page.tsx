@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -43,8 +44,9 @@ export default function RegisterPage() {
 
       const json = await res.json();
 
-      if (!res.ok) {
-        setError(json.error || "Error al crear la cuenta.");
+      // ✅ GUARDRAIL CRÍTICO
+      if (!res.ok || !json?.user?.id) {
+        setError(json?.error || "No se pudo crear la cuenta.");
         return;
       }
 
@@ -65,6 +67,7 @@ export default function RegisterPage() {
     setGoogleLoading(true);
     await signIn("google", { callbackUrl: "/dashboard" });
   }
+
 
   const inputStyle = {
     width: "100%",
