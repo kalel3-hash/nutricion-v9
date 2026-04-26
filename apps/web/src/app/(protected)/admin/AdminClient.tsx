@@ -122,7 +122,7 @@ export default function AdminClient({
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "#E6F1FB" }}>
-              {["Nombre", "Email", "Registro", "Perfil", "Hoy", "Este mes", "Total"].map((h) => (
+              {["Nombre", "Email", "Rol", "Registro", "Perfil", "Hoy", "Este mes", "Total"].map((h) => (
                 <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 500, fontSize: 12, color: "#185FA5", borderBottom: "0.5px solid #B5D4F4" }}>
                   {h}
                 </th>
@@ -155,6 +155,21 @@ export default function AdminClient({
                   <td style={{ padding: "10px 12px", color: "#5F5E5A", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {u.email || "-"}
                   </td>
+                  <td style={{ padding: "10px 12px" }}>
+  <span
+    style={{
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 99,
+      fontSize: 11,
+      fontWeight: 500,
+      background: u.is_admin ? "#EAF3DE" : "#F0F6FF",
+      color: u.is_admin ? "#27500A" : "#0C447C",
+    }}
+  >
+    {u.is_admin ? "Admin" : "Usuario"}
+  </span>
+</td>
                   <td style={{ padding: "10px 12px", color: "#888780", whiteSpace: "nowrap" }}>
                     {formatDate(u.created_at)}
                   </td>
