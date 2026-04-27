@@ -1,12 +1,15 @@
-import NextAuth from "next-auth";-auth/providers/credentials";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * 🚨 IMPORTANTE
- * NO exportamos `handlers`
- * para desactivar el middleware implícito de NextAuth
+ * ✅ Versión FINAL y estable de auth.ts
+ * - NO exporta handlers
+ * - NO middleware implícito
+ * - NO redirects automáticos
  */
-const authConfig = NextAuth({
+const nextAuth = NextAuth({
   trustHost: true,
 
   providers: [
@@ -59,8 +62,6 @@ const authConfig = NextAuth({
   },
 });
 
-export const auth = authConfig.auth;
-export const signIn = authConfig.signIn;
-export const signOut = authConfig.signOut;
-``
-import Google from "next-auth/providers/google";
+export const auth = nextAuth.auth;
+export const signIn = nextAuth.signIn;
+export const signOut = nextAuth.signOut;
