@@ -1,15 +1,15 @@
-import NextAuth from "next-auth";import Nextnext-auth/providers/google";
+import NextAuth from "next-auth"; Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * ✅ auth.ts FINAL Y COHERENTE
- * - Exporta handlers (requerido por /api/auth)
- * - NO define redirects
- * - NO bloquea admin (admin está en route group)
+ * auth.ts FINAL, limpio y estable
+ * - Exporta handlers (necesario para /api/auth/[...nextauth])
+ * - NO usa callbacks de redirect
+ * - NO bloquea rutas
  */
 
-const authConfig = NextAuth({
+const nextAuth = NextAuth({
   trustHost: true,
 
   providers: [
@@ -63,9 +63,8 @@ const authConfig = NextAuth({
 });
 
 export const {
-  handlers,      // ✅ NECESARIO para /api/auth/[...nextauth]
+  handlers,
   auth,
   signIn,
   signOut,
-} = authConfig;
-``
+} = nextAuth;
