@@ -52,40 +52,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
-
-  /**
-   * ✅ CLAVE ABSOLUTA
-   * NextAuth NO decide el acceso a /admin.
-   * /admin es pública para NextAuth.
-   * La seguridad vive en las APIs.
-   */
-  callbacks: {
-    async authorized({ request }) {
-      const { pathname } = request.nextUrl;
-
-      // Rutas públicas para NextAuth
-      if (
-        pathname.startsWith("/login") ||
-        pathname.startsWith("/register") ||
-        pathname.startsWith("/admin") ||
-        pathname.startsWith("/api")
-      ) {
-        return true;
-      }
-
-      // El resto requiere sesión
-      return true;
-    },
-
-    async redirect({ url, baseUrl }) {
-      try {
-        const dest = new URL(url);
-        if (dest.origin === baseUrl) {
-          if (dest.pathname === "/") return `${baseUrl}/dashboard`;
-          return url;
-        }
-      } catch {}
-      return `${baseUrl}/dashboard`;
-    },
-  },
 });
