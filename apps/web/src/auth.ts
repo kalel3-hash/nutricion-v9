@@ -1,9 +1,12 @@
-import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
-import Credentials from "next-auth/providers/credentials";
+import NextAuth from "next-auth";-auth/providers/credentials";
 import { createClient } from "@supabase/supabase-js";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+/**
+ * 🚨 IMPORTANTE
+ * NO exportamos `handlers`
+ * para desactivar el middleware implícito de NextAuth
+ */
+const authConfig = NextAuth({
   trustHost: true,
 
   providers: [
@@ -39,7 +42,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return {
           id: data.user.id,
           email: data.user.email,
-          name: data.user.user_metadata?.full_name ?? data.user.email,
+          name:
+            data.user.user_metadata?.full_name ??
+            data.user.email,
         };
       },
     }),
@@ -53,3 +58,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
   },
 });
+
+export const auth = authConfig.auth;
+export const signIn = authConfig.signIn;
+export const signOut = authConfig.signOut;
+``
+import Google from "next-auth/providers/google";
