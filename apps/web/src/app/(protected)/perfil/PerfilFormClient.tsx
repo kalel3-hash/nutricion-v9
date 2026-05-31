@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "0.7rem 1rem", borderRadius: "8px",
@@ -72,6 +73,7 @@ export default function PerfilFormClient() {
   const [status, setStatus] = useState<{ type: "ok" | "error" | ""; msg: string }>({ type: "", msg: "" });
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const router = useRouter();
   const [ocrMsg, setOcrMsg] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -207,7 +209,9 @@ export default function PerfilFormClient() {
       });
       const json = await res.json();
       if (json.ok) {
-        setStatus({ type: "ok", msg: "Perfil guardado correctamente." });
+  setStatus({ type: "ok", msg: "Perfil guardado correctamente. Redirigiendo..." });
+  setTimeout(() => router.push("/dashboard"), 1500);
+}
       } else {
         setStatus({ type: "error", msg: json.error ?? "Error al guardar." });
       }
