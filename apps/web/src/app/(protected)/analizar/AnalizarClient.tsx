@@ -95,6 +95,7 @@ export default function AnalizarClient() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoType, setPhotoType] = useState<PhotoType>("alimento");
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -142,7 +143,35 @@ export default function AnalizarClient() {
     setPhotoFile(file); setPhotoPreview(URL.createObjectURL(file)); e.target.value = "";
   };
 
+  const processFile = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setAnalysis(""); setError(""); setIdentification("");
+  };
+
   const clearPhoto = () => { setPhotoPreview(null); setPhotoFile(null); };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!loading && !limitReached) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (loading || limitReached) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
 
   const saveToHistory = async (text: string, description: string) => {
     const scoreMatch = text.match(/(\d+)\s*\/\s*10/);
@@ -281,23 +310,52 @@ export default function AnalizarClient() {
           </div>
         )}
 
-        {/* BOTONES DE FOTO */}
-        <div style={{ background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4", boxShadow: "0 2px 12px rgba(24,95,165,0.06)", padding: "1.5rem", marginBottom: "1.25rem" }}>
-          <p style={{ margin: "0 0 1rem", fontSize: "0.8rem", fontWeight: 600, color: "#5F5E5A", textTransform: "uppercase", letterSpacing: "0.4px" }}>Analizar por foto</p>
-          <div style={{ display: "flex", gap: "0.875rem", flexWrap: "wrap" }}>
-            {[
-              { type: "etiqueta" as PhotoType, icon: "🏷️", label: "Etiqueta nutricional", sub: "Fotografia la tabla de un producto" },
-              { type: "alimento" as PhotoType, icon: "🍽️", label: "Foto de alimento", sub: "Fotografia tu plato o comida" },
-            ].map((btn) => (
-              <button key={btn.type} type="button" onClick={() => handlePhotoSelect(btn.type)} disabled={loading || limitReached} style={{ flex: "1 1 200px", padding: "0.875rem 1rem", borderRadius: "10px", border: `2px solid ${photoType === btn.type && photoPreview ? "#185FA5" : "#B5D4F4"}`, background: photoType === btn.type && photoPreview ? "#E6F1FB" : "#F8FBFF", color: "#2C2C2A", fontSize: "0.875rem", fontWeight: 600, cursor: loading || limitReached ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "10px", textAlign: "left", opacity: limitReached ? 0.5 : 1 }}>
-                <span style={{ fontSize: "1.5rem" }}>{btn.icon}</span>
-                <div>
-                  <div style={{ fontWeight: 700, color: "#185FA5" }}>{btn.label}</div>
-                  <div style={{ fontSize: "0.75rem", color: "#5F5E5A", fontWeight: 400 }}>{btn.sub}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+        {/* ZONA DRAG & DROP + BOTONES DE FOTO */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          style={{
+            background: isDragging ? "#E6F1FB" : "#FFFFFF",
+            borderRadius: "14px",
+            border: isDragging ? "2px dashed #185FA5" : "1px solid #B5D4F4",
+            boxShadow: "0 2px 12px rgba(24,95,165,0.06)",
+            padding: "1.5rem",
+            marginBottom: "1.25rem",
+            transition: "border 0.15s, background 0.15s",
+          }}
+        >
+          <p style={{ margin: "0 0 1rem", fontSize: "0.8rem", fontWeight: 600, color: "#5F5E5A", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+            Analizar por foto
+          </p>
+
+          {isDragging && (
+            <div style={{ textAlign: "center", padding: "1rem 0", color: "#185FA5", fontWeight: 600, fontSize: "0.95rem" }}>
+              Soltá la imagen acá 📷
+            </div>
+          )}
+
+          {!isDragging && (
+            <>
+              <div style={{ display: "flex", gap: "0.875rem", flexWrap: "wrap" }}>
+                {[
+                  { type: "etiqueta" as PhotoType, icon: "🏷️", label: "Etiqueta nutricional", sub: "Fotografiá la tabla de un producto" },
+                  { type: "alimento" as PhotoType, icon: "🍽️", label: "Foto de alimento", sub: "Fotografiá tu plato o comida" },
+                ].map((btn) => (
+                  <button key={btn.type} type="button" onClick={() => handlePhotoSelect(btn.type)} disabled={loading || limitReached} style={{ flex: "1 1 200px", padding: "0.875rem 1rem", borderRadius: "10px", border: `2px solid ${photoType === btn.type && photoPreview ? "#185FA5" : "#B5D4F4"}`, background: photoType === btn.type && photoPreview ? "#E6F1FB" : "#F8FBFF", color: "#2C2C2A", fontSize: "0.875rem", fontWeight: 600, cursor: loading || limitReached ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "10px", textAlign: "left", opacity: limitReached ? 0.5 : 1 }}>
+                    <span style={{ fontSize: "1.5rem" }}>{btn.icon}</span>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#185FA5" }}>{btn.label}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#5F5E5A", fontWeight: 400 }}>{btn.sub}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <p style={{ margin: "0.875rem 0 0", fontSize: "0.75rem", color: "#888780", textAlign: "center" }}>
+                O arrastrá una imagen directamente acá
+              </p>
+            </>
+          )}
 
           {photoPreview && (
             <div style={{ marginTop: "1.25rem" }}>
@@ -367,7 +425,7 @@ export default function AnalizarClient() {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
               <button onClick={handleShare} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 20px", borderRadius: "8px", background: sharing ? "#E6F1FB" : "#185FA5", color: sharing ? "#378ADD" : "#FFFFFF", border: "none", fontSize: "0.88rem", fontWeight: 600, cursor: sharing ? "not-allowed" : "pointer" }}>
-                {sharing ? "Generando PDF..." : "📄 Descargar PDF completo"}
+                {sharing ? "Generando imagen..." : "📤 Compartir resultado"}
               </button>
               <Link href="/historial" style={{ fontSize: "0.85rem", color: "#185FA5", textDecoration: "none", fontWeight: 500 }}>
                 Ver historial completo →
