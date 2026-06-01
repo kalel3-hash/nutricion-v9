@@ -1,6 +1,6 @@
 import https from "https";
 import { auth } from "@/auth";
-import { checkAndIncrementUsage } from "@/lib/usage";
+import { getUsageStatus, incrementUsage } from "@/lib/usage";
 
 export const runtime = "nodejs";
 
@@ -53,20 +53,21 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: "No autenticado" }), { status: 401 });
     }
 
-    const usage = await checkAndIncrementUsage(session.user.email);
-    if (!usage.allowed) {
-      if (usage.reason === "daily") {
+    const email = session.user.email;
+
+    // Chequear límite sin incrementar
+    const status = await getUsageStatus(email);
+    if (!status.allowed) {
+      if (status.reason === "daily") {
         return new Response(
-          JSON.stringify({ error: "Alcanzaste el límite de 5 consultas diarias. Volvé mañana." }),
+          JSON.stringify({ error: "Alcanzaste el limite de 5 consultas diarias. Volve manana." }),
           { status: 429 }
         );
       }
-      if (usage.reason === "monthly") {
-        return new Response(
-          JSON.stringify({ error: "Alcanzaste el límite de 30 consultas mensuales." }),
-          { status: 429 }
-        );
-      }
+      return new Response(
+        JSON.stringify({ error: "Alcanzaste el limite de 30 consultas mensuales." }),
+        { status: 429 }
+      );
     }
 
     const formData = await request.formData();
@@ -96,6 +97,8 @@ export async function POST(request: Request) {
 
     const agent = new https.Agent({ rejectUnauthorized: false });
 
+    let tokenConsumed = false;
+
     const stream = new ReadableStream({
       start(controller) {
         const req = https.request(
@@ -117,7 +120,14 @@ export async function POST(request: Request) {
                   try {
                     const json = JSON.parse(line.slice(6));
                     const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) controller.enqueue(text);
+                    if (text) {
+                      // Incrementar solo con el primer chunk de texto real
+                      if (!tokenConsumed) {
+                        tokenConsumed = true;
+                        incrementUsage(email).catch(() => {});
+                      }
+                      controller.enqueue(text);
+                    }
                   } catch {}
                 }
               }
