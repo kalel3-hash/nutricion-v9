@@ -289,22 +289,22 @@ export default function AnalizarClient() {
           <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1.25rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_used >= usage.daily_limit - 1 ? "#854F0B" : "#185FA5" }}>
-                  {usage.daily_used}/{usage.daily_limit}
+                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_limit - usage.daily_used === 1 ? "#854F0B" : "#185FA5" }}>
+                  {usage.daily_limit - usage.daily_used}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas hoy</div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>tokens disponibles hoy</div>
               </div>
               <div style={{ width: "1px", background: "#B5D4F4", height: "2rem", alignSelf: "center" }} />
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : usage.monthly_used >= usage.monthly_limit - 1 ? "#854F0B" : "#185FA5" }}>
-                  {usage.monthly_used}/{usage.monthly_limit}
+                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : usage.monthly_limit - usage.monthly_used <= 3 ? "#854F0B" : "#185FA5" }}>
+                  {usage.monthly_limit - usage.monthly_used}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas este mes</div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>tokens disponibles este mes</div>
               </div>
             </div>
             {limitReached && (
               <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
-                {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario. Podes volver manana con 5 consultas nuevas." : "Alcanzaste el limite mensual de 30 consultas."}
+                {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario. Podes volver manana con 5 tokens nuevos." : "Alcanzaste el limite mensual de 30 tokens."}
               </div>
             )}
           </div>
