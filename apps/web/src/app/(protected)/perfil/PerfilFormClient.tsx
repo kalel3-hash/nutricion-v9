@@ -211,7 +211,6 @@ export default function PerfilFormClient() {
       if (json.ok) {
   setStatus({ type: "ok", msg: "Perfil guardado correctamente. Redirigiendo..." });
   setTimeout(() => router.push("/dashboard"), 1500);
-}
       } else {
         setStatus({ type: "error", msg: json.error ?? "Error al guardar." });
       }
