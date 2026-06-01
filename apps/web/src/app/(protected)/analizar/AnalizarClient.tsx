@@ -10,35 +10,76 @@ type ProfileResponse = { profile: any | null; error?: string };
 type PhotoType = "alimento" | "etiqueta";
 type Block = { key: string; title: string; content: string };
 
+function normalizeKey(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+}
+
 function parseBlocks(text: string): Block[] {
+  const re = /BLOQUE\s+\d+\s*[-–]\s*([^\n:]+):/gi;
   const titles: { index: number; raw: string; label: string }[] = [];
   let match;
-  const re = /BLOQUE\s+\d+\s*[-]\s*([A-ZAEIOUNS\s]+?):/gi;
   while ((match = re.exec(text)) !== null) {
     titles.push({ index: match.index, raw: match[0], label: match[1].trim() });
   }
-  if (titles.length === 0) return [{ key: "raw", title: "Analisis", content: text }];
+  if (titles.length === 0) return [{ key: "RAW", title: "Análisis", content: text }];
   return titles.map((t, i) => {
     const start = t.index + t.raw.length;
     const end = i + 1 < titles.length ? titles[i + 1].index : text.length;
-    return { key: t.label, title: t.label, content: text.slice(start, end).trim() };
+    return {
+      key: normalizeKey(t.label),
+      title: t.label,
+      content: text.slice(start, end).trim(),
+    };
   });
 }
 
-const blockStyles: Record<string, { bg: string; border: string; titleColor: string; icon: string }> = {
-  default:                  { bg: "#F8FBFF",  border: "#B5D4F4", titleColor: "#0C447C", icon: "📋" },
-  PUNTAJE:                  { bg: "#F8FBFF",  border: "#B5D4F4", titleColor: "#0C447C", icon: "🎯" },
-  "ANALISIS PERSONALIZADO": { bg: "#E6F1FB",  border: "#85B7EB", titleColor: "#0C447C", icon: "🧬" },
-  "SUGERENCIAS DE MEJORA":  { bg: "#EAF3DE",  border: "#C0DD97", titleColor: "#27500A", icon: "💡" },
-  FUENTES:                  { bg: "#F1EFE8",  border: "#D3D1C7", titleColor: "#444441", icon: "📚" },
+const BLOCK_CONFIG: Record<string, { bg: string; border: string; titleColor: string; icon: string; displayTitle: string }> = {
+  PUNTAJE: {
+    bg: "#EEF4FF",
+    border: "#85B7EB",
+    titleColor: "#0C447C",
+    icon: "🎯",
+    displayTitle: "Puntaje",
+  },
+  "ANALISIS PERSONALIZADO": {
+    bg: "#E6F1FB",
+    border: "#378ADD",
+    titleColor: "#0C447C",
+    icon: "🧬",
+    displayTitle: "Evaluación clínica",
+  },
+  "SUGERENCIAS DE MEJORA": {
+    bg: "#EAF3DE",
+    border: "#C0DD97",
+    titleColor: "#27500A",
+    icon: "💡",
+    displayTitle: "Recomendaciones",
+  },
+  FUENTES: {
+    bg: "#F1EFE8",
+    border: "#D3D1C7",
+    titleColor: "#444441",
+    icon: "📚",
+    displayTitle: "Fuentes científicas",
+  },
+  default: {
+    bg: "#F8FBFF",
+    border: "#B5D4F4",
+    titleColor: "#0C447C",
+    icon: "📋",
+    displayTitle: "",
+  },
 };
 
-function getStyle(label: string) {
-  const up = label.toUpperCase();
-  for (const key of Object.keys(blockStyles)) {
-    if (up.includes(key)) return blockStyles[key];
+function getBlockConfig(key: string) {
+  for (const configKey of Object.keys(BLOCK_CONFIG)) {
+    if (key.includes(configKey)) return BLOCK_CONFIG[configKey];
   }
-  return blockStyles.default;
+  return BLOCK_CONFIG.default;
 }
 
 function renderSources(content: string) {
@@ -331,7 +372,7 @@ export default function AnalizarClient() {
 
           {isDragging && (
             <div style={{ textAlign: "center", padding: "1rem 0", color: "#185FA5", fontWeight: 600, fontSize: "0.95rem" }}>
-              Soltá la imagen acá 📷
+              Solta la imagen aca 📷
             </div>
           )}
 
@@ -339,8 +380,8 @@ export default function AnalizarClient() {
             <>
               <div style={{ display: "flex", gap: "0.875rem", flexWrap: "wrap" }}>
                 {[
-                  { type: "etiqueta" as PhotoType, icon: "🏷️", label: "Etiqueta nutricional", sub: "Fotografiá la tabla de un producto" },
-                  { type: "alimento" as PhotoType, icon: "🍽️", label: "Foto de alimento", sub: "Fotografiá tu plato o comida" },
+                  { type: "etiqueta" as PhotoType, icon: "🏷️", label: "Etiqueta nutricional", sub: "Fotografia la tabla de un producto" },
+                  { type: "alimento" as PhotoType, icon: "🍽️", label: "Foto de alimento", sub: "Fotografia tu plato o comida" },
                 ].map((btn) => (
                   <button key={btn.type} type="button" onClick={() => handlePhotoSelect(btn.type)} disabled={loading || limitReached} style={{ flex: "1 1 200px", padding: "0.875rem 1rem", borderRadius: "10px", border: `2px solid ${photoType === btn.type && photoPreview ? "#185FA5" : "#B5D4F4"}`, background: photoType === btn.type && photoPreview ? "#E6F1FB" : "#F8FBFF", color: "#2C2C2A", fontSize: "0.875rem", fontWeight: 600, cursor: loading || limitReached ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "10px", textAlign: "left", opacity: limitReached ? 0.5 : 1 }}>
                     <span style={{ fontSize: "1.5rem" }}>{btn.icon}</span>
@@ -352,7 +393,7 @@ export default function AnalizarClient() {
                 ))}
               </div>
               <p style={{ margin: "0.875rem 0 0", fontSize: "0.75rem", color: "#888780", textAlign: "center" }}>
-                O arrastrá una imagen directamente acá
+                O arrastra una imagen directamente aca
               </p>
             </>
           )}
@@ -409,16 +450,17 @@ export default function AnalizarClient() {
             )}
 
             {blocks.map((block) => {
-              const style = getStyle(block.key);
+              const config = getBlockConfig(block.key);
+              const isFuentes = block.key.includes("FUENTE");
               return (
-                <div key={block.key} style={{ background: style.bg, borderRadius: "14px", border: `1.5px solid ${style.border}`, padding: "1.5rem" }}>
+                <div key={block.key} style={{ background: config.bg, borderRadius: "14px", border: `1.5px solid ${config.border}`, padding: "1.5rem" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1rem" }}>
-                    <span style={{ fontSize: "1.1rem" }}>{style.icon}</span>
-                    <h3 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: style.titleColor, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                      {block.title.charAt(0) + block.title.slice(1).toLowerCase()}
+                    <span style={{ fontSize: "1.1rem" }}>{config.icon}</span>
+                    <h3 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: config.titleColor, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      {config.displayTitle || block.title}
                     </h3>
                   </div>
-                  <div>{block.key.toUpperCase().includes("FUENTE") ? renderSources(block.content) : renderContent(block.content, style.titleColor)}</div>
+                  <div>{isFuentes ? renderSources(block.content) : renderContent(block.content, config.titleColor)}</div>
                 </div>
               );
             })}
