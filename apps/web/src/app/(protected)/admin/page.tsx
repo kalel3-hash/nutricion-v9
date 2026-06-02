@@ -1,5 +1,13 @@
-import { auth } from "@/auth";
-import { redirect } "numeric",import { redirect } from "next/navigation";
+import { auth } from "@/auth";import { auth } from/supabaseService";
+import AdminClient from "./AdminClient";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function getDateKeyInAR(dateString: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(dateString));
@@ -175,12 +183,4 @@ export default async function AdminPage() {
   );
 }
 
-import { createSupabaseAdmin } from "@/lib/supabaseService";
-import AdminClient from "./AdminClient";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-function getDateKeyInAR(dateString: string) {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "America/Argentina/Buenos_Aires",
+import { redirect } from "next/navigation";
