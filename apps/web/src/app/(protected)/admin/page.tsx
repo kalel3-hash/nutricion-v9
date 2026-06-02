@@ -109,7 +109,7 @@ export default async function AdminPage() {
       owner_email: string;
       daily_count: number;
       monthly_count: number;
-      updated_at: string | null;
+      updated_at?: string;
     }
   > = {};
 
@@ -120,7 +120,7 @@ export default async function AdminPage() {
       owner_email: u.email || "",
       daily_count: 0,
       monthly_count: 0,
-      updated_at: null,
+      updated_at: undefined,
     };
   });
 
@@ -134,7 +134,7 @@ export default async function AdminPage() {
         owner_email: h.owner_email,
         daily_count: 0,
         monthly_count: 0,
-        updated_at: null,
+        updated_at: undefined,
       };
     }
 
