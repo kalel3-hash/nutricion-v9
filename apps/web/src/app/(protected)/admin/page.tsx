@@ -1,6 +1,41 @@
-import { auth } from "@/auth";import { auth: authUsersData,
-    error: authUsersError,
-  } = await supabase.auth.admin.listUsers();
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { createSupabaseAdmin } from "@/lib/supabaseService";
+import AdminClient from "./AdminClient";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function getDateKeyInAR(dateString: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(dateString));
+}
+
+function getMonthKeyInAR(dateString: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date(dateString));
+}
+
+export default async function AdminPage() {
+  const session = await auth();
+
+  const currentEmail = session?.user?.email?.toLowerCase();
+  if (!currentEmail) {
+    redirect("/login");
+  }
+
+  const supabase = createSupabaseAdmin();
+
+  // 1) Usuarios reales de Supabase Auth
+  const { data: authUsersData, error: authUsersError } =
+    await supabase.auth.admin.listUsers();
 
   if (authUsersError) {
     throw new Error(authUsersError.message);
@@ -37,7 +72,7 @@ import { auth } from "@/auth";import { auth: authUsersData,
     profileByEmail[(p.owner_email || "").toLowerCase()] = p;
   });
 
-  // 5) Historial (fuente única para actividad y uso)
+  // 5) Historial
   const { data: history } = await supabase
     .from("analysis_history")
     .select("owner_email, food_description, score, created_at")
@@ -136,39 +171,3 @@ import { auth } from "@/auth";import { auth: authUsersData,
     />
   );
 }
-import { redirect } from "next/navigation";
-import { createSupabaseAdmin } from "@/lib/supabaseService";
-import AdminClient from "./AdminClient";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-function getDateKeyInAR(dateString: string) {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(dateString));
-}
-
-function getMonthKeyInAR(dateString: string) {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
-    month: "2-digit",
-  }).format(new Date(dateString));
-}
-
-export default async function AdminPage() {
-  const session = await auth();
-
-  const currentEmail = session?.user?.email?.toLowerCase();
-  if (!currentEmail) {
-    redirect("/login");
-  }
-
-  const supabase = createSupabaseAdmin();
-
-  // 1) Usuarios reales de Supabase Auth
-  const {
