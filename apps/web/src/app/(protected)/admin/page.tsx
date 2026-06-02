@@ -1,4 +1,5 @@
-import { auth } from "@/auth";import from "next/navigation";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { createSupabaseAdmin } from "@/lib/supabaseService";
 import AdminClient from "./AdminClient";
 
@@ -95,4 +96,3 @@ export default async function AdminPage() {
     />
   );
 }
-
