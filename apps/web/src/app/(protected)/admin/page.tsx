@@ -1,5 +1,4 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import { auth } from "@/auth";import from "next/navigation";
 import { createSupabaseAdmin } from "@/lib/supabaseService";
 import AdminClient from "./AdminClient";
 
@@ -9,7 +8,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const session = await auth();
 
-  if (!session?.user?.email) {
+  const currentEmail = session?.user?.email?.toLowerCase();
+  if (!currentEmail) {
     redirect("/login");
   }
 
@@ -37,7 +37,7 @@ export default async function AdminPage() {
 
   // 3) Validar que el usuario actual sea admin
   const currentAuthUser = authUsers.find(
-    (u) => u.email?.toLowerCase() === session.user.email?.toLowerCase()
+    (u) => u.email?.toLowerCase() === currentEmail
   );
 
   if (!currentAuthUser || !adminSet.has(currentAuthUser.id)) {
@@ -68,7 +68,7 @@ export default async function AdminPage() {
     .select("owner_email, daily_count, monthly_count, updated_at")
     .order("monthly_count", { ascending: false });
 
-  // 7) Armar profiles enriquecidos a partir de Auth + health_profiles + user_roles
+  // 7) Armar profiles enriquecidos
   const profiles = authUsers.map((u) => {
     const email = (u.email || "").toLowerCase();
     const p = profileByEmail[email];
@@ -91,7 +91,8 @@ export default async function AdminPage() {
       profiles={profiles}
       history={history ?? []}
       usage={usage ?? []}
-      currentEmail={session.user.email}
+      currentEmail={currentEmail}
     />
   );
 }
+
