@@ -1,24 +1,4 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { createSupabaseAdmin } from "@/lib/supabaseService";
-import AdminClient from "./AdminClient";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-export default async function AdminPage() {
-  const session = await auth();
-
-  const currentEmail = session?.user?.email?.toLowerCase();
-  if (!currentEmail) {
-    redirect("/login");
-  }
-
-  const supabase = createSupabaseAdmin();
-
-  // 1) Usuarios reales de Supabase Auth
-  const {
-    data: authUsersData,
+import { auth } from "@/auth";import { auth: authUsersData,
     error: authUsersError,
   } = await supabase.auth.admin.listUsers();
 
@@ -57,19 +37,15 @@ export default async function AdminPage() {
     profileByEmail[(p.owner_email || "").toLowerCase()] = p;
   });
 
-  // 5) Historial
+  // 5) Historial (fuente única para actividad y uso)
   const { data: history } = await supabase
     .from("analysis_history")
     .select("owner_email, food_description, score, created_at")
     .order("created_at", { ascending: false });
 
-  // 6) Uso
-  const { data: usage } = await supabase
-    .from("usage_limits")
-    .select("owner_email, daily_count, monthly_count, updated_at")
-    .order("monthly_count", { ascending: false });
+  const historyRows = history ?? [];
 
-  // 7) Armar profiles enriquecidos
+  // 6) Armar profiles enriquecidos
   const profiles = authUsers.map((u) => {
     const email = (u.email || "").toLowerCase();
     const p = profileByEmail[email];
@@ -87,12 +63,112 @@ export default async function AdminPage() {
     };
   });
 
+  // 7) Construir USO desde analysis_history
+  const now = new Date();
+  const todayKey = getDateKeyInAR(now.toISOString());
+  const monthKey = getMonthKeyInAR(now.toISOString());
+
+  const usageMap: Record<
+    string,
+    {
+      owner_email: string;
+      daily_count: number;
+      monthly_count: number;
+      updated_at: string | null;
+    }
+  > = {};
+
+  // Inicializar todos los usuarios con 0
+  authUsers.forEach((u) => {
+    const email = (u.email || "").toLowerCase();
+    usageMap[email] = {
+      owner_email: u.email || "",
+      daily_count: 0,
+      monthly_count: 0,
+      updated_at: null,
+    };
+  });
+
+  historyRows.forEach((h) => {
+    if (!h.owner_email || !h.created_at) return;
+
+    const email = h.owner_email.toLowerCase();
+
+    if (!usageMap[email]) {
+      usageMap[email] = {
+        owner_email: h.owner_email,
+        daily_count: 0,
+        monthly_count: 0,
+        updated_at: null,
+      };
+    }
+
+    const rowDayKey = getDateKeyInAR(h.created_at);
+    const rowMonthKey = getMonthKeyInAR(h.created_at);
+
+    if (rowDayKey === todayKey) {
+      usageMap[email].daily_count += 1;
+    }
+
+    if (rowMonthKey === monthKey) {
+      usageMap[email].monthly_count += 1;
+    }
+
+    if (
+      !usageMap[email].updated_at ||
+      new Date(h.created_at).getTime() >
+        new Date(usageMap[email].updated_at as string).getTime()
+    ) {
+      usageMap[email].updated_at = h.created_at;
+    }
+  });
+
+  const usage = Object.values(usageMap).sort(
+    (a, b) => (b.monthly_count || 0) - (a.monthly_count || 0)
+  );
+
   return (
     <AdminClient
       profiles={profiles}
-      history={history ?? []}
-      usage={usage ?? []}
+      history={historyRows}
+      usage={usage}
       currentEmail={currentEmail}
     />
   );
 }
+import { redirect } from "next/navigation";
+import { createSupabaseAdmin } from "@/lib/supabaseService";
+import AdminClient from "./AdminClient";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function getDateKeyInAR(dateString: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(dateString));
+}
+
+function getMonthKeyInAR(dateString: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date(dateString));
+}
+
+export default async function AdminPage() {
+  const session = await auth();
+
+  const currentEmail = session?.user?.email?.toLowerCase();
+  if (!currentEmail) {
+    redirect("/login");
+  }
+
+  const supabase = createSupabaseAdmin();
+
+  // 1) Usuarios reales de Supabase Auth
+  const {
