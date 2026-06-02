@@ -61,49 +61,32 @@ export default async function AdminPage() {
   }
 
   // 4) Perfiles
-  const { data: profileRows, error: profileError } = await supabase
+  const { data: profileRows } = await supabase
     .from("health_profiles")
     .select(
-      "owner_id, owner_email, full_name, created_at, age, sex, weight_kg, height_cm"
+      "owner_email, full_name, created_at, age, sex, weight_kg, height_cm"
     );
 
-  if (profileError) {
-    throw new Error(profileError.message);
-  }
-
-  const profileById: Record<string, any> = {};
   const profileByEmail: Record<string, any> = {};
-
   (profileRows || []).forEach((p) => {
-    if (p.owner_id) {
-      profileById[p.owner_id] = p;
-    }
-    if (p.owner_email) {
-      profileByEmail[p.owner_email.toLowerCase()] = p;
-    }
+    profileByEmail[(p.owner_email || "").toLowerCase()] = p;
   });
 
   // 5) Historial
-  const { data: history, error: historyError } = await supabase
+  const { data: history } = await supabase
     .from("analysis_history")
     .select("owner_email, food_description, score, created_at")
     .order("created_at", { ascending: false });
-
-  if (historyError) {
-    throw new Error(historyError.message);
-  }
 
   const historyRows = history ?? [];
 
   // 6) Armar profiles enriquecidos
   const profiles = authUsers.map((u) => {
     const email = (u.email || "").toLowerCase();
-
-    // ✅ Primero por owner_id, si no existe, fallback por email
-    const p = profileById[u.id] || profileByEmail[email];
+    const p = profileByEmail[email];
 
     return {
-      owner_id: u.id,
+      owner_id: u.id, // este sí se usa para acciones admin
       owner_email: u.email || "",
       full_name: p?.full_name || u.user_metadata?.full_name || "",
       created_at: p?.created_at || u.created_at,
