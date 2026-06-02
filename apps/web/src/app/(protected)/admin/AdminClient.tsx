@@ -200,12 +200,6 @@ export default function AdminClient({
     },
   ];
 
-  const filteredProfiles = profiles.filter(
-    (p) =>
-      p.owner_email.toLowerCase().includes(searchUser.toLowerCase()) ||
-      (p.full_name ?? "").toLowerCase().includes(searchUser.toLowerCase())
-  );
-
   const lastActivityByEmail: Record<string, string> = {};
   history.forEach((h) => {
     if (!h.owner_email || !h.created_at) return;
@@ -228,6 +222,37 @@ export default function AdminClient({
     if (value === "email") return "Email";
     return value;
   }
+
+  function getSortTime(profile: Profile) {
+    const lastActivity = lastActivityByEmail[profile.owner_email.toLowerCase()];
+    if (lastActivity) return new Date(lastActivity).getTime();
+    if (profile.created_at) return new Date(profile.created_at).getTime();
+    return 0;
+  }
+
+  const filteredProfiles = profiles
+    .filter(
+      (p) =>
+        p.owner_email.toLowerCase().includes(searchUser.toLowerCase()) ||
+        (p.full_name ?? "").toLowerCase().includes(searchUser.toLowerCase())
+    )
+    .sort((a, b) => {
+      // 1) Admins primero
+      if (!!a.is_admin !== !!b.is_admin) {
+        return a.is_admin ? -1 : 1;
+      }
+
+      // 2) Última actividad más reciente
+      const timeDiff = getSortTime(b) - getSortTime(a);
+      if (timeDiff !== 0) return timeDiff;
+
+      // 3) Nombre / email como desempate
+      return (a.full_name || a.owner_email).localeCompare(
+        b.full_name || b.owner_email,
+        "es",
+        { sensitivity: "base" }
+      );
+    });
 
   return (
     <div
@@ -613,12 +638,21 @@ export default function AdminClient({
                 overflowX: "auto",
               }}
             >
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", minWidth: "1450px" }}>
+              <table
+                style={{
+                  width: "100%",
+                  minWidth: "1500px",
+                  borderCollapse: "collapse",
+                  fontSize: "0.85rem",
+                }}
+              >
                 <thead>
                   <tr style={{ background: "#E6F1FB" }}>
                     {[
                       "Nombre",
                       "Email",
+                      "Rol",
+                      "Acción",
                       "Proveedor",
                       "Edad",
                       "Sexo",
@@ -628,8 +662,6 @@ export default function AdminClient({
                       "Registro",
                       "Última actividad",
                       "Consultas mes",
-                      "Rol",
-                      "Acción",
                     ].map((h) => (
                       <th
                         key={h}
@@ -671,72 +703,6 @@ export default function AdminClient({
 
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
                           {p.owner_email}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {formatProvider(p.provider)}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {p.age ?? "—"}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {p.sex ?? "—"}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {p.weight_kg ? `${p.weight_kg} kg` : "—"}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {p.height_cm ? `${p.height_cm} cm` : "—"}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem" }}>
-                          {p.profile_complete ? (
-                            <span
-                              style={{
-                                background: "#EAF3DE",
-                                color: "#27500A",
-                                borderRadius: "20px",
-                                padding: "2px 10px",
-                                fontSize: "0.7rem",
-                                fontWeight: 700,
-                              }}
-                            >
-                              Completo
-                            </span>
-                          ) : (
-                            <span
-                              style={{
-                                background: "#FAEEDA",
-                                color: "#854F0B",
-                                borderRadius: "20px",
-                                padding: "2px 10px",
-                                fontSize: "0.7rem",
-                                fontWeight: 700,
-                              }}
-                            >
-                              Incompleto
-                            </span>
-                          )}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A", whiteSpace: "nowrap" }}>
-                          {p.created_at
-                            ? new Date(p.created_at).toLocaleDateString("es-AR")
-                            : "—"}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A", whiteSpace: "nowrap" }}>
-                          {lastActivity
-                            ? new Date(lastActivity).toLocaleString("es-AR")
-                            : "—"}
-                        </td>
-
-                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {usageInfo?.monthly_count ?? 0}
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem" }}>
@@ -864,6 +830,72 @@ export default function AdminClient({
                               {busy ? "Procesando..." : "Hacer admin"}
                             </button>
                           )}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
+                          {formatProvider(p.provider)}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
+                          {p.age ?? "—"}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
+                          {p.sex ?? "—"}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
+                          {p.weight_kg ? `${p.weight_kg} kg` : "—"}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
+                          {p.height_cm ? `${p.height_cm} cm` : "—"}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem" }}>
+                          {p.profile_complete ? (
+                            <span
+                              style={{
+                                background: "#EAF3DE",
+                                color: "#27500A",
+                                borderRadius: "20px",
+                                padding: "2px 10px",
+                                fontSize: "0.7rem",
+                                fontWeight: 700,
+                              }}
+                            >
+                              Completo
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                background: "#FAEEDA",
+                                color: "#854F0B",
+                                borderRadius: "20px",
+                                padding: "2px 10px",
+                                fontSize: "0.7rem",
+                                fontWeight: 700,
+                              }}
+                            >
+                              Incompleto
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A", whiteSpace: "nowrap" }}>
+                          {p.created_at
+                            ? new Date(p.created_at).toLocaleDateString("es-AR")
+                            : "—"}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A", whiteSpace: "nowrap" }}>
+                          {lastActivity
+                            ? new Date(lastActivity).toLocaleString("es-AR")
+                            : "—"}
+                        </td>
+
+                        <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
+                          {usageInfo?.monthly_count ?? 0}
                         </td>
                       </tr>
                     );
