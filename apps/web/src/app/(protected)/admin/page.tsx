@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { authimport { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createSupabaseAdmin } from "@/lib/supabaseService";
 import AdminClient from "./AdminClient";
 
@@ -84,12 +84,7 @@ export default async function AdminPage() {
       (u.identities?.[0] as any)?.provider ||
       "email";
 
-    const profileComplete = !!(
-      p?.age &&
-      p?.sex &&
-      p?.weight_kg &&
-      p?.height_cm
-    );
+    const profileComplete = !!(p?.age && p?.sex && p?.weight_kg && p?.height_cm);
 
     return {
       owner_id: u.id,
