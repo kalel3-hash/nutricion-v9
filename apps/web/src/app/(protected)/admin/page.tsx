@@ -1,4 +1,6 @@
-import { auth } from "@/auth";import { auth } from/supabaseService";
+import { auth } from "@/auth";
+import { authimport { redirect } from "next/navigation";
+import { createSupabaseAdmin } from "@/lib/supabaseService";
 import AdminClient from "./AdminClient";
 
 export const runtime = "nodejs";
@@ -31,7 +33,6 @@ export default async function AdminPage() {
 
   const supabase = createSupabaseAdmin();
 
-  // 1) Usuarios reales de Supabase Auth
   const { data: authUsersData, error: authUsersError } =
     await supabase.auth.admin.listUsers();
 
@@ -41,7 +42,6 @@ export default async function AdminPage() {
 
   const authUsers = authUsersData?.users ?? [];
 
-  // 2) Roles admin reales
   const { data: roles } = await supabase
     .from("user_roles")
     .select("user_id, role")
@@ -49,7 +49,6 @@ export default async function AdminPage() {
 
   const adminSet = new Set((roles || []).map((r) => r.user_id));
 
-  // 3) Validar que el usuario actual sea admin
   const currentAuthUser = authUsers.find(
     (u) => u.email?.toLowerCase() === currentEmail
   );
@@ -58,7 +57,6 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  // 4) Perfiles
   const { data: profileRows } = await supabase
     .from("health_profiles")
     .select(
@@ -70,7 +68,6 @@ export default async function AdminPage() {
     profileByEmail[(p.owner_email || "").toLowerCase()] = p;
   });
 
-  // 5) Historial
   const { data: history } = await supabase
     .from("analysis_history")
     .select("owner_email, food_description, score, created_at")
@@ -78,7 +75,6 @@ export default async function AdminPage() {
 
   const historyRows = history ?? [];
 
-  // 6) Armar profiles enriquecidos
   const profiles = authUsers.map((u) => {
     const email = (u.email || "").toLowerCase();
     const p = profileByEmail[email];
@@ -110,7 +106,6 @@ export default async function AdminPage() {
     };
   });
 
-  // 7) Construir USO desde analysis_history
   const now = new Date();
   const todayKey = getDateKeyInAR(now.toISOString());
   const monthKey = getMonthKeyInAR(now.toISOString());
@@ -182,5 +177,3 @@ export default async function AdminPage() {
     />
   );
 }
-
-import { redirect } from "next/navigation";
