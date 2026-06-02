@@ -3,13 +3,6 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { createClient } from "@supabase/supabase-js";
 
-/**
- * auth.ts limpio y estable
- * - Exporta handlers (requerido por /api/auth/[...nextauth])
- * - Sin callbacks globales
- * - Sin redirects automáticos
- */
-
 const authInstance = NextAuth({
   trustHost: true,
 
@@ -60,6 +53,22 @@ const authInstance = NextAuth({
 
   session: {
     strategy: "jwt",
+  },
+
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.id = user.id;
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session.user && token.id) {
+        session.user.id = token.id as string;
+      }
+      return session;
+    },
   },
 });
 
