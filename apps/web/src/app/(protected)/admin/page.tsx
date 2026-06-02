@@ -1,15 +1,5 @@
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { createSupabaseAdmin } from "@/lib/supabaseService";
-import AdminClient from "./AdminClient";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-function getDateKeyInAR(dateString: string) {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
+import { redirect } "numeric",import { redirect } from "next/navigation";
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(dateString));
@@ -85,12 +75,26 @@ export default async function AdminPage() {
     const email = (u.email || "").toLowerCase();
     const p = profileByEmail[email];
 
+    const provider =
+      (u.app_metadata as any)?.provider ||
+      (u.identities?.[0] as any)?.provider ||
+      "email";
+
+    const profileComplete = !!(
+      p?.age &&
+      p?.sex &&
+      p?.weight_kg &&
+      p?.height_cm
+    );
+
     return {
-      owner_id: u.id, // este sí se usa para acciones admin
+      owner_id: u.id,
       owner_email: u.email || "",
-      full_name: p?.full_name || u.user_metadata?.full_name || "",
+      full_name: p?.full_name || (u.user_metadata as any)?.full_name || "",
       created_at: p?.created_at || u.created_at,
       is_admin: adminSet.has(u.id),
+      provider,
+      profile_complete: profileComplete,
       age: p?.age,
       sex: p?.sex,
       weight_kg: p?.weight_kg,
@@ -170,3 +174,13 @@ export default async function AdminPage() {
     />
   );
 }
+
+import { createSupabaseAdmin } from "@/lib/supabaseService";
+import AdminClient from "./AdminClient";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function getDateKeyInAR(dateString: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Argentina/Buenos_Aires",
