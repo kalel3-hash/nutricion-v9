@@ -128,7 +128,7 @@ export default function AdminClient({
 
       location.reload();
     } catch {
-      alert("Error de conexión al cambiar el rol.");
+      alert("Error de conexión.");
     } finally {
       setLoadingUserId(null);
     }
@@ -203,6 +203,17 @@ export default function AdminClient({
       p.owner_email.toLowerCase().includes(searchUser.toLowerCase()) ||
       (p.full_name ?? "").toLowerCase().includes(searchUser.toLowerCase())
   );
+
+  // ✅ FIX: última actividad real = último analysis_history.created_at por usuario
+  const lastActivityByEmail: Record<string, string> = {};
+  history.forEach((h) => {
+    if (!h.owner_email || !h.created_at) return;
+    const email = h.owner_email.toLowerCase();
+    const current = lastActivityByEmail[email];
+    if (!current || new Date(h.created_at).getTime() > new Date(current).getTime()) {
+      lastActivityByEmail[email] = h.created_at;
+    }
+  });
 
   return (
     <div
@@ -964,6 +975,9 @@ export default function AdminClient({
                         ? "#854F0B"
                         : "#185FA5";
 
+                    const lastActivity =
+                      lastActivityByEmail[(u.owner_email || "").toLowerCase()];
+
                     return (
                       <tr
                         key={i}
@@ -988,7 +1002,9 @@ export default function AdminClient({
                           <span style={{ color: "#888780" }}>/30</span>
                         </td>
                         <td style={{ padding: "0.75rem 1rem", color: "#888780", fontSize: "0.8rem" }}>
-                          {u.updated_at ? new Date(u.updated_at).toLocaleString("es-AR") : "—"}
+                          {lastActivity
+                            ? new Date(lastActivity).toLocaleString("es-AR")
+                            : "—"}
                         </td>
                       </tr>
                     );
