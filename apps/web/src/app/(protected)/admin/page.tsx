@@ -13,44 +13,21 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
   const supabase = createSupabaseAdmin();
 
-  // ✅ Verificar rol admin usando user_roles (FUENTE ÚNICA)
-  const { data: myRole } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", session.user.id)
-    .single();
+  // 1) Usuarios reales de Supabase Auth
+  const {
+    data: authUsersData,
+    error: authUsersError,
+  } = await supabase.auth.admin.listUsers();
 
-  if (myRole?.role !== "admin") {
-    redirect("/dashboard");
+  if (authUsersError) {
+    throw new Error(authUsersError.message);
   }
 
-  // Usuarios / perfiles
-  const { data: profiles } = await supabase
-    .from("health_profiles")
-    .select(
-      "owner_id, owner_email, full_name, created_at, age, sex, weight_kg, height_cm"
-    )
-    .order("created_at", { ascending: false });
+  const authUsers = authUsersData?.users ?? [];
 
-  // Historial de análisis
-  const { data: history } = await supabase
-    .from("analysis_history")
-    .select("owner_email, food_description, score, created_at")
-    .order("created_at", { ascending: false });
-
-  // Límites de uso
-  const { data: usage } = await supabase
-    .from("usage_limits")
-    .select("owner_email, daily_count, monthly_count, updated_at")
-    .order("monthly_count", { ascending: false });
-
-  // Roles admin reales
+  // 2) Roles admin reales
   const { data: roles } = await supabase
     .from("user_roles")
     .select("user_id, role")
@@ -58,15 +35,60 @@ export default async function AdminPage() {
 
   const adminSet = new Set((roles || []).map((r) => r.user_id));
 
-  const enrichedProfiles =
-    (profiles || []).map((p) => ({
-      ...p,
-      is_admin: adminSet.has(p.owner_id),
-    })) ?? [];
+  // 3) Validar que el usuario actual sea admin
+  const currentAuthUser = authUsers.find(
+    (u) => u.email?.toLowerCase() === session.user.email?.toLowerCase()
+  );
+
+  if (!currentAuthUser || !adminSet.has(currentAuthUser.id)) {
+    redirect("/dashboard");
+  }
+
+  // 4) Perfiles
+  const { data: profileRows } = await supabase
+    .from("health_profiles")
+    .select(
+      "owner_id, owner_email, full_name, created_at, age, sex, weight_kg, height_cm"
+    );
+
+  const profileByEmail: Record<string, any> = {};
+  (profileRows || []).forEach((p) => {
+    profileByEmail[(p.owner_email || "").toLowerCase()] = p;
+  });
+
+  // 5) Historial
+  const { data: history } = await supabase
+    .from("analysis_history")
+    .select("owner_email, food_description, score, created_at")
+    .order("created_at", { ascending: false });
+
+  // 6) Uso
+  const { data: usage } = await supabase
+    .from("usage_limits")
+    .select("owner_email, daily_count, monthly_count, updated_at")
+    .order("monthly_count", { ascending: false });
+
+  // 7) Armar profiles enriquecidos a partir de Auth + health_profiles + user_roles
+  const profiles = authUsers.map((u) => {
+    const email = (u.email || "").toLowerCase();
+    const p = profileByEmail[email];
+
+    return {
+      owner_id: u.id,
+      owner_email: u.email || "",
+      full_name: p?.full_name || u.user_metadata?.full_name || "",
+      created_at: p?.created_at || u.created_at,
+      is_admin: adminSet.has(u.id),
+      age: p?.age,
+      sex: p?.sex,
+      weight_kg: p?.weight_kg,
+      height_cm: p?.height_cm,
+    };
+  });
 
   return (
     <AdminClient
-      profiles={enrichedProfiles}
+      profiles={profiles}
       history={history ?? []}
       usage={usage ?? []}
       currentEmail={session.user.email}
