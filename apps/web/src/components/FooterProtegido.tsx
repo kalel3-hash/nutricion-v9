@@ -18,39 +18,32 @@ function IconEmail() {
   return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>);
 }
 
-const linkStyle: React.CSSProperties = {
+const iconLinkStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "center",
-  width: "32px", height: "32px", borderRadius: "8px", opacity: 1,
-  transition: "opacity 0.18s",
+  width: "32px", height: "32px", borderRadius: "8px",
 };
 
 export default function FooterProtegido() {
+  const year = new Date().getFullYear();
   return (
     <footer style={{ borderTop: "1px solid #B5D4F4", background: "#FFFFFF", padding: "1.25rem 1.5rem" }}>
       <div style={{ maxWidth: "680px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
         <span style={{ fontSize: "0.78rem", color: "#888780" }}>
-          © {new Date().getFullYear()} VitalCross AI — Analisis orientativo, no reemplaza consulta profesional.
+          © {year} VitalCross AI — Analisis orientativo, no reemplaza consulta profesional.
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {[
-            { href: "https://www.facebook.com/Vitalcrossai", title: "Facebook", icon: <IconFacebook /> },
-            { href: "https://www.instagram.com/vitalcross_ai/", title: "Instagram", icon: <IconInstagram /> },
-            { href: "https://www.tiktok.com/@vitalcrossai", title: "TikTok", icon: <IconTikTok /> },
-            { href: "mailto:info@vitalcrossai.com.ar", title: "Email", icon: <IconEmail /> },
-          ].map(({ href, title, icon }) => (
-            
-              key={title}
-              href={href}
-              target={href.startsWith("mailto") ? undefined : "_blank"}
-              rel={href.startsWith("mailto") ? undefined : "noopener noreferrer"}
-              title={title}
-              style={linkStyle}
-              onMouseEnter={e => (e.currentTarget.style.opacity = "0.7")}
-              onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
-            >
-              {icon}
-            </a>
-          ))}
+          <a href="https://www.facebook.com/Vitalcrossai" target="_blank" rel="noopener noreferrer" title="Facebook" style={iconLinkStyle} onMouseEnter={e => (e.currentTarget.style.opacity = "0.7")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
+            <IconFacebook />
+          </a>
+          <a href="https://www.instagram.com/vitalcross_ai/" target="_blank" rel="noopener noreferrer" title="Instagram" style={iconLinkStyle} onMouseEnter={e => (e.currentTarget.style.opacity = "0.7")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
+            <IconInstagram />
+          </a>
+          <a href="https://www.tiktok.com/@vitalcrossai" target="_blank" rel="noopener noreferrer" title="TikTok" style={iconLinkStyle} onMouseEnter={e => (e.currentTarget.style.opacity = "0.7")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
+            <IconTikTok />
+          </a>
+          <a href="mailto:info@vitalcrossai.com.ar" title="Email" style={iconLinkStyle} onMouseEnter={e => (e.currentTarget.style.opacity = "0.7")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
+            <IconEmail />
+          </a>
         </div>
       </div>
     </footer>
