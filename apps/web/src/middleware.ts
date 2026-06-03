@@ -12,16 +12,16 @@ export default auth(async (req) => {
     pathname.startsWith("/analizar") ||
     pathname.startsWith("/historial") ||
     pathname.startsWith("/evolucion") ||
-    pathname.startsWith("/admin");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/medicamentos") ||
+    pathname.startsWith("/historial-medicamentos");
 
   const isPerfil = pathname.startsWith("/perfil");
 
-  // Sin sesión → login
   if (!session && (isProtected || isPerfil)) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Con sesión en ruta protegida → chequear perfil
   if (session?.user?.email && isProtected) {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
