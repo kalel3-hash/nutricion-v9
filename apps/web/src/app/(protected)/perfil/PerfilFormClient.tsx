@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import TourGuia, { TourStep } from "@/components/TourGuia";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "0.7rem 1rem", borderRadius: "8px",
@@ -47,6 +48,24 @@ const GOALS = [
 ];
 
 const KNOWN_VALUES = GOALS.map(g => g.value);
+
+const perfilSteps: TourStep[] = [
+  {
+    targetId: "tour-ocr",
+    title: "Carga tus estudios con IA",
+    description: "La forma mas rapida. Subi un PDF o foto de tus analisis y la IA completa todos los valores automaticamente.",
+  },
+  {
+    targetId: "tour-datos-basicos",
+    title: "Completa tus datos basicos",
+    description: "Nombre, edad, peso y altura son esenciales para calcular tu IMC y personalizar el analisis.",
+  },
+  {
+    targetId: "tour-guardar",
+    title: "Guarda tu perfil",
+    description: "Una vez cargados los datos, guarda el perfil. A partir de ahi todos tus analisis seran personalizados.",
+  },
+];
 
 export default function PerfilFormClient() {
   const [nombre, setNombre] = useState("");
@@ -221,11 +240,9 @@ export default function PerfilFormClient() {
     <div>
 
       {/* OCR — camino principal destacado */}
-      <div style={{
+      <div id="tour-ocr" style={{
         background: "linear-gradient(135deg, #185FA5 0%, #0C447C 100%)",
-        borderRadius: "14px",
-        padding: "1.75rem",
-        marginBottom: "1.25rem",
+        borderRadius: "14px", padding: "1.75rem", marginBottom: "1.25rem",
         boxShadow: "0 4px 16px rgba(24,95,165,0.2)",
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem", marginBottom: "1.25rem" }}>
@@ -278,7 +295,7 @@ export default function PerfilFormClient() {
       </div>
 
       {/* Datos basicos */}
-      <div style={cardStyle}>
+      <div id="tour-datos-basicos" style={cardStyle}>
         <h2 style={sectionTitleStyle}>Datos basicos</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div style={rowStyle}>
@@ -409,7 +426,6 @@ export default function PerfilFormClient() {
               placeholder="Ej: mani, gluten (separadas por coma)" />
           </div>
 
-          {/* Objetivos */}
           <div>
             <label style={labelStyle}>Objetivos principales</label>
             <p style={{ margin: "0 0 0.75rem", fontSize: "0.78rem", color: "#888780" }}>
@@ -419,17 +435,13 @@ export default function PerfilFormClient() {
               {GOALS.map((goal) => {
                 const checked = mainGoals.includes(goal.value);
                 return (
-                  <label
-                    key={goal.value}
-                    onClick={() => toggleGoal(goal.value)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "12px",
-                      padding: "0.7rem 1rem", borderRadius: "8px", cursor: "pointer",
-                      border: `1.5px solid ${checked ? "#185FA5" : "#B5D4F4"}`,
-                      background: checked ? "#E6F1FB" : "#F8FBFF",
-                      transition: "all 0.15s", userSelect: "none",
-                    }}
-                  >
+                  <label key={goal.value} onClick={() => toggleGoal(goal.value)} style={{
+                    display: "flex", alignItems: "center", gap: "12px",
+                    padding: "0.7rem 1rem", borderRadius: "8px", cursor: "pointer",
+                    border: `1.5px solid ${checked ? "#185FA5" : "#B5D4F4"}`,
+                    background: checked ? "#E6F1FB" : "#F8FBFF",
+                    transition: "all 0.15s", userSelect: "none",
+                  }}>
                     <div style={{
                       width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0,
                       border: `2px solid ${checked ? "#185FA5" : "#B5D4F4"}`,
@@ -449,7 +461,6 @@ export default function PerfilFormClient() {
                 );
               })}
 
-              {/* Otros */}
               <label style={{
                 display: "flex", alignItems: "center", gap: "12px",
                 padding: "0.7rem 1rem", borderRadius: "8px",
@@ -474,10 +485,7 @@ export default function PerfilFormClient() {
                   value={otrosGoal}
                   onChange={e => setOtrosGoal(e.target.value)}
                   placeholder="Otros objetivos (escribi aca...)"
-                  style={{
-                    border: "none", background: "transparent", outline: "none",
-                    fontSize: "0.88rem", color: "#2C2C2A", width: "100%",
-                  }}
+                  style={{ border: "none", background: "transparent", outline: "none", fontSize: "0.88rem", color: "#2C2C2A", width: "100%" }}
                 />
               </label>
             </div>
@@ -495,7 +503,6 @@ export default function PerfilFormClient() {
         </div>
       </div>
 
-      {/* Estado y boton */}
       {status.msg && (
         <div style={{
           padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1rem",
@@ -508,7 +515,7 @@ export default function PerfilFormClient() {
         </div>
       )}
 
-      <button onClick={save} disabled={loading} style={{
+      <button id="tour-guardar" onClick={save} disabled={loading} style={{
         width: "100%", padding: "0.9rem", borderRadius: "10px",
         background: "#185FA5", color: "#FFFFFF", fontSize: "1rem",
         fontWeight: 600, border: "none",
@@ -518,6 +525,7 @@ export default function PerfilFormClient() {
         {loading ? "Guardando..." : "Guardar perfil"}
       </button>
 
+      <TourGuia steps={perfilSteps} storageKey="vitalcross_tour_perfil_done" />
     </div>
   );
 }

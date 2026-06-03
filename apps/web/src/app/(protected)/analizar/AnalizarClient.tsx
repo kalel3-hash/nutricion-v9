@@ -5,17 +5,14 @@ import Link from "next/link";
 import { compactProfile } from "@/lib/utils";
 import { shareAnalysisAsImage } from "@/lib/shareAnalysis";
 import NavbarProtegido from "@/components/NavbarProtegido";
+import TourGuia, { TourStep } from "@/components/TourGuia";
 
 type ProfileResponse = { profile: any | null; error?: string };
 type PhotoType = "alimento" | "etiqueta";
 type Block = { key: string; title: string; content: string };
 
 function normalizeKey(str: string): string {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .trim();
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 }
 
 function parseBlocks(text: string): Block[] {
@@ -25,54 +22,20 @@ function parseBlocks(text: string): Block[] {
   while ((match = re.exec(text)) !== null) {
     titles.push({ index: match.index, raw: match[0], label: match[1].trim() });
   }
-  if (titles.length === 0) return [{ key: "RAW", title: "Análisis", content: text }];
+  if (titles.length === 0) return [{ key: "RAW", title: "Analisis", content: text }];
   return titles.map((t, i) => {
     const start = t.index + t.raw.length;
     const end = i + 1 < titles.length ? titles[i + 1].index : text.length;
-    return {
-      key: normalizeKey(t.label),
-      title: t.label,
-      content: text.slice(start, end).trim(),
-    };
+    return { key: normalizeKey(t.label), title: t.label, content: text.slice(start, end).trim() };
   });
 }
 
 const BLOCK_CONFIG: Record<string, { bg: string; border: string; titleColor: string; icon: string; displayTitle: string }> = {
-  PUNTAJE: {
-    bg: "#EEF4FF",
-    border: "#85B7EB",
-    titleColor: "#0C447C",
-    icon: "🎯",
-    displayTitle: "Puntaje",
-  },
-  "ANALISIS PERSONALIZADO": {
-    bg: "#E6F1FB",
-    border: "#378ADD",
-    titleColor: "#0C447C",
-    icon: "🧬",
-    displayTitle: "Evaluación clínica",
-  },
-  "SUGERENCIAS DE MEJORA": {
-    bg: "#EAF3DE",
-    border: "#C0DD97",
-    titleColor: "#27500A",
-    icon: "💡",
-    displayTitle: "Recomendaciones",
-  },
-  FUENTES: {
-    bg: "#F1EFE8",
-    border: "#D3D1C7",
-    titleColor: "#444441",
-    icon: "📚",
-    displayTitle: "Fuentes científicas",
-  },
-  default: {
-    bg: "#F8FBFF",
-    border: "#B5D4F4",
-    titleColor: "#0C447C",
-    icon: "📋",
-    displayTitle: "",
-  },
+  PUNTAJE:                  { bg: "#EEF4FF",  border: "#85B7EB", titleColor: "#0C447C", icon: "🎯", displayTitle: "Puntaje" },
+  "ANALISIS PERSONALIZADO": { bg: "#E6F1FB",  border: "#378ADD", titleColor: "#0C447C", icon: "🧬", displayTitle: "Evaluacion clinica" },
+  "SUGERENCIAS DE MEJORA":  { bg: "#EAF3DE",  border: "#C0DD97", titleColor: "#27500A", icon: "💡", displayTitle: "Recomendaciones" },
+  FUENTES:                  { bg: "#F1EFE8",  border: "#D3D1C7", titleColor: "#444441", icon: "📚", displayTitle: "Fuentes cientificas" },
+  default:                  { bg: "#F8FBFF",  border: "#B5D4F4", titleColor: "#0C447C", icon: "📋", displayTitle: "" },
 };
 
 function getBlockConfig(key: string) {
@@ -122,6 +85,29 @@ function renderContent(content: string, titleColor: string) {
     return <p key={i} style={{ margin: "0 0 0.65rem", fontSize: "0.9rem", lineHeight: 1.75, color: "#2C2C2A" }} dangerouslySetInnerHTML={{ __html: formatted }} />;
   });
 }
+
+const analizarSteps: TourStep[] = [
+  {
+    targetId: "tour-tokens",
+    title: "Tus tokens disponibles",
+    description: "Cada consulta usa 1 token. Tenes 5 por dia y 30 por mes. Solo se descuenta si la IA responde.",
+  },
+  {
+    targetId: "tour-foto-etiqueta",
+    title: "Analiza por foto de etiqueta",
+    description: "Fotografia la tabla nutricional de cualquier producto y la IA la interpreta segun tu perfil.",
+  },
+  {
+    targetId: "tour-foto-alimento",
+    title: "Analiza por foto de alimento",
+    description: "Fotografia tu plato o comida y la IA identifica los ingredientes y evalua el impacto en tu salud.",
+  },
+  {
+    targetId: "tour-texto",
+    title: "O describe con texto",
+    description: "Escribi lo que comiste o vas a comer. Podes ser tan detallado como quieras.",
+  },
+];
 
 export default function AnalizarClient() {
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
@@ -194,20 +180,17 @@ export default function AnalizarClient() {
   const clearPhoto = () => { setPhotoPreview(null); setPhotoFile(null); };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     if (!loading && !limitReached) setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     setIsDragging(false);
     if (loading || limitReached) return;
     const file = e.dataTransfer.files?.[0];
@@ -309,7 +292,6 @@ export default function AnalizarClient() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleFileChange} />
-
       <NavbarProtegido showSignOut={false} />
 
       <main style={{ maxWidth: "680px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
@@ -327,7 +309,7 @@ export default function AnalizarClient() {
         )}
 
         {usage && (
-          <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1.25rem" }}>
+          <div id="tour-tokens" style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1.25rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_limit - usage.daily_used === 1 ? "#854F0B" : "#185FA5" }}>
@@ -361,8 +343,7 @@ export default function AnalizarClient() {
             borderRadius: "14px",
             border: isDragging ? "2px dashed #185FA5" : "1px solid #B5D4F4",
             boxShadow: "0 2px 12px rgba(24,95,165,0.06)",
-            padding: "1.5rem",
-            marginBottom: "1.25rem",
+            padding: "1.5rem", marginBottom: "1.25rem",
             transition: "border 0.15s, background 0.15s",
           }}
         >
@@ -383,7 +364,14 @@ export default function AnalizarClient() {
                   { type: "etiqueta" as PhotoType, icon: "🏷️", label: "Etiqueta nutricional", sub: "Fotografia la tabla de un producto" },
                   { type: "alimento" as PhotoType, icon: "🍽️", label: "Foto de alimento", sub: "Fotografia tu plato o comida" },
                 ].map((btn) => (
-                  <button key={btn.type} type="button" onClick={() => handlePhotoSelect(btn.type)} disabled={loading || limitReached} style={{ flex: "1 1 200px", padding: "0.875rem 1rem", borderRadius: "10px", border: `2px solid ${photoType === btn.type && photoPreview ? "#185FA5" : "#B5D4F4"}`, background: photoType === btn.type && photoPreview ? "#E6F1FB" : "#F8FBFF", color: "#2C2C2A", fontSize: "0.875rem", fontWeight: 600, cursor: loading || limitReached ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "10px", textAlign: "left", opacity: limitReached ? 0.5 : 1 }}>
+                  <button
+                    key={btn.type}
+                    id={btn.type === "etiqueta" ? "tour-foto-etiqueta" : "tour-foto-alimento"}
+                    type="button"
+                    onClick={() => handlePhotoSelect(btn.type)}
+                    disabled={loading || limitReached}
+                    style={{ flex: "1 1 200px", padding: "0.875rem 1rem", borderRadius: "10px", border: `2px solid ${photoType === btn.type && photoPreview ? "#185FA5" : "#B5D4F4"}`, background: photoType === btn.type && photoPreview ? "#E6F1FB" : "#F8FBFF", color: "#2C2C2A", fontSize: "0.875rem", fontWeight: 600, cursor: loading || limitReached ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "10px", textAlign: "left", opacity: limitReached ? 0.5 : 1 }}
+                  >
                     <span style={{ fontSize: "1.5rem" }}>{btn.icon}</span>
                     <div>
                       <div style={{ fontWeight: 700, color: "#185FA5" }}>{btn.label}</div>
@@ -413,7 +401,7 @@ export default function AnalizarClient() {
         </div>
 
         {/* TEXTO */}
-        <div style={{ background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4", boxShadow: "0 2px 12px rgba(24,95,165,0.06)", padding: "1.5rem", marginBottom: "1.25rem" }}>
+        <div id="tour-texto" style={{ background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4", boxShadow: "0 2px 12px rgba(24,95,165,0.06)", padding: "1.5rem", marginBottom: "1.25rem" }}>
           <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#5F5E5A", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.4px" }}>O describi el alimento con texto</label>
           <textarea value={foodDescription} onChange={(e) => setFoodDescription(e.target.value)} placeholder="Ej: Milanesa con pure y un vaso de jugo de naranja." style={{ width: "100%", height: "100px", padding: "0.875rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4", fontSize: "0.95rem", color: "#2C2C2A", background: "#F8FBFF", outline: "none", resize: "vertical", boxSizing: "border-box", lineHeight: 1.6 }} />
           <button onClick={handleAnalyzeText} disabled={loading || !foodDescription.trim() || limitReached} style={{ width: "100%", marginTop: "0.875rem", padding: "0.875rem", borderRadius: "8px", background: loading ? "#378ADD" : "#185FA5", color: "#FFFFFF", fontSize: "0.95rem", fontWeight: 700, border: "none", cursor: loading || !foodDescription.trim() || limitReached ? "not-allowed" : "pointer", opacity: (!foodDescription.trim() && !loading) || limitReached ? 0.5 : 1 }}>
@@ -467,7 +455,7 @@ export default function AnalizarClient() {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
               <button onClick={handleShare} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 20px", borderRadius: "8px", background: sharing ? "#E6F1FB" : "#185FA5", color: sharing ? "#378ADD" : "#FFFFFF", border: "none", fontSize: "0.88rem", fontWeight: 600, cursor: sharing ? "not-allowed" : "pointer" }}>
-                {sharing ? "Generando imagen..." : "📤 Compartir resultado"}
+                {sharing ? "Generando imagen..." : "Compartir resultado"}
               </button>
               <Link href="/historial" style={{ fontSize: "0.85rem", color: "#185FA5", textDecoration: "none", fontWeight: 500 }}>
                 Ver historial completo →
@@ -475,6 +463,8 @@ export default function AnalizarClient() {
             </div>
           </div>
         )}
+
+        <TourGuia steps={analizarSteps} storageKey="vitalcross_tour_analizar_done" />
       </main>
     </div>
   );
