@@ -14,7 +14,7 @@ export default async function PerfilPage({
 
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
-      <NavbarWrapper />
+      <NavbarWrapper isOnboarding={isOnboarding} />
       <main style={{ maxWidth: "700px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {isOnboarding && (
