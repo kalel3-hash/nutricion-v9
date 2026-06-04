@@ -2,7 +2,7 @@ import https from "https";
 import { auth } from "@/auth";
 import { getUsageStatus, incrementUsage } from "@/lib/usage";
 import { createClient } from "@supabase/supabase-js";
-import { compactProfile } from "@/lib/utils";
+import { profileToText } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -17,7 +17,11 @@ export async function POST(request: Request) {
   const status = await getUsageStatus(email);
   if (!status.allowed) {
     return new Response(
-      JSON.stringify({ error: status.reason === "daily" ? "Alcanzaste el limite de 5 consultas diarias. Volve manana." : "Alcanzaste el limite de 30 consultas mensuales." }),
+      JSON.stringify({
+        error: status.reason === "daily"
+          ? "Alcanzaste el limite de 5 consultas diarias. Volve manana."
+          : "Alcanzaste el limite de 30 consultas mensuales.",
+      }),
       { status: 429 }
     );
   }
@@ -51,32 +55,33 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ error: "Perfil no encontrado" }), { status: 404 });
   }
 
-  const profileText = compactProfile(profile);
+  const profileText = profileToText(profile);
 
-  const systemPrompt = `Sos un asistente de salud que ayuda a los usuarios a prepararse mejor para hablar con su médico.
-Cuando el usuario consulta sobre un medicamento, analizás su perfil clínico y devolvés información útil para que pueda tener una conversación más informada con su profesional de salud.
+  const systemPrompt = `Sos un asistente de salud especializado en análisis clínico personalizado.
+Tu tarea es analizar un medicamento en el contexto del perfil médico específico del usuario y ayudarlo a prepararse mejor para hablar con su médico.
 NUNCA recomendás ni desaconsejás tomar un medicamento. NUNCA reemplazás la consulta médica.
-Respondés siempre en español, de forma clara y empática.
+Respondés siempre en español, de forma clara, empática y personalizada.
+Comenzás la respuesta con una introducción narrativa que diga exactamente: "A partir del análisis de tu perfil médico," seguido de tu evaluación personalizada del medicamento.
 Usás exactamente esta estructura de bloques:
 
 ## 🔍 Medicamento identificado
-Nombre del medicamento, para qué se usa generalmente.
+Nombre y uso general del medicamento.
 
-## 👤 Factores de tu perfil relevantes
-Aspectos del perfil clínico del usuario que podrían ser relevantes en relación a este medicamento. Si no hay factores relevantes, indicalo.
+## 👤 Análisis personalizado de tu perfil
+Analizá en detalle cómo los valores clínicos, condiciones y medicación actual del usuario se relacionan con este medicamento. Sé específico con los valores numéricos cuando estén disponibles. Si no hay datos relevantes, indicalo.
 
 ## ❓ Preguntas para hacerle a tu médico
-Lista de 3 a 5 preguntas concretas y útiles que el usuario debería hacerle a su médico considerando su perfil.
+3 a 5 preguntas concretas y personalizadas basadas en el perfil del usuario.
 
 ## ⚠️ Señales a monitorear
-Síntomas o situaciones que el usuario debería reportar a su médico si aparecen.
+Síntomas o situaciones específicas que este usuario debería reportar a su médico considerando su perfil.
 
 ## 📋 Disclaimer
 Recordatorio claro de que esta información es orientativa y no reemplaza la consulta con un profesional de salud.`;
 
   const userPrompt = query
-    ? `Mi consulta es sobre: ${query}\n\nMi perfil clínico: ${profileText}`
-    : `Mi perfil clínico: ${profileText}`;
+    ? `Consulta sobre el medicamento: ${query}\n\nMi perfil médico:\n${profileText}`
+    : `Mi perfil médico:\n${profileText}`;
 
   let payload: string;
 
@@ -89,12 +94,11 @@ Recordatorio claro de que esta información es orientativa y no reemplaza la con
       contents: [
         {
           parts: [
-            { text: userPrompt },
+            { text: `${systemPrompt}\n\n${userPrompt}` },
             { inline_data: { mime_type: mimeType, data: base64 } },
           ],
         },
       ],
-      system_instruction: { parts: [{ text: systemPrompt }] },
       generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
     });
   } else {
