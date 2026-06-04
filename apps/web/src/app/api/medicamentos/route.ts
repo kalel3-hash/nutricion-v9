@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
   const email = session.user.email;
 
   const usageStatus = await getUsageStatus(email);
-  if (!usageStatus.canQuery) {
+  if (!usageStatus.allowed) {
     return NextResponse.json(
-      { error: usageStatus.daily >= 5 ? "Límite diario alcanzado" : "Límite mensual alcanzado" },
+      { error: usageStatus.reason === "daily" ? "Límite diario alcanzado" : "Límite mensual alcanzado" },
       { status: 429 }
     );
   }
