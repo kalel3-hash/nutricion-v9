@@ -71,16 +71,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6).trim();
-          if (data === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.text) setResult(prev => prev + parsed.text);
-          } catch {}
-        }
+        if (chunk) setResult(prev => prev + chunk);
       }
     } catch {
       setError("Error de conexión.");
@@ -120,7 +111,6 @@ export default function MedicamentosClient({ userEmail }: Props) {
         Consultá sobre un medicamento y preparate mejor para hablar con tu médico.
       </p>
 
-      {/* Input texto */}
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "#2C2C2A", display: "block", marginBottom: 6 }}>
           Nombre del medicamento o consulta
@@ -134,7 +124,6 @@ export default function MedicamentosClient({ userEmail }: Props) {
         />
       </div>
 
-      {/* Upload imagen */}
       <div style={{ marginBottom: 20 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "#2C2C2A", display: "block", marginBottom: 6 }}>
           Foto de la caja o prospecto (opcional)
@@ -159,14 +148,12 @@ export default function MedicamentosClient({ userEmail }: Props) {
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <div style={{ background: "#FEE2E2", border: "1.5px solid #FECACA", borderRadius: 10, padding: "10px 14px", color: "#991B1B", fontSize: 13, marginBottom: 16 }}>
           {error}
         </div>
       )}
 
-      {/* Botón */}
       <button
         onClick={handleSubmit}
         disabled={loading}
@@ -175,17 +162,16 @@ export default function MedicamentosClient({ userEmail }: Props) {
         {loading ? "Analizando..." : "Analizar"}
       </button>
 
-      {/* Resultado */}
+      {loading && !result && (
+        <div style={{ textAlign: "center", color: "#5F5E5A", fontSize: 14, padding: "24px 0" }}>
+          Consultando con IA...
+        </div>
+      )}
+
       {result && (
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: "#2C2C2A", marginBottom: 12 }}>Resultado</h2>
           {renderResult(result)}
-        </div>
-      )}
-
-      {loading && !result && (
-        <div style={{ textAlign: "center", color: "#5F5E5A", fontSize: 14, padding: "24px 0" }}>
-          Consultando con IA...
         </div>
       )}
     </main>
