@@ -1,33 +1,38 @@
+import https from "https";
 import { auth } from "@/auth";
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { getUsageStatus, incrementUsage } from "@/lib/usage";
+import { createClient } from "@supabase/supabase-js";
 import { compactProfile } from "@/lib/utils";
 
-export const maxDuration = 60;
+export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.email) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401 });
   }
 
   const email = session.user.email;
 
-  const usageStatus = await getUsageStatus(email);
-  if (!usageStatus.allowed) {
-    return NextResponse.json(
-      { error: usageStatus.reason === "daily" ? "Límite diario alcanzado" : "Límite mensual alcanzado" },
+  const status = await getUsageStatus(email);
+  if (!status.allowed) {
+    return new Response(
+      JSON.stringify({ error: status.reason === "daily" ? "Alcanzaste el limite de 5 consultas diarias. Volve manana." : "Alcanzaste el limite de 30 consultas mensuales." }),
       { status: 429 }
     );
   }
 
-  const formData = await req.formData();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: "Falta GEMINI_API_KEY" }), { status: 500 });
+  }
+
+  const formData = await request.formData();
   const query = formData.get("query") as string | null;
   const image = formData.get("image") as File | null;
 
   if (!query && !image) {
-    return NextResponse.json({ error: "Ingresá un medicamento o una imagen" }, { status: 400 });
+    return new Response(JSON.stringify({ error: "Ingresá un medicamento o una imagen" }), { status: 400 });
   }
 
   const supabase = createClient(
@@ -43,7 +48,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!profile) {
-    return NextResponse.json({ error: "Perfil no encontrado" }, { status: 404 });
+    return new Response(JSON.stringify({ error: "Perfil no encontrado" }), { status: 404 });
   }
 
   const profileText = compactProfile(profile);
@@ -73,102 +78,89 @@ Recordatorio claro de que esta información es orientativa y no reemplaza la con
     ? `Mi consulta es sobre: ${query}\n\nMi perfil clínico: ${profileText}`
     : `Mi perfil clínico: ${profileText}`;
 
-  try {
-    let requestBody: Record<string, unknown>;
+  let payload: string;
 
-    if (image) {
-      const imageBytes = await image.arrayBuffer();
-      const base64 = Buffer.from(imageBytes).toString("base64");
-      const mimeType = image.type;
+  if (image) {
+    const imageBytes = await image.arrayBuffer();
+    const base64 = Buffer.from(imageBytes).toString("base64");
+    const mimeType = image.type;
 
-      requestBody = {
-        contents: [
-          {
-            parts: [
-              { text: userPrompt },
-              { inline_data: { mime_type: mimeType, data: base64 } },
-            ],
-          },
-        ],
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-      };
-    } else {
-      requestBody = {
-        contents: [{ parts: [{ text: userPrompt }] }],
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-      };
-    }
-
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    if (!geminiRes.ok || !geminiRes.body) {
-      return NextResponse.json({ error: "Error al consultar Gemini" }, { status: 500 });
-    }
-
-    let tokenIncremented = false;
-    let fullText = "";
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = geminiRes.body!.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") continue;
-
-            try {
-              const parsed = JSON.parse(data);
-              const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) {
-                if (!tokenIncremented) {
-                  tokenIncremented = true;
-                  await incrementUsage(email);
-                }
-                fullText += text;
-                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ text })}\n\n`));
-              }
-            } catch {}
-          }
-        }
-
-        if (fullText) {
-          await supabase.from("medication_history").insert({
-            owner_email: email,
-            query: query || "Consulta por imagen",
-            result: fullText,
-          });
-        }
-
-        controller.close();
-      },
+    payload = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: userPrompt },
+            { inline_data: { mime_type: mimeType, data: base64 } },
+          ],
+        },
+      ],
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
     });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
+  } else {
+    payload = JSON.stringify({
+      contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
     });
-  } catch {
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
+
+  const agent = new https.Agent({ rejectUnauthorized: false });
+  let tokenConsumed = false;
+  let fullText = "";
+
+  const stream = new ReadableStream({
+    start(controller) {
+      const req = https.request(
+        {
+          hostname: "generativelanguage.googleapis.com",
+          path: `/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload),
+          },
+          agent,
+        },
+        (res) => {
+          res.on("data", (chunk: Buffer) => {
+            const lines = chunk.toString().split("\n");
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const json = JSON.parse(line.slice(6));
+                  const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (text) {
+                    if (!tokenConsumed) {
+                      tokenConsumed = true;
+                      incrementUsage(email).catch(() => {});
+                    }
+                    fullText += text;
+                    controller.enqueue(text);
+                  }
+                } catch {}
+              }
+            }
+          });
+          res.on("end", async () => {
+            if (fullText) {
+              await supabase.from("medication_history").insert({
+                owner_email: email,
+                query: query || "Consulta por imagen",
+                result: fullText,
+              });
+            }
+            controller.close();
+          });
+          res.on("error", (err: Error) => controller.error(err));
+        }
+      );
+      req.on("error", (err: Error) => controller.error(err));
+      req.write(payload);
+      req.end();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
 }
