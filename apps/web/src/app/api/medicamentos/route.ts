@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const image = formData.get("image") as File | null;
 
   if (!query && !image) {
-    return new Response(JSON.stringify({ error: "Ingresá un medicamento o una imagen" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Ingresa un medicamento o una imagen" }), { status: 400 });
   }
 
   const supabase = createClient(
@@ -57,31 +57,31 @@ export async function POST(request: Request) {
 
   const profileText = profileToText(profile);
 
-  const systemPrompt = `Sos un asistente de salud especializado en análisis clínico personalizado.
-Tu tarea es analizar un medicamento en el contexto del perfil médico específico del usuario y ayudarlo a prepararse mejor para hablar con su médico.
-NUNCA recomendás ni desaconsejás tomar un medicamento. NUNCA reemplazás la consulta médica.
-Respondés siempre en español, de forma clara, empática y personalizada.
-Comenzás la respuesta con una introducción narrativa que diga exactamente: "A partir del análisis de tu perfil médico," seguido de tu evaluación personalizada del medicamento.
-Usás exactamente esta estructura de bloques:
+  const systemPrompt = `Sos un asistente de salud especializado en analisis clinico personalizado.
+Tu tarea es analizar un medicamento en el contexto del perfil medico especifico del usuario y ayudarlo a prepararse mejor para hablar con su medico.
+NUNCA recomendas ni desaconsejas tomar un medicamento. NUNCA reemplazas la consulta medica.
+Respondes siempre en español, de forma clara, empatica y personalizada.
+Comienzas la respuesta con una introduccion narrativa que diga exactamente: "A partir del analisis de tu perfil medico," seguido de tu evaluacion personalizada del medicamento.
+Usas exactamente esta estructura de bloques:
 
-## 🔍 Medicamento identificado
+## Medicamento identificado
 Nombre y uso general del medicamento.
 
-## 👤 Análisis personalizado de tu perfil
-Analizá en detalle cómo los valores clínicos, condiciones y medicación actual del usuario se relacionan con este medicamento. Sé específico con los valores numéricos cuando estén disponibles. Si no hay datos relevantes, indicalo.
+## Analisis personalizado de tu perfil
+Analiza en detalle como los valores clinicos, condiciones y medicacion actual del usuario se relacionan con este medicamento. Se especifico con los valores numericos cuando esten disponibles. Si no hay datos relevantes, indicalo.
 
-## ❓ Preguntas para hacerle a tu médico
+## Preguntas para hacerle a tu medico
 3 a 5 preguntas concretas y personalizadas basadas en el perfil del usuario.
 
-## ⚠️ Señales a monitorear
-Síntomas o situaciones específicas que este usuario debería reportar a su médico considerando su perfil.
+## Senales a monitorear
+Sintomas o situaciones especificas que este usuario deberia reportar a su medico considerando su perfil.
 
-## 📋 Disclaimer
-Recordatorio claro de que esta información es orientativa y no reemplaza la consulta con un profesional de salud.`;
+## Aviso importante
+Recordatorio claro de que esta informacion es orientativa y no reemplaza la consulta con un profesional de salud.`;
 
   const userPrompt = query
-    ? `Consulta sobre el medicamento: ${query}\n\nMi perfil médico:\n${profileText}`
-    : `Mi perfil médico:\n${profileText}`;
+    ? "Consulta sobre el medicamento: " + query + "\n\nMi perfil medico:\n" + profileText
+    : "Mi perfil medico:\n" + profileText;
 
   let payload: string;
 
@@ -94,17 +94,17 @@ Recordatorio claro de que esta información es orientativa y no reemplaza la con
       contents: [
         {
           parts: [
-            { text: `${systemPrompt}\n\n${userPrompt}` },
+            { text: systemPrompt + "\n\n" + userPrompt },
             { inline_data: { mime_type: mimeType, data: base64 } },
           ],
         },
       ],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+      generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
     });
   } else {
     payload = JSON.stringify({
-      contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+      contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
     });
   }
 
@@ -117,7 +117,7 @@ Recordatorio claro de que esta información es orientativa y no reemplaza la con
       const req = https.request(
         {
           hostname: "generativelanguage.googleapis.com",
-          path: `/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
+          path: "/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=" + apiKey + "&alt=sse",
           method: "POST",
           headers: {
             "Content-Type": "application/json",
