@@ -96,12 +96,12 @@ Una sola oracion recordando que esto no reemplaza la consulta medica.`;
           ],
         },
       ],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
     });
   } else {
     payload = JSON.stringify({
       contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
     });
   }
 
