@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const image = formData.get("image") as File | null;
 
   if (!query && !image) {
-    return new Response(JSON.stringify({ error: "Ingresa un medicamento o una imagen" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Ingresa el medicamento recetado o una imagen" }), { status: 400 });
   }
 
   const supabase = createClient(
@@ -57,30 +57,27 @@ export async function POST(request: Request) {
 
   const profileText = profileToText(profile);
 
-  const systemPrompt = `Sos un asistente de salud especializado en analisis clinico personalizado.
-Tu tarea es analizar un medicamento en el contexto del perfil medico especifico del usuario y ayudarlo a prepararse mejor para hablar con su medico.
-NUNCA recomendas ni desaconsejas tomar un medicamento. NUNCA reemplazas la consulta medica.
-Respondes siempre en español, de forma clara, empatica y personalizada.
-Comienzas la respuesta con una introduccion narrativa que diga exactamente: "A partir del analisis de tu perfil medico," seguido de tu evaluacion personalizada del medicamento.
-Usas exactamente esta estructura de bloques:
+  const systemPrompt = `Sos un asistente de salud que ayuda a los usuarios a entender mejor la medicacion que su medico les receto.
+Tu rol es cruzar el medicamento recetado con el perfil clinico del usuario y señalar que datos de ese perfil son relevantes para esa receta, para que el usuario pueda tener una conversacion mas informada con su medico.
+NO evaluas si el medico estuvo bien o mal. NO recomendas ni desaconsejas tomar el medicamento. NO reemplazas la consulta medica.
+Respondes siempre en español, de forma clara, concisa y sin alarmar innecesariamente.
+La respuesta debe ser breve y directa. Maximo 4 bloques cortos.
+Usas exactamente esta estructura:
 
-## Medicamento identificado
-Nombre y uso general del medicamento.
+## Medicamento recetado
+Una sola oracion explicando para que se usa este medicamento.
 
-## Analisis personalizado de tu perfil
-Analiza en detalle como los valores clinicos, condiciones y medicacion actual del usuario se relacionan con este medicamento. Se especifico con los valores numericos cuando esten disponibles. Si no hay datos relevantes, indicalo.
+## Lo que encontre en tu perfil
+Puntos concretos del perfil del usuario que son relevantes para este medicamento. Solo los que realmente importan. Si un valor esta fuera de rango normal, mencionalo. Si no hay nada relevante, decilo claramente.
 
-## Preguntas para hacerle a tu medico
-3 a 5 preguntas concretas y personalizadas basadas en el perfil del usuario.
+## Que consultarle a tu medico
+2 o 3 preguntas cortas y concretas para que el usuario le haga a su medico, basadas especificamente en su perfil.
 
-## Senales a monitorear
-Sintomas o situaciones especificas que este usuario deberia reportar a su medico considerando su perfil.
-
-## Aviso importante
-Recordatorio claro de que esta informacion es orientativa y no reemplaza la consulta con un profesional de salud.`;
+## Aviso
+Una sola oracion recordando que esto no reemplaza la consulta medica.`;
 
   const userPrompt = query
-    ? "Consulta sobre el medicamento: " + query + "\n\nMi perfil medico:\n" + profileText
+    ? "Mi medico me receto: " + query + "\n\nMi perfil medico:\n" + profileText
     : "Mi perfil medico:\n" + profileText;
 
   let payload: string;
@@ -99,12 +96,12 @@ Recordatorio claro de que esta informacion es orientativa y no reemplaza la cons
           ],
         },
       ],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
     });
   } else {
     payload = JSON.stringify({
       contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
     });
   }
 

@@ -40,7 +40,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
   async function handleSubmit() {
     if (!query.trim() && !image) {
-      setError("Ingresá el nombre de un medicamento o una imagen.");
+      setError("Ingresa el medicamento recetado o una imagen de la receta.");
       return;
     }
     setError("");
@@ -74,7 +74,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
         if (chunk) setResult(prev => prev + chunk);
       }
     } catch {
-      setError("Error de conexión.");
+      setError("Error de conexion.");
     } finally {
       setLoading(false);
     }
@@ -82,6 +82,13 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
   function renderResult(text: string) {
     const blocks = text.split(/\n(?=## )/).filter(Boolean);
+    if (blocks.length <= 1) {
+      return (
+        <div style={{ background: "#EEF4FF", border: "1.5px solid #85B7EB", borderRadius: 12, padding: "16px 20px" }}>
+          <div style={{ fontSize: 14, color: "#2C2C2A", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{text}</div>
+        </div>
+      );
+    }
     return blocks.map((block, i) => {
       const lines = block.split("\n");
       const title = lines[0].replace(/^##\s*/, "").trim();
@@ -89,16 +96,15 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
       let bg = "#EEF4FF";
       let border = "#85B7EB";
-
-      if (title.includes("Factores")) { bg = "#E6F1FB"; border = "#378ADD"; }
+      if (title.includes("Analisis") || title.includes("perfil")) { bg = "#E6F1FB"; border = "#378ADD"; }
       else if (title.includes("Preguntas")) { bg = "#EAF3DE"; border = "#C0DD97"; }
-      else if (title.includes("Señales")) { bg = "#FAEEDA"; border = "#FAC775"; }
-      else if (title.includes("Disclaimer")) { bg = "#F1EFE8"; border = "#D3D1C7"; }
+      else if (title.includes("Senales") || title.includes("monitorear")) { bg = "#FAEEDA"; border = "#FAC775"; }
+      else if (title.includes("Aviso")) { bg = "#F1EFE8"; border = "#D3D1C7"; }
 
       return (
-        <div key={i} style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 12, padding: "16px 20px", marginBottom: 12 }}>
+        <div key={i} style={{ background: bg, border: "1.5px solid " + border, borderRadius: 12, padding: "16px 20px", marginBottom: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: "#185FA5", marginBottom: 8 }}>{title}</div>
-          <div style={{ fontSize: 14, color: "#2C2C2A", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{content}</div>
+          <div style={{ fontSize: 14, color: "#2C2C2A", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{content}</div>
         </div>
       );
     });
@@ -106,19 +112,21 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
   return (
     <main style={{ maxWidth: 680, margin: "0 auto", padding: "32px 16px" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "#185FA5", marginBottom: 4 }}>Analizar Medicamento</h1>
-      <p style={{ fontSize: 14, color: "#5F5E5A", marginBottom: 24 }}>
-        Consultá sobre un medicamento y preparate mejor para hablar con tu médico.
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "#185FA5", marginBottom: 4 }}>
+        Revisar medicamento recetado
+      </h1>
+      <p style={{ fontSize: 14, color: "#5F5E5A", marginBottom: 24, lineHeight: 1.6 }}>
+        Tu medico te receto un medicamento. Ingresalo aca y te digo que datos de tu perfil son relevantes para que puedas consultarle.
       </p>
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "#2C2C2A", display: "block", marginBottom: 6 }}>
-          Nombre del medicamento o consulta
+          Que medicamento te recetaron?
         </label>
         <textarea
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Ej: Metformina 500mg, Ibuprofeno, Enalapril..."
+          placeholder="Ej: El medico me receto Enalapril 10mg para la presion"
           rows={3}
           style={{ width: "100%", borderRadius: 10, border: "1.5px solid #B5D4F4", padding: "10px 14px", fontSize: 14, color: "#2C2C2A", background: "#F0F6FF", resize: "vertical", boxSizing: "border-box" }}
         />
@@ -126,7 +134,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
       <div style={{ marginBottom: 20 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "#2C2C2A", display: "block", marginBottom: 6 }}>
-          Foto de la caja o prospecto (opcional)
+          Foto de la receta o caja (opcional)
         </label>
         {!imagePreview ? (
           <div
@@ -135,7 +143,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
             onClick={() => fileInputRef.current?.click()}
             style={{ border: "2px dashed #B5D4F4", borderRadius: 10, padding: "24px", textAlign: "center", cursor: "pointer", background: "#F0F6FF", color: "#5F5E5A", fontSize: 13 }}
           >
-            Arrastrá una imagen o hacé clic para seleccionar
+            Arrastra una imagen o hace clic para seleccionar
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
           </div>
         ) : (
@@ -159,18 +167,20 @@ export default function MedicamentosClient({ userEmail }: Props) {
         disabled={loading}
         style={{ width: "100%", padding: "12px", borderRadius: 10, background: loading ? "#85B7EB" : "#185FA5", color: "#fff", fontWeight: 700, fontSize: 15, border: "none", cursor: loading ? "not-allowed" : "pointer", marginBottom: 24 }}
       >
-        {loading ? "Analizando..." : "Analizar"}
+        {loading ? "Analizando..." : "Revisar con mi perfil"}
       </button>
 
       {loading && !result && (
         <div style={{ textAlign: "center", color: "#5F5E5A", fontSize: 14, padding: "24px 0" }}>
-          Consultando con IA...
+          Cruzando el medicamento con tu perfil...
         </div>
       )}
 
       {result && (
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#2C2C2A", marginBottom: 12 }}>Resultado</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#2C2C2A", marginBottom: 12 }}>
+            Resultado
+          </h2>
           {renderResult(result)}
         </div>
       )}
