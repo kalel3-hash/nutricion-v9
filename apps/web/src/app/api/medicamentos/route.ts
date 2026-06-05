@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { profileToText } from "@/lib/utils";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -86,7 +87,6 @@ Una sola oracion recordando que esto no reemplaza la consulta medica.`;
     const imageBytes = await image.arrayBuffer();
     const base64 = Buffer.from(imageBytes).toString("base64");
     const mimeType = image.type;
-
     payload = JSON.stringify({
       contents: [
         {
