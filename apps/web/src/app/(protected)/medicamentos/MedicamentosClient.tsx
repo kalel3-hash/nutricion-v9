@@ -3,6 +3,39 @@ import { useState, useRef } from "react";
 
 type Props = { userEmail: string };
 
+function renderContent(content: string, titleColor: string) {
+  const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
+  return lines.map((line, i) => {
+    const isBullet = /^[\*\-]\s+/.test(line);
+    const isNumbered = /^\d+[\.\)]\s+/.test(line);
+    const formatted = line
+      .replace(/^[\*\-]\s+/, "")
+      .replace(/^\d+[\.\)]\s+/, "")
+      .replace(/\*\*(.*?)\*\*/g, `<strong style="color:${titleColor}">$1</strong>`);
+
+    if (isBullet || isNumbered) {
+      return (
+        <div key={i} style={{ display: "flex", gap: 10, marginBottom: 6 }}>
+          <span style={{ color: titleColor, flexShrink: 0, marginTop: 2 }}>
+            {isNumbered ? `${i + 1}.` : "•"}
+          </span>
+          <span
+            style={{ fontSize: 14, lineHeight: 1.7, color: "#2C2C2A" }}
+            dangerouslySetInnerHTML={{ __html: formatted }}
+          />
+        </div>
+      );
+    }
+    return (
+      <p
+        key={i}
+        style={{ margin: "0 0 6px", fontSize: 14, lineHeight: 1.7, color: "#2C2C2A" }}
+        dangerouslySetInnerHTML={{ __html: formatted }}
+      />
+    );
+  });
+}
+
 export default function MedicamentosClient({ userEmail }: Props) {
   const [query, setQuery] = useState("");
   const [image, setImage] = useState<File | null>(null);
@@ -96,15 +129,20 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
       let bg = "#EEF4FF";
       let border = "#85B7EB";
-      if (title.includes("Analisis") || title.includes("perfil")) { bg = "#E6F1FB"; border = "#378ADD"; }
-      else if (title.includes("Preguntas")) { bg = "#EAF3DE"; border = "#C0DD97"; }
-      else if (title.includes("Senales") || title.includes("monitorear")) { bg = "#FAEEDA"; border = "#FAC775"; }
-      else if (title.includes("Aviso")) { bg = "#F1EFE8"; border = "#D3D1C7"; }
+      let titleColor = "#185FA5";
+
+      if (title.includes("encontre") || title.includes("perfil")) {
+        bg = "#E6F1FB"; border = "#378ADD"; titleColor = "#0C447C";
+      } else if (title.includes("consultarle") || title.includes("medico")) {
+        bg = "#EAF3DE"; border = "#C0DD97"; titleColor = "#27500A";
+      } else if (title.includes("Aviso")) {
+        bg = "#F1EFE8"; border = "#D3D1C7"; titleColor = "#444441";
+      }
 
       return (
         <div key={i} style={{ background: bg, border: "1.5px solid " + border, borderRadius: 12, padding: "16px 20px", marginBottom: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "#185FA5", marginBottom: 8 }}>{title}</div>
-          <div style={{ fontSize: 14, color: "#2C2C2A", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{content}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: titleColor, marginBottom: 10 }}>{title}</div>
+          <div>{renderContent(content, titleColor)}</div>
         </div>
       );
     });
