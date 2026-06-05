@@ -106,22 +106,29 @@ export default function DashboardPage() {
     },
     {
       icon: "💊", title: "Medicamentos", href: "/medicamentos",
-      badge: totalMeds === null ? null
-        : totalMeds === 0
-          ? null
-          : { label: totalMeds + " consultas", bg: "#E6F1FB", border: "#B5D4F4", text: "#185FA5" },
-      subtitle: totalMeds === null ? "Cargando..."
-        : totalMeds === 0 ? "Revisa tus medicamentos recetados"
-        : "Ver historial de medicamentos",
+      badge: disponibles === null ? null
+        : disponibles === 0
+          ? { label: "Sin consultas hoy", bg: "#FEE2E2", border: "#FECACA", text: "#991B1B" }
+          : { label: disponibles + "/" + usage?.daily_limit + " disponibles hoy", bg: "#E6F1FB", border: "#B5D4F4", text: usageColor },
+      subtitle: "Revisa un medicamento recetado",
     },
     {
-      icon: "📋", title: "Historial", href: "/historial",
+      icon: "📋", title: "Historial alimentos", href: "/historial",
       badge: totalAnalysis === null ? null
         : totalAnalysis === 0 ? null
         : { label: totalAnalysis + " analisis", bg: "#E6F1FB", border: "#B5D4F4", text: "#185FA5" },
       subtitle: totalAnalysis === null ? "Cargando..."
         : totalAnalysis === 0 ? "Aun no tenes analisis"
         : "Ver todos tus analisis",
+    },
+    {
+      icon: "💊", title: "Historial medicamentos", href: "/historial-medicamentos",
+      badge: totalMeds === null ? null
+        : totalMeds === 0 ? null
+        : { label: totalMeds + " consultas", bg: "#E6F1FB", border: "#B5D4F4", text: "#185FA5" },
+      subtitle: totalMeds === null ? "Cargando..."
+        : totalMeds === 0 ? "Aun no tenes consultas"
+        : "Ver todas tus consultas",
     },
     {
       icon: "📈", title: "Mi evolucion", href: "/evolucion",
