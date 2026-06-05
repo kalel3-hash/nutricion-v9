@@ -15,7 +15,11 @@ const flipCards = [
     desc: "Describi o fotografia cualquier alimento. La IA lo evalua en funcion de tu perfil real y te da un puntaje personalizado del 1 al 10.",
   },
   {
-    step: "3", icon: "📈", title: "Segui tu evolucion",
+    step: "3", icon: "💊", title: "Revisa tus medicamentos",
+    desc: "Ingresa el medicamento que te receto tu medico y la IA cruza esa informacion con tu perfil clinico para ayudarte a preparar mejor la consulta.",
+  },
+  {
+    step: "4", icon: "📈", title: "Segui tu evolucion",
     desc: "Consulta tu historial de analisis, visualiza tendencias y toma mejores decisiones sobre tu alimentacion con el tiempo.",
   },
 ];
@@ -27,6 +31,7 @@ export default function DashboardPage() {
   const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number } | null>(null);
   const [avgScore, setAvgScore] = useState<number | null>(null);
   const [totalAnalysis, setTotalAnalysis] = useState<number | null>(null);
+  const [totalMeds, setTotalMeds] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -54,6 +59,11 @@ export default function DashboardPage() {
         setTotalAnalysis(items.length);
       })
       .catch(() => {});
+
+    fetch("/api/historial-medicamentos")
+      .then(r => r.json())
+      .then(d => setTotalMeds((d.history ?? []).length))
+      .catch(() => {});
   }, []);
 
   const toggle = (i: number) => setFlipped(prev => prev === i ? null : i);
@@ -67,7 +77,6 @@ export default function DashboardPage() {
   const disponibles = usage ? usage.daily_limit - usage.daily_used : null;
   const usageColor = disponibles === null ? "#185FA5" : disponibles === 0 ? "#991B1B" : disponibles === 1 ? "#854F0B" : "#185FA5";
 
-  // Nombre para mostrar: nombre completo del perfil de Google, o primera parte del email
   const userName = session?.user?.name
     ? session.user.name.split(" ")[0]
     : session?.user?.email
@@ -90,17 +99,36 @@ export default function DashboardPage() {
       badge: disponibles === null ? null
         : disponibles === 0
           ? { label: "Sin consultas hoy", bg: "#FEE2E2", border: "#FECACA", text: "#991B1B" }
-          : { label: `${disponibles}/${usage?.daily_limit} disponibles hoy`, bg: "#E6F1FB", border: "#B5D4F4", text: usageColor },
+          : { label: disponibles + "/" + usage?.daily_limit + " disponibles hoy", bg: "#E6F1FB", border: "#B5D4F4", text: usageColor },
       subtitle: disponibles === null ? "Cargando..."
         : disponibles === 0 ? "Limite diario alcanzado"
         : "Describi o fotografia un alimento",
     },
     {
-      icon: "📈", title: "Mi evolucion", href: "/evolucion",
-      badge: avgScore === null ? null : { ...scoreColor(avgScore), label: `Promedio: ${avgScore}/10` },
+      icon: "💊", title: "Medicamentos", href: "/medicamentos",
+      badge: totalMeds === null ? null
+        : totalMeds === 0
+          ? null
+          : { label: totalMeds + " consultas", bg: "#E6F1FB", border: "#B5D4F4", text: "#185FA5" },
+      subtitle: totalMeds === null ? "Cargando..."
+        : totalMeds === 0 ? "Revisa tus medicamentos recetados"
+        : "Ver historial de medicamentos",
+    },
+    {
+      icon: "📋", title: "Historial", href: "/historial",
+      badge: totalAnalysis === null ? null
+        : totalAnalysis === 0 ? null
+        : { label: totalAnalysis + " analisis", bg: "#E6F1FB", border: "#B5D4F4", text: "#185FA5" },
       subtitle: totalAnalysis === null ? "Cargando..."
         : totalAnalysis === 0 ? "Aun no tenes analisis"
-        : `${totalAnalysis} analisis realizados`,
+        : "Ver todos tus analisis",
+    },
+    {
+      icon: "📈", title: "Mi evolucion", href: "/evolucion",
+      badge: avgScore === null ? null : { ...scoreColor(avgScore), label: "Promedio: " + avgScore + "/10" },
+      subtitle: totalAnalysis === null ? "Cargando..."
+        : totalAnalysis === 0 ? "Aun no tenes analisis"
+        : totalAnalysis + " analisis realizados",
     },
   ];
 
@@ -111,7 +139,6 @@ export default function DashboardPage() {
 
       <main style={{ maxWidth: "900px", width: "100%", margin: "0 auto", padding: "3rem 1.5rem", flex: 1 }}>
 
-        {/* SALUDO */}
         <div style={{ marginBottom: "2rem" }}>
           <h1 style={{ margin: "0 0 0.3rem", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700, color: "#2C2C2A" }}>
             {userName
@@ -127,7 +154,6 @@ export default function DashboardPage() {
           <p style={{ margin: 0, fontSize: "0.95rem", color: "#5F5E5A" }}>Que queres hacer hoy?</p>
         </div>
 
-        {/* Tarjetas */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.875rem", marginBottom: "3rem" }}>
           {cards.map((card) => (
             <Link key={card.title} href={card.href} style={{
@@ -155,7 +181,7 @@ export default function DashboardPage() {
                     <span style={{
                       fontSize: "0.68rem", fontWeight: 700, padding: "1px 7px",
                       borderRadius: "20px", background: card.badge.bg,
-                      border: `1px solid ${card.badge.border}`, color: card.badge.text, whiteSpace: "nowrap",
+                      border: "1px solid " + card.badge.border, color: card.badge.text, whiteSpace: "nowrap",
                     }}>{card.badge.label}</span>
                   )}
                 </div>
@@ -168,7 +194,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* COMO FUNCIONA */}
         <div style={{ borderTop: "1px solid #B5D4F4", paddingTop: "2.5rem" }}>
           <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.15rem", fontWeight: 700, color: "#2C2C2A" }}>
             Como funciona VitalCross AI?
@@ -189,8 +214,8 @@ export default function DashboardPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.25rem" }}>
             {flipCards.map((card, i) => (
-              <div key={card.step} className="flip-card" onClick={() => toggle(i)} role="button" aria-label={`Ver detalle: ${card.title}`}>
-                <div className={`flip-inner${flipped === i ? " flipped" : ""}`}>
+              <div key={card.step} className="flip-card" onClick={() => toggle(i)} role="button" aria-label={"Ver detalle: " + card.title}>
+                <div className={"flip-inner" + (flipped === i ? " flipped" : "")}>
                   <div className="flip-front">
                     <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "#E6F1FB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.75rem", marginBottom: "1rem" }}>{card.icon}</div>
                     <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#185FA5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "#FFFFFF", marginBottom: "0.75rem" }}>{card.step}</div>
@@ -209,7 +234,6 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* FOOTER */}
       <footer style={{ background: "#FFFFFF", borderTop: "1px solid #B5D4F4", padding: "1.25rem 2rem", textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1.25rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
           <Link href="/terminos" style={{ fontSize: "0.78rem", color: "#5F5E5A", textDecoration: "none", fontWeight: 500 }}
