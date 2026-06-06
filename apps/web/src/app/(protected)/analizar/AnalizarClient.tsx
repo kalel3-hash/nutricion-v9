@@ -86,6 +86,75 @@ function renderContent(content: string, titleColor: string) {
   });
 }
 
+function WaitlistForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "already" | "error">("idle");
+
+  async function handleSubmit() {
+    if (!email.includes("@")) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.ok && data.already) setStatus("already");
+      else if (data.ok) setStatus("ok");
+      else setStatus("error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "ok") {
+    return (
+      <div style={{ marginTop: "0.75rem", background: "#EAF3DE", border: "1px solid #C0DD97", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#27500A" }}>
+        Te anotamos. Te avisamos cuando haya paquetes disponibles.
+      </div>
+    );
+  }
+
+  if (status === "already") {
+    return (
+      <div style={{ marginTop: "0.75rem", background: "#E6F1FB", border: "1px solid #B5D4F4", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#185FA5" }}>
+        Ya estas en la lista. Te avisamos cuando haya paquetes disponibles.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: "0.875rem", background: "#FFF8E6", border: "1px solid #FAC775", borderRadius: "8px", padding: "0.875rem 1rem" }}>
+      <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", fontWeight: 600, color: "#854F0B" }}>
+        Pronto vas a poder comprar paquetes de consultas
+      </p>
+      <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", color: "#854F0B" }}>
+        Deja tu email y te avisamos cuando este disponible.
+      </p>
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="tu@email.com"
+          style={{ flex: 1, minWidth: 0, padding: "0.5rem 0.75rem", borderRadius: "6px", border: "1.5px solid #FAC775", fontSize: "0.875rem", color: "#2C2C2A", background: "#FFFFFF", outline: "none" }}
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={status === "loading" || !email.includes("@")}
+          style={{ padding: "0.5rem 1rem", borderRadius: "6px", background: "#185FA5", color: "#FFFFFF", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: status === "loading" ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: !email.includes("@") ? 0.6 : 1 }}
+        >
+          {status === "loading" ? "Guardando..." : "Avisame"}
+        </button>
+      </div>
+      {status === "error" && (
+        <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "#991B1B" }}>Error al guardar. Intentalo de nuevo.</p>
+      )}
+    </div>
+  );
+}
+
 const analizarSteps: TourStep[] = [
   {
     targetId: "tour-tokens",
@@ -326,14 +395,16 @@ export default function AnalizarClient() {
               </div>
             </div>
             {limitReached && (
-              <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
-                {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario. Podes volver manana con 5 tokens nuevos." : "Alcanzaste el limite mensual de 30 tokens."}
-              </div>
+              <>
+                <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
+                  {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario. Podes volver manana con 5 tokens nuevos." : "Alcanzaste el limite mensual de 30 tokens."}
+                </div>
+                <WaitlistForm />
+              </>
             )}
           </div>
         )}
 
-        {/* ZONA DRAG & DROP + BOTONES DE FOTO */}
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -400,7 +471,6 @@ export default function AnalizarClient() {
           )}
         </div>
 
-        {/* TEXTO */}
         <div id="tour-texto" style={{ background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4", boxShadow: "0 2px 12px rgba(24,95,165,0.06)", padding: "1.5rem", marginBottom: "1.25rem" }}>
           <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#5F5E5A", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.4px" }}>O describi el alimento con texto</label>
           <textarea value={foodDescription} onChange={(e) => setFoodDescription(e.target.value)} placeholder="Ej: Milanesa con pure y un vaso de jugo de naranja." style={{ width: "100%", height: "100px", padding: "0.875rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4", fontSize: "0.95rem", color: "#2C2C2A", background: "#F8FBFF", outline: "none", resize: "vertical", boxSizing: "border-box", lineHeight: 1.6 }} />
