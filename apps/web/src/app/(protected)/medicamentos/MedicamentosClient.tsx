@@ -36,6 +36,75 @@ function renderContent(content: string, titleColor: string) {
   });
 }
 
+function WaitlistForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "already" | "error">("idle");
+
+  async function handleSubmit() {
+    if (!email.includes("@")) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.ok && data.already) setStatus("already");
+      else if (data.ok) setStatus("ok");
+      else setStatus("error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "ok") {
+    return (
+      <div style={{ marginTop: "0.75rem", background: "#EAF3DE", border: "1px solid #C0DD97", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#27500A" }}>
+        Te anotamos. Te avisamos cuando haya paquetes disponibles.
+      </div>
+    );
+  }
+
+  if (status === "already") {
+    return (
+      <div style={{ marginTop: "0.75rem", background: "#E6F1FB", border: "1px solid #B5D4F4", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#185FA5" }}>
+        Ya estas en la lista. Te avisamos cuando haya paquetes disponibles.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: "0.875rem", background: "#FFF8E6", border: "1px solid #FAC775", borderRadius: "8px", padding: "0.875rem 1rem" }}>
+      <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", fontWeight: 600, color: "#854F0B" }}>
+        Pronto vas a poder comprar paquetes de consultas
+      </p>
+      <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", color: "#854F0B" }}>
+        Deja tu email y te avisamos cuando este disponible.
+      </p>
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="tu@email.com"
+          style={{ flex: 1, minWidth: 0, padding: "0.5rem 0.75rem", borderRadius: "6px", border: "1.5px solid #FAC775", fontSize: "0.875rem", color: "#2C2C2A", background: "#FFFFFF", outline: "none" }}
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={status === "loading" || !email.includes("@")}
+          style={{ padding: "0.5rem 1rem", borderRadius: "6px", background: "#185FA5", color: "#FFFFFF", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: status === "loading" ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: !email.includes("@") ? 0.6 : 1 }}
+        >
+          {status === "loading" ? "Guardando..." : "Avisame"}
+        </button>
+      </div>
+      {status === "error" && (
+        <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "#991B1B" }}>Error al guardar. Intentalo de nuevo.</p>
+      )}
+    </div>
+  );
+}
+
 export default function MedicamentosClient({ userEmail }: Props) {
   const [query, setQuery] = useState("");
   const [image, setImage] = useState<File | null>(null);
@@ -43,6 +112,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [limitReached, setLimitReached] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleImage(file: File) {
@@ -79,6 +149,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
     setError("");
     setResult("");
     setLoading(true);
+    setLimitReached(false);
 
     const formData = new FormData();
     if (query.trim()) formData.append("query", query.trim());
@@ -92,7 +163,8 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Error al consultar.");
+        if (res.status === 429) setLimitReached(true);
+        else setError(data.error || "Error al consultar.");
         setLoading(false);
         return;
       }
@@ -157,6 +229,15 @@ export default function MedicamentosClient({ userEmail }: Props) {
         Tu medico te receto un medicamento. Ingresalo aca y te digo que datos de tu perfil son relevantes para que puedas consultarle.
       </p>
 
+      {limitReached && (
+        <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: 10, padding: "0.875rem 1.25rem", marginBottom: 20 }}>
+          <div style={{ background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: 8, padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
+            Alcanzaste el limite de consultas. Podes volver manana con tokens nuevos.
+          </div>
+          <WaitlistForm />
+        </div>
+      )}
+
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "#2C2C2A", display: "block", marginBottom: 6 }}>
           Que medicamento te recetaron?
@@ -166,7 +247,8 @@ export default function MedicamentosClient({ userEmail }: Props) {
           onChange={e => setQuery(e.target.value)}
           placeholder="Ej: El medico me receto Enalapril 10mg para la presion"
           rows={3}
-          style={{ width: "100%", borderRadius: 10, border: "1.5px solid #B5D4F4", padding: "10px 14px", fontSize: 14, color: "#2C2C2A", background: "#F0F6FF", resize: "vertical", boxSizing: "border-box" }}
+          disabled={limitReached}
+          style={{ width: "100%", borderRadius: 10, border: "1.5px solid #B5D4F4", padding: "10px 14px", fontSize: 14, color: "#2C2C2A", background: limitReached ? "#F0F0F0" : "#F0F6FF", resize: "vertical", boxSizing: "border-box", opacity: limitReached ? 0.6 : 1 }}
         />
       </div>
 
@@ -176,10 +258,10 @@ export default function MedicamentosClient({ userEmail }: Props) {
         </label>
         {!imagePreview ? (
           <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onClick={() => fileInputRef.current?.click()}
-            style={{ border: "2px dashed #B5D4F4", borderRadius: 10, padding: "24px", textAlign: "center", cursor: "pointer", background: "#F0F6FF", color: "#5F5E5A", fontSize: 13 }}
+            onDrop={limitReached ? undefined : handleDrop}
+            onDragOver={limitReached ? undefined : handleDragOver}
+            onClick={limitReached ? undefined : () => fileInputRef.current?.click()}
+            style={{ border: "2px dashed #B5D4F4", borderRadius: 10, padding: "24px", textAlign: "center", cursor: limitReached ? "not-allowed" : "pointer", background: "#F0F6FF", color: "#5F5E5A", fontSize: 13, opacity: limitReached ? 0.6 : 1 }}
           >
             Arrastra una imagen o hace clic para seleccionar
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
@@ -202,8 +284,8 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
       <button
         onClick={handleSubmit}
-        disabled={loading}
-        style={{ width: "100%", padding: "12px", borderRadius: 10, background: loading ? "#85B7EB" : "#185FA5", color: "#fff", fontWeight: 700, fontSize: 15, border: "none", cursor: loading ? "not-allowed" : "pointer", marginBottom: 24 }}
+        disabled={loading || limitReached}
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: loading || limitReached ? "#85B7EB" : "#185FA5", color: "#fff", fontWeight: 700, fontSize: 15, border: "none", cursor: loading || limitReached ? "not-allowed" : "pointer", marginBottom: 24, opacity: limitReached ? 0.6 : 1 }}
       >
         {loading ? "Analizando..." : "Revisar con mi perfil"}
       </button>
