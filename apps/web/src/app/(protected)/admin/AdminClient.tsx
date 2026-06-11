@@ -43,14 +43,21 @@ type UsageItem = {
   updated_at?: string;
 };
 
+type WaitlistItem = {
+  id: string;
+  email: string;
+  created_at: string;
+};
+
 type Props = {
   profiles: Profile[];
   history: HistoryItem[];
   usage: UsageItem[];
   currentEmail: string;
+  waitlist: WaitlistItem[];
 };
 
-const tabs = ["Resumen", "Usuarios", "Analisis", "Uso"];
+const tabs = ["Resumen", "Usuarios", "Analisis", "Uso", "Waitlist"];
 
 function StatCard({
   label,
@@ -101,9 +108,11 @@ export default function AdminClient({
   history,
   usage,
   currentEmail,
+  waitlist,
 }: Props) {
   const [activeTab, setActiveTab] = useState("Resumen");
   const [searchUser, setSearchUser] = useState("");
+  const [searchWaitlist, setSearchWaitlist] = useState("");
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
 
   async function changeRole(userId: string, makeAdmin: boolean) {
@@ -237,22 +246,21 @@ export default function AdminClient({
         (p.full_name ?? "").toLowerCase().includes(searchUser.toLowerCase())
     )
     .sort((a, b) => {
-      // 1) Admins primero
       if (!!a.is_admin !== !!b.is_admin) {
         return a.is_admin ? -1 : 1;
       }
-
-      // 2) Última actividad más reciente
       const timeDiff = getSortTime(b) - getSortTime(a);
       if (timeDiff !== 0) return timeDiff;
-
-      // 3) Nombre / email como desempate
       return (a.full_name || a.owner_email).localeCompare(
         b.full_name || b.owner_email,
         "es",
         { sensitivity: "base" }
       );
     });
+
+  const filteredWaitlist = waitlist.filter((w) =>
+    w.email.toLowerCase().includes(searchWaitlist.toLowerCase())
+  );
 
   return (
     <div
@@ -370,9 +378,27 @@ export default function AdminClient({
                 background: activeTab === tab ? "#185FA5" : "transparent",
                 color: activeTab === tab ? "#FFFFFF" : "#5F5E5A",
                 transition: "all 0.15s",
+                position: "relative",
               }}
             >
               {tab}
+              {tab === "Waitlist" && waitlist.length > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: -4,
+                    right: -4,
+                    background: "#991B1B",
+                    color: "#fff",
+                    borderRadius: "20px",
+                    padding: "0px 5px",
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {waitlist.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -418,6 +444,12 @@ export default function AdminClient({
                     ? "#854F0B"
                     : "#991B1B"
                 }
+              />
+              <StatCard
+                label="Waitlist"
+                value={waitlist.length}
+                sub="solicitudes de mas tokens"
+                color="#854F0B"
               />
             </div>
 
@@ -1125,6 +1157,132 @@ export default function AdminClient({
                 <p style={{ textAlign: "center", padding: "2rem", color: "#888780" }}>
                   Sin datos de uso todavía
                 </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: WAITLIST */}
+        {activeTab === "Waitlist" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "1rem",
+              }}
+            >
+              <input
+                placeholder="Buscar por email..."
+                value={searchWaitlist}
+                onChange={(e) => setSearchWaitlist(e.target.value)}
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "8px",
+                  border: "1.5px solid #B5D4F4",
+                  fontSize: "0.9rem",
+                  outline: "none",
+                  background: "#FFFFFF",
+                  width: "320px",
+                  boxSizing: "border-box",
+                }}
+              />
+              <div
+                style={{
+                  background: "#FFF8E6",
+                  border: "1px solid #FAC775",
+                  borderRadius: "8px",
+                  padding: "0.5rem 1rem",
+                  fontSize: "0.85rem",
+                  color: "#854F0B",
+                  fontWeight: 600,
+                }}
+              >
+                {waitlist.length} {waitlist.length === 1 ? "persona quiere" : "personas quieren"} mas tokens
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "14px",
+                border: "1px solid #B5D4F4",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  padding: "1rem 1.25rem",
+                  borderBottom: "1px solid #E6F1FB",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <h2 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#2C2C2A" }}>
+                  Solicitudes de mas tokens
+                </h2>
+                <span style={{ fontSize: "0.8rem", color: "#888780" }}>
+                  {filteredWaitlist.length} resultados
+                </span>
+              </div>
+
+              {filteredWaitlist.length === 0 ? (
+                <p style={{ textAlign: "center", padding: "2rem", color: "#888780" }}>
+                  {waitlist.length === 0 ? "Todavia no hay solicitudes" : "No se encontraron resultados"}
+                </p>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                  <thead>
+                    <tr style={{ background: "#E6F1FB" }}>
+                      {["#", "Email", "Fecha de solicitud"].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: "0.75rem 1rem",
+                            textAlign: "left",
+                            fontWeight: 700,
+                            color: "#0C447C",
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.3px",
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredWaitlist.map((w, i) => (
+                      <tr
+                        key={w.id}
+                        style={{
+                          borderTop: "1px solid #E6F1FB",
+                          background: i % 2 === 0 ? "#FFFFFF" : "#F8FBFF",
+                        }}
+                      >
+                        <td style={{ padding: "0.75rem 1rem", color: "#888780", fontSize: "0.8rem" }}>
+                          {i + 1}
+                        </td>
+                        <td style={{ padding: "0.75rem 1rem", color: "#2C2C2A", fontWeight: 500 }}>
+                          {w.email}
+                        </td>
+                        <td style={{ padding: "0.75rem 1rem", color: "#888780", fontSize: "0.8rem" }}>
+                          {new Date(w.created_at).toLocaleString("es-AR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>
