@@ -24,6 +24,7 @@ export default function NavbarProtegido({
 
   const navLinks = [
     { label: "Analizar", href: "/analizar" },
+    { label: "Ejercicios", href: "/ejercicios" },
     { label: "Medicamentos", href: "/medicamentos" },
     { label: "Historial", href: "/historial" },
     { label: "Evolución", href: "/evolucion" },
