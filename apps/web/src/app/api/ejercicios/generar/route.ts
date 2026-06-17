@@ -31,7 +31,6 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { objetivo, dias, equipamiento, nivel, restricciones, perfil } = body;
 
-  // Obtener catálogo filtrado por equipamiento
   let query = supabase.from("exercise_catalog").select("*");
 
   if (equipamiento === "casa_sin_equipo") {
@@ -39,7 +38,6 @@ export async function POST(request: Request) {
   } else if (equipamiento === "casa_con_equipo") {
     query = query.or("equipment.ilike.%none%,equipment.ilike.%Dumbbell%,equipment.ilike.%Kettlebell%");
   }
-  // gimnasio: todos los ejercicios
 
   const { data: ejercicios } = await query.limit(120);
 
@@ -47,66 +45,64 @@ export async function POST(request: Request) {
     .map((e: any) => `ID:${e.id} | ${e.name_en} | Categoria:${e.category} | Equipo:${e.equipment} | Musculos:${e.muscles_primary || ""}`)
     .join("\n");
 
-  const prompt = `Eres un entrenador personal certificado y experto en medicina del deporte. Debes crear un plan de ejercicios personalizado de 4 semanas basándote en el perfil clínico del usuario.
+  const prompt = `Eres un entrenador personal. Crea un plan de ejercicios de 2 semanas. Responde ÚNICAMENTE con el plan en el formato indicado. NO escribas saludos, presentaciones, introducciones ni texto adicional antes o después del plan. Empieza directamente con "OBJETIVO DEL PLAN:".
 
-PERFIL CLÍNICO DEL USUARIO:
+PERFIL CLÍNICO:
 ${perfil || "No disponible"}
 
-PREFERENCIAS DEL USUARIO:
+PREFERENCIAS:
 - Objetivo: ${objetivo}
-- Días disponibles por semana: ${dias}
+- Días por semana: ${dias}
 - Equipamiento: ${equipamiento}
-- Nivel de experiencia: ${nivel}
-- Restricciones físicas: ${restricciones || "Ninguna mencionada"}
+- Nivel: ${nivel}
+- Restricciones físicas: ${restricciones || "Ninguna"}
 
-CATÁLOGO DE EJERCICIOS DISPONIBLES (usa SOLO estos ejercicios, respetando el ID exacto):
+CATÁLOGO DE EJERCICIOS (usa SOLO estos IDs, no inventes ejercicios):
 ${catalogoTexto}
 
-INSTRUCCIONES PARA EL PLAN:
-1. Crea un plan de 4 semanas con progresión gradual
-2. Cada semana debe tener exactamente ${dias} días de entrenamiento
-3. Cada sesión debe incluir ejercicios aeróbicos Y de fuerza
-4. Para cada ejercicio incluye: nombre en español, ID del catálogo, series, repeticiones o duración, y descanso
-5. Adapta la intensidad al nivel del usuario y su perfil clínico
-6. Si el perfil clínico indica condiciones como hipertensión, diabetes, problemas articulares u otras patologías, ajusta los ejercicios apropiadamente y agrega advertencias específicas
+REGLAS ESTRICTAS:
+1. Usa SOLO ejercicios del catálogo con su ID exacto
+2. Cada sesión debe tener ejercicios aeróbicos Y de fuerza
+3. Máximo 6 ejercicios por día
+4. Adapta la intensidad al nivel y perfil clínico
+5. NO escribas separadores como "---" o "--"
+6. NO escribas texto fuera del formato indicado
+7. El formato de cada ejercicio debe ser EXACTAMENTE: EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
 
-FORMATO DE RESPUESTA (respeta este formato exacto):
+FORMATO EXACTO DE RESPUESTA:
 
 OBJETIVO DEL PLAN:
-[Descripción del objetivo considerando el perfil clínico]
+[Una sola oración describiendo el objetivo]
 
 ADVERTENCIAS CLÍNICAS:
-[Advertencias específicas basadas en el perfil médico del usuario. Si no hay condiciones de riesgo, escribir "Sin restricciones clínicas identificadas"]
+[Advertencias basadas en el perfil. Si no hay, escribir exactamente: Sin restricciones clínicas identificadas]
 
 SEMANA 1 - BASE:
 DÍA 1:
-- EJERCICIO_ID:[id] | [Nombre en español] | [series]x[reps/duración] | Descanso:[tiempo]
-- EJERCICIO_ID:[id] | [Nombre en español] | [series]x[reps/duración] | Descanso:[tiempo]
-[continuar con todos los ejercicios del día]
+EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
+EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
+[continuar hasta máximo 6 ejercicios]
 
 DÍA 2:
-[ejercicios]
+[misma estructura]
 
-[continuar con todos los días de semana 1]
+[continuar con los ${dias} días]
 
 SEMANA 2 - PROGRESIÓN:
+DÍA 1:
 [misma estructura con mayor intensidad]
 
-SEMANA 3 - INTENSIFICACIÓN:
-[misma estructura con mayor intensidad]
-
-SEMANA 4 - PICO:
-[misma estructura con mayor intensidad]
+[continuar con los ${dias} días]
 
 CONSEJOS GENERALES:
-[3 a 5 consejos específicos para el objetivo y perfil clínico del usuario]`;
+[3 consejos específicos para el objetivo y perfil del usuario]`;
 
   const apiKey = process.env.GEMINI_API_KEY!;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const requestBody = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
+    generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
   });
 
   const encoder = new TextEncoder();
