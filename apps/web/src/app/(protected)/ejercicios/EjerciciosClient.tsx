@@ -130,7 +130,6 @@ function SeccionPlan({ titulo, contenido, ejerciciosMap, onVerEjercicio }: {
   const isAdvertencia = titulo.includes("ADVERTENCIA");
   const isObjetivo = titulo.includes("OBJETIVO");
   const isConsejo = titulo.includes("CONSEJO");
-  const isSemana = titulo.includes("SEMANA");
 
   const bg = isAdvertencia ? "#FAEEDA" : isObjetivo ? "#E6F1FB" : isConsejo ? "#EAF3DE" : "#FFFFFF";
   const border = isAdvertencia ? "#FAC775" : isObjetivo ? "#B5D4F4" : isConsejo ? "#C0DD97" : "#B5D4F4";
@@ -285,11 +284,7 @@ export default function EjerciciosClient() {
       // Cargar ejercicios del catálogo
       const ids = extraerEjercicioIds(fullText);
       if (ids.length > 0) {
-        const params = ids.map(id => `id=eq.${id}`).join("&or=(");
-        const catalogRes = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/exercise_catalog?id=in.(${ids.join(",")})&select=*`,
-          { headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!}` } }
-        );
+        const catalogRes = await fetch(`/api/ejercicios/catalogo?ids=${ids.join(",")}`);
         if (catalogRes.ok) {
           const ejercicios: Ejercicio[] = await catalogRes.json();
           const map = new Map<number, Ejercicio>();
@@ -490,13 +485,14 @@ export default function EjerciciosClient() {
           </div>
         )}
 
-        {/* PLAN GENERADO */}
-        {loading && paso === 4 && (
+        {/* MENSAJE MIENTRAS GENERA */}
+        {loading && (
           <p style={{ margin: "1rem 0", fontSize: "0.85rem", color: "#378ADD", textAlign: "center" }}>
             La IA está creando tu plan personalizado...
           </p>
         )}
 
+        {/* PLAN GENERADO */}
         {plan && paso === 5 && (
           <div style={{ marginTop: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
