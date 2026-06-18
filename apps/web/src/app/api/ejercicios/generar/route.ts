@@ -91,7 +91,7 @@ CONSEJOS GENERALES:
 [2 consejos concretos]`;
 
   const apiKey = process.env.GEMINI_API_KEY!;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const requestBody = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
