@@ -39,13 +39,15 @@ export async function POST(request: Request) {
     query = query.or("equipment.ilike.%none%,equipment.ilike.%Dumbbell%,equipment.ilike.%Kettlebell%");
   }
 
-  const { data: ejercicios } = await query.limit(120);
+  const { data: ejercicios } = await query
+    .not("image_url", "is", null)
+    .limit(40);
 
   const catalogoTexto = (ejercicios || [])
     .map((e: any) => `ID:${e.id} | ${e.name_en} | Categoria:${e.category} | Equipo:${e.equipment} | Musculos:${e.muscles_primary || ""}`)
     .join("\n");
 
-  const prompt = `Eres un entrenador personal. Crea un plan de ejercicios de 2 semanas. Responde ÚNICAMENTE con el plan en el formato indicado. NO escribas saludos, presentaciones, introducciones ni texto adicional antes o después del plan. Empieza directamente con "OBJETIVO DEL PLAN:".
+  const prompt = `Eres un entrenador personal. Crea un plan de ejercicios de 1 semana (${dias} días). Responde ÚNICAMENTE con el plan. Sin saludos, sin introducciones, sin texto extra. Empieza con "OBJETIVO DEL PLAN:".
 
 PERFIL CLÍNICO:
 ${perfil || "No disponible"}
@@ -55,54 +57,45 @@ PREFERENCIAS:
 - Días por semana: ${dias}
 - Equipamiento: ${equipamiento}
 - Nivel: ${nivel}
-- Restricciones físicas: ${restricciones || "Ninguna"}
+- Restricciones: ${restricciones || "Ninguna"}
 
-CATÁLOGO DE EJERCICIOS (usa SOLO estos IDs, no inventes ejercicios):
+CATÁLOGO (usa SOLO estos ejercicios con su ID exacto):
 ${catalogoTexto}
 
-REGLAS ESTRICTAS:
-1. Usa SOLO ejercicios del catálogo con su ID exacto
-2. Cada sesión debe tener ejercicios aeróbicos Y de fuerza
-3. Máximo 6 ejercicios por día
-4. Adapta la intensidad al nivel y perfil clínico
-5. NO escribas separadores como "---" o "--"
-6. NO escribas texto fuera del formato indicado
-7. El formato de cada ejercicio debe ser EXACTAMENTE: EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
+REGLAS:
+1. Máximo 5 ejercicios por día
+2. Cada día debe incluir al menos 1 ejercicio aeróbico y 1 de fuerza
+3. Formato exacto por ejercicio: EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
+4. Sin separadores como -- o ---
+5. Sin texto fuera del formato
 
-FORMATO EXACTO DE RESPUESTA:
+FORMATO:
 
 OBJETIVO DEL PLAN:
-[Una sola oración describiendo el objetivo]
+[Una oración]
 
 ADVERTENCIAS CLÍNICAS:
-[Advertencias basadas en el perfil. Si no hay, escribir exactamente: Sin restricciones clínicas identificadas]
+[Advertencias o: Sin restricciones clínicas identificadas]
 
 SEMANA 1 - BASE:
 DÍA 1:
 EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
-EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
-[continuar hasta máximo 6 ejercicios]
+[hasta 5 ejercicios]
 
 DÍA 2:
 [misma estructura]
 
 [continuar con los ${dias} días]
 
-SEMANA 2 - PROGRESIÓN:
-DÍA 1:
-[misma estructura con mayor intensidad]
-
-[continuar con los ${dias} días]
-
 CONSEJOS GENERALES:
-[3 consejos específicos para el objetivo y perfil del usuario]`;
+[2 consejos concretos]`;
 
   const apiKey = process.env.GEMINI_API_KEY!;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const requestBody = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
+    generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
   });
 
   const encoder = new TextEncoder();
