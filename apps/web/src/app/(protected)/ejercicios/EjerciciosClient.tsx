@@ -329,7 +329,7 @@ export default function EjerciciosClient() {
         <div style={{ marginBottom: "2rem" }}>
           <h1 style={{ margin: "0 0 0.3rem", fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>Plan de ejercicios</h1>
           <p style={{ margin: 0, fontSize: "0.9rem", color: "#5F5E5A" }}>
-            Creamos un plan personalizado de 4 semanas basado en tu perfil clinico y tus objetivos.
+            Creamos un plan semanal personalizado basado en tu perfil clinico y tus objetivos.
           </p>
         </div>
 
@@ -496,7 +496,7 @@ export default function EjerciciosClient() {
         {plan && paso === 5 && (
           <div style={{ marginTop: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
-              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#2C2C2A" }}>Tu plan de 4 semanas</h2>
+              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#2C2C2A" }}>Tu plan semanal</h2>
               <button
                 onClick={() => { setPlan(""); setPaso(0); setObjetivo(""); setEquipamiento(""); setNivel(""); setRestricciones(""); }}
                 style={{ padding: "6px 16px", borderRadius: "8px", border: "1.5px solid #B5D4F4", background: "transparent", color: "#185FA5", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}
