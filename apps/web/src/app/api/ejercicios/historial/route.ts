@@ -9,6 +9,27 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const { data, error } = await supabase
+    .from("exercise_plans")
+    .select("*")
+    .eq("owner_email", session.user.email)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json({ plan: null });
+  }
+
+  return NextResponse.json({ plan: data });
+}
+
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.email) {

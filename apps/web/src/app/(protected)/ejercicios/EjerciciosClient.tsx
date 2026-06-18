@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import NavbarProtegido from "@/components/NavbarProtegido";
 import { compactProfile } from "@/lib/utils";
 
@@ -90,7 +90,8 @@ function renderLineaEjercicio(line: string, ejerciciosMap: Map<number, Ejercicio
   const id = parseInt(match[1]);
   const resto = match[2];
   const partes = resto.split("|").map(p => p.trim());
-  const nombre = partes[0] || "";
+  const nombreRaw = partes[0] || "";
+  const nombreLimpio = nombreRaw.replace(/OBJETIVO DEL PLAN:/gi, "").replace(/SEMANA \d+[^|]*/gi, "").trim();
   const series = partes[1] || "";
   const descanso = partes[2] || "";
   const ejercicio = ejerciciosMap.get(id);
@@ -100,7 +101,7 @@ function renderLineaEjercicio(line: string, ejerciciosMap: Map<number, Ejercicio
       {ejercicio?.image_url && (
         <img
           src={ejercicio.image_url}
-          alt={nombre}
+          alt={nombreLimpio}
           style={{ width: "44px", height: "44px", objectFit: "contain", borderRadius: "6px", background: "#E6F1FB", flexShrink: 0, cursor: "pointer" }}
           onClick={() => ejercicio && onVerEjercicio(ejercicio)}
         />
@@ -110,7 +111,7 @@ function renderLineaEjercicio(line: string, ejerciciosMap: Map<number, Ejercicio
           onClick={() => ejercicio && onVerEjercicio(ejercicio)}
           style={{ background: "none", border: "none", padding: 0, cursor: ejercicio ? "pointer" : "default", textAlign: "left", display: "block", width: "100%" }}
         >
-          <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "#185FA5", display: "block" }}>{nombre}</span>
+          <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "#185FA5", display: "block" }}>{nombreLimpio}</span>
         </button>
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "2px" }}>
           {series && <span style={{ fontSize: "0.75rem", color: "#5F5E5A", background: "#E6F1FB", padding: "1px 7px", borderRadius: "4px" }}>{series}</span>}
@@ -225,12 +226,30 @@ export default function EjerciciosClient() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [profileRes, usageRes] = await Promise.all([
+        const [profileRes, usageRes, historialRes] = await Promise.all([
           fetch("/api/profile"),
           fetch("/api/usage"),
+          fetch("/api/ejercicios/historial"),
         ]);
         if (profileRes.ok) { const d = await profileRes.json(); setProfile(d.profile ?? null); }
         if (usageRes.ok) { setUsage(await usageRes.json()); }
+        if (historialRes.ok) {
+          const h = await historialRes.json();
+          if (h.plan?.plan_content) {
+            setPlan(h.plan.plan_content);
+            setPaso(5);
+            const ids = extraerEjercicioIds(h.plan.plan_content);
+            if (ids.length > 0) {
+              const catalogRes = await fetch(`/api/ejercicios/catalogo?ids=${ids.join(",")}`);
+              if (catalogRes.ok) {
+                const ejercicios: Ejercicio[] = await catalogRes.json();
+                const map = new Map<number, Ejercicio>();
+                ejercicios.forEach(e => map.set(e.id, e));
+                setEjerciciosMap(map);
+              }
+            }
+          }
+        }
       } finally {
         setLoadingProfile(false);
       }
@@ -281,7 +300,6 @@ export default function EjerciciosClient() {
         setPlan(fullText);
       }
 
-      // Cargar ejercicios del catálogo
       const ids = extraerEjercicioIds(fullText);
       if (ids.length > 0) {
         const catalogRes = await fetch(`/api/ejercicios/catalogo?ids=${ids.join(",")}`);
@@ -293,7 +311,6 @@ export default function EjerciciosClient() {
         }
       }
 
-      // Guardar plan
       await fetch("/api/ejercicios/historial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -362,14 +379,12 @@ export default function EjerciciosClient() {
         {paso < 5 && (
           <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: "14px", padding: "1.75rem", boxShadow: "0 2px 12px rgba(24,95,165,0.06)" }}>
 
-            {/* Progreso */}
             <div style={{ display: "flex", gap: "6px", marginBottom: "1.75rem" }}>
               {[0, 1, 2, 3, 4].map(i => (
                 <div key={i} style={{ flex: 1, height: "4px", borderRadius: "2px", background: i <= paso ? "#185FA5" : "#E6F1FB", transition: "background 0.2s" }} />
               ))}
             </div>
 
-            {/* PASO 0 — Objetivo */}
             {paso === 0 && (
               <div>
                 <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.1rem", fontWeight: 700, color: "#2C2C2A" }}>¿Cuál es tu objetivo?</h2>
@@ -389,7 +404,6 @@ export default function EjerciciosClient() {
               </div>
             )}
 
-            {/* PASO 1 — Días */}
             {paso === 1 && (
               <div>
                 <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.1rem", fontWeight: 700, color: "#2C2C2A" }}>¿Cuántos días por semana podés entrenar?</h2>
@@ -413,7 +427,6 @@ export default function EjerciciosClient() {
               </div>
             )}
 
-            {/* PASO 2 — Equipamiento */}
             {paso === 2 && (
               <div>
                 <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.1rem", fontWeight: 700, color: "#2C2C2A" }}>¿Dónde vas a entrenar?</h2>
@@ -434,7 +447,6 @@ export default function EjerciciosClient() {
               </div>
             )}
 
-            {/* PASO 3 — Nivel */}
             {paso === 3 && (
               <div>
                 <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.1rem", fontWeight: 700, color: "#2C2C2A" }}>¿Cuál es tu experiencia con el ejercicio?</h2>
@@ -455,7 +467,6 @@ export default function EjerciciosClient() {
               </div>
             )}
 
-            {/* PASO 4 — Restricciones */}
             {paso === 4 && (
               <div>
                 <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.1rem", fontWeight: 700, color: "#2C2C2A" }}>¿Tenés alguna restricción física?</h2>
@@ -485,14 +496,12 @@ export default function EjerciciosClient() {
           </div>
         )}
 
-        {/* MENSAJE MIENTRAS GENERA */}
         {loading && (
           <p style={{ margin: "1rem 0", fontSize: "0.85rem", color: "#378ADD", textAlign: "center" }}>
             La IA está creando tu plan personalizado...
           </p>
         )}
 
-        {/* PLAN GENERADO */}
         {plan && paso === 5 && (
           <div style={{ marginTop: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
