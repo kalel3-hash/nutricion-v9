@@ -55,6 +55,28 @@ const faqs = [
     a: "No. La inteligencia artificial utilizada por VitalCross AI no realiza diagnosticos medicos ni toma decisiones clinicas.\n\nSu funcion es analizar informacion nutricional y de salud desde un enfoque informativo y educativo, cruzando datos con evidencia cientifica y patrones conocidos.\n\nVitalCross AI representa una evolucion en el acceso a informacion personalizada, pero siempre dentro de un marco de apoyo y orientacion, no de diagnostico ni tratamiento.",
     highlight: true,
   },
+  {
+    q: "Que hace el modulo de Revisar medicamento recetado?",
+    a: "Te permite cargar el nombre del medicamento que te receto tu medico, ya sea escribiendolo o subiendo una foto.\n\nVitalCross AI analiza esa informacion cruzandola con tu perfil clinico para ayudarte a comprenderla mejor y a preparar preguntas mas claras para tu proxima consulta.",
+  },
+  {
+    q: "El modulo de medicamentos evalua si el tratamiento que me receto mi medico es el correcto?",
+    a: "No. VitalCross AI no evalua, valida ni cuestiona decisiones clinicas tomadas por un profesional de la salud.\n\nEste modulo esta pensado unicamente para ayudarte a comprender mejor un medicamento recetado y a preparar preguntas para tu proxima consulta medica.\n\nCualquier duda sobre un tratamiento, dosis o cambio de medicacion debe consultarse siempre con el medico que lo prescribio.",
+    highlight: true,
+  },
+  {
+    q: "Puedo ver el historial de medicamentos que consulte?",
+    a: "Si. Todas las consultas que realices en el modulo de medicamentos quedan guardadas en tu historial, al que podes acceder desde el menu Medicamentos en la barra de navegacion.\n\nEsto te permite repasar consultas anteriores cuando lo necesites.",
+  },
+  {
+    q: "Que hace el modulo de Ejercicios?",
+    a: "Genera un plan de entrenamiento semanal personalizado a partir de un cuestionario corto: tu objetivo, dias disponibles por semana, equipamiento, nivel de experiencia y restricciones fisicas.\n\nVitalCross AI cruza esa informacion con tu perfil clinico para proponerte ejercicios acordes a tu situacion, con imagenes de referencia para cada uno.",
+  },
+  {
+    q: "El plan de ejercicios reemplaza la indicacion de un profesional de educacion fisica o kinesiologia?",
+    a: "No. El plan generado por VitalCross AI es una guia orientativa e informativa, no una indicacion profesional individualizada.\n\nSi tenes una lesion, una condicion fisica particular o cualquier duda sobre si un ejercicio es apropiado para vos, consulta siempre con un profesional de educacion fisica, kinesiologia o tu medico antes de realizarlo.",
+    highlight: true,
+  },
 ];
 
 function FaqItem({ q, a, highlight = false }: { q: string; a: string; highlight?: boolean }) {
