@@ -15,11 +15,15 @@ const flipCards = [
     desc: "Describi o fotografia cualquier alimento. La IA lo evalua en funcion de tu perfil real y te da un puntaje personalizado del 1 al 10.",
   },
   {
-    step: "3", icon: "💊", title: "Revisa tus medicamentos",
+    step: "3", icon: "🏋️", title: "Genera tu plan de ejercicios",
+    desc: "Completa un cuestionario corto sobre tu objetivo, dias disponibles, equipamiento y nivel. La IA arma un plan semanal personalizado considerando tu perfil clinico y tus restricciones fisicas.",
+  },
+  {
+    step: "4", icon: "💊", title: "Revisa tus medicamentos",
     desc: "Ingresa el medicamento que te receto tu medico y la IA cruza esa informacion con tu perfil clinico para ayudarte a preparar mejor la consulta.",
   },
   {
-    step: "4", icon: "📈", title: "Segui tu evolucion",
+    step: "5", icon: "📈", title: "Segui tu evolucion",
     desc: "Consulta tu historial de analisis, visualiza tendencias y toma mejores decisiones sobre tu alimentacion con el tiempo.",
   },
 ];
