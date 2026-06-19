@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     .map((e: any) => `ID:${e.id} | ${e.name_en} | Categoria:${e.category} | Equipo:${e.equipment} | Musculos:${e.muscles_primary || ""}`)
     .join("\n");
 
-  const prompt = `Eres un entrenador personal. Crea un plan de ejercicios de 1 semana (${dias} días). Responde ÚNICAMENTE con el plan. Sin saludos, sin introducciones, sin texto extra. Empieza con "OBJETIVO DEL PLAN:".
+  const prompt = `Eres un entrenador personal. Crea un plan de ejercicios de 1 semana (${dias} días). Responde ÚNICAMENTE con el plan, sin saludos, sin introducciones, sin texto extra.
 
 PERFIL CLÍNICO:
 ${perfil || "No disponible"}
@@ -62,17 +62,20 @@ PREFERENCIAS:
 CATÁLOGO (usa SOLO estos ejercicios con su ID exacto):
 ${catalogoTexto}
 
-REGLAS:
-1. Máximo 5 ejercicios por día
-2. Cada día debe incluir al menos 1 ejercicio aeróbico y 1 de fuerza
-3. Formato exacto por ejercicio: EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
-4. Sin separadores como -- o ---
-5. Sin texto fuera del formato
+REGLAS OBLIGATORIAS:
+1. La respuesta DEBE empezar exactamente con la línea "OBJETIVO DEL PLAN:" — esta sección es OBLIGATORIA, nunca la omitas
+2. La respuesta DEBE incluir las 4 secciones en este orden exacto: OBJETIVO DEL PLAN, ADVERTENCIAS CLÍNICAS, SEMANA 1 - BASE, CONSEJOS GENERALES
+3. Máximo 5 ejercicios por día
+4. Cada día debe incluir al menos 1 ejercicio aeróbico y 1 de fuerza
+5. Formato exacto por ejercicio: EJERCICIO_ID:[id] | [Nombre] | [series]x[reps] | Descanso:[tiempo]
+6. Sin separadores como -- o ---
+7. Sin texto fuera del formato indicado
+8. No empieces nunca con ADVERTENCIAS CLÍNICAS ni con SEMANA — siempre empieza con OBJETIVO DEL PLAN
 
-FORMATO:
+FORMATO EXACTO A SEGUIR DESDE LA PRIMERA LÍNEA:
 
 OBJETIVO DEL PLAN:
-[Una oración]
+[Una oración describiendo el objetivo del plan según el perfil del usuario]
 
 ADVERTENCIAS CLÍNICAS:
 [Advertencias o: Sin restricciones clínicas identificadas]
@@ -95,7 +98,7 @@ CONSEJOS GENERALES:
 
   const requestBody = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+    generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
   });
 
   const encoder = new TextEncoder();
