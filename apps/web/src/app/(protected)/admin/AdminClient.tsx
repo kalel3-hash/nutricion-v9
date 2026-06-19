@@ -406,6 +406,46 @@ export default function AdminClient({
         {/* TAB: RESUMEN */}
         {activeTab === "Resumen" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            
+              href="https://aistudio.google.com/usage"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "0.75rem",
+                background: "#FFFFFF",
+                borderRadius: "12px",
+                border: "1px solid #B5D4F4",
+                padding: "1rem 1.25rem",
+                textDecoration: "none",
+              }}
+            >
+              <div>
+                <p style={{ margin: "0 0 0.2rem", fontSize: "0.85rem", fontWeight: 700, color: "#2C2C2A" }}>
+                  Consumo y costo de la API de Gemini
+                </p>
+                <p style={{ margin: 0, fontSize: "0.78rem", color: "#888780" }}>
+                  Se ve en el dashboard de Google AI Studio, no dentro de VitalCross AI
+                </p>
+              </div>
+              <span
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  background: "#185FA5",
+                  color: "#FFFFFF",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Ver en Google AI Studio ↗
+              </span>
+            </a>
+
             <div
               style={{
                 display: "grid",
