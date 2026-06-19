@@ -29,9 +29,6 @@ export default function DashboardPage() {
   const [flipped, setFlipped] = useState<number | null>(null);
   const [profileStatus, setProfileStatus] = useState<"loading" | "completo" | "incompleto">("loading");
   const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number } | null>(null);
-  const [avgScore, setAvgScore] = useState<number | null>(null);
-  const [totalAnalysis, setTotalAnalysis] = useState<number | null>(null);
-  const [totalMeds, setTotalMeds] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -46,33 +43,9 @@ export default function DashboardPage() {
       .then(r => r.json())
       .then(d => setUsage({ daily_used: d.daily_used, daily_limit: d.daily_limit }))
       .catch(() => {});
-
-    fetch("/api/history")
-      .then(r => r.json())
-      .then(d => {
-        const items = d.history ?? [];
-        const withScore = items.filter((h: any) => h.score !== null && h.score !== undefined);
-        if (withScore.length > 0) {
-          const avg = withScore.reduce((acc: number, h: any) => acc + h.score, 0) / withScore.length;
-          setAvgScore(Math.round(avg * 10) / 10);
-        }
-        setTotalAnalysis(items.length);
-      })
-      .catch(() => {});
-
-    fetch("/api/historial-medicamentos")
-      .then(r => r.json())
-      .then(d => setTotalMeds((d.history ?? []).length))
-      .catch(() => {});
   }, []);
 
   const toggle = (i: number) => setFlipped(prev => prev === i ? null : i);
-
-  const scoreColor = (s: number) => {
-    if (s <= 3) return { text: "#991B1B", bg: "#FEE2E2", border: "#FECACA" };
-    if (s <= 6) return { text: "#854F0B", bg: "#FAEEDA", border: "#FAC775" };
-    return { text: "#27500A", bg: "#EAF3DE", border: "#C0DD97" };
-  };
 
   const disponibles = usage ? usage.daily_limit - usage.daily_used : null;
   const usageColor = disponibles === null ? "#185FA5" : disponibles === 0 ? "#991B1B" : disponibles === 1 ? "#854F0B" : "#185FA5";
@@ -105,37 +78,11 @@ export default function DashboardPage() {
         : "Describi o fotografia un alimento",
     },
     {
-      icon: "💊", title: "Medicamentos", href: "/medicamentos",
-      badge: disponibles === null ? null
-        : disponibles === 0
-          ? { label: "Sin consultas hoy", bg: "#FEE2E2", border: "#FECACA", text: "#991B1B" }
-          : { label: disponibles + "/" + usage?.daily_limit + " disponibles hoy", bg: "#E6F1FB", border: "#B5D4F4", text: usageColor },
-      subtitle: "Revisa un medicamento recetado",
-    },
-    {
-      icon: "📋", title: "Historial alimentos", href: "/historial",
-      badge: totalAnalysis === null ? null
-        : totalAnalysis === 0 ? null
-        : { label: totalAnalysis + " analisis", bg: "#E6F1FB", border: "#B5D4F4", text: "#185FA5" },
-      subtitle: totalAnalysis === null ? "Cargando..."
-        : totalAnalysis === 0 ? "Aun no tenes analisis"
-        : "Ver todos tus analisis",
-    },
-    {
-      icon: "💊", title: "Historial medicamentos", href: "/historial-medicamentos",
-      badge: totalMeds === null ? null
-        : totalMeds === 0 ? null
-        : { label: totalMeds + " consultas", bg: "#E6F1FB", border: "#B5D4F4", text: "#185FA5" },
-      subtitle: totalMeds === null ? "Cargando..."
-        : totalMeds === 0 ? "Aun no tenes consultas"
-        : "Ver todas tus consultas",
-    },
-    {
-      icon: "📈", title: "Mi evolucion", href: "/evolucion",
-      badge: avgScore === null ? null : { ...scoreColor(avgScore), label: "Promedio: " + avgScore + "/10" },
-      subtitle: totalAnalysis === null ? "Cargando..."
-        : totalAnalysis === 0 ? "Aun no tenes analisis"
-        : totalAnalysis + " analisis realizados",
+      // TODO: agregar badge dinámico "Plan generado / Sin plan" cuando se confirme
+      // el endpoint GET que devuelve el último registro de exercise_plans.
+      icon: "🏋️", title: "Ejercicios", href: "/ejercicios",
+      badge: null,
+      subtitle: "Genera tu plan de ejercicios personalizado",
     },
   ];
 
