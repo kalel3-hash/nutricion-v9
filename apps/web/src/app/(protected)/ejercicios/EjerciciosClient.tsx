@@ -30,6 +30,15 @@ const OBJETIVOS = [
   { value: "bienestar", label: "Bienestar general", icon: "🌿" },
 ];
 
+const OBJETIVO_TEXTO: Record<string, string> = {
+  bajar_peso: "Este plan está diseñado para ayudarte a bajar de peso mediante una combinación de ejercicios aeróbicos y de fuerza adaptados a tu perfil.",
+  subir_peso: "Este plan está diseñado para ayudarte a ganar masa muscular mediante ejercicios de fuerza progresivos adaptados a tu perfil.",
+  control_clinico: "Este plan está diseñado para ayudarte a mejorar tus valores clínicos a través de actividad física regular adaptada a tu perfil.",
+  resistencia: "Este plan está diseñado para prepararte para correr 5K o 10K, combinando entrenamiento aeróbico y de fuerza adaptado a tu perfil.",
+  maraton: "Este plan está diseñado como base inicial para tu preparación de maratón, combinando resistencia y fuerza adaptado a tu perfil.",
+  bienestar: "Este plan está diseñado para mejorar tu bienestar general mediante actividad física balanceada adaptada a tu perfil.",
+};
+
 const NIVELES = [
   { value: "principiante", label: "Nunca entrené", icon: "🌱" },
   { value: "intermedio", label: "Entrené antes y dejé", icon: "🔄" },
@@ -44,8 +53,12 @@ const EQUIPAMIENTO = [
 
 const DIAS = [2, 3, 4, 5];
 
-function parsePlan(text: string): { secciones: { titulo: string; contenido: string }[] } {
-  const lines = text.split("\n");
+function parsePlan(text: string, objetivoSeleccionado: string): { secciones: { titulo: string; contenido: string }[] } {
+  // Limpia mezclas de texto de formato dentro de "DÍA X:"
+  const textoLimpio = text.replace(/DÍA\s+OBJETIVO DEL PLAN:\s*(\d+):/gi, "DÍA $1:")
+                            .replace(/DIA\s+OBJETIVO DEL PLAN:\s*(\d+):/gi, "DÍA $1:");
+
+  const lines = textoLimpio.split("\n");
   const secciones: { titulo: string; contenido: string }[] = [];
   let current: { titulo: string; contenido: string } | null = null;
 
@@ -68,6 +81,14 @@ function parsePlan(text: string): { secciones: { titulo: string; contenido: stri
   }
 
   if (current) secciones.push(current);
+
+  // Si falta la sección OBJETIVO DEL PLAN, la agrega automáticamente al principio
+  const tieneObjetivo = secciones.some(s => s.titulo.includes("OBJETIVO"));
+  if (!tieneObjetivo) {
+    const textoObjetivo = OBJETIVO_TEXTO[objetivoSeleccionado] || "Plan personalizado basado en tu perfil y objetivos.";
+    secciones.unshift({ titulo: "OBJETIVO DEL PLAN", contenido: textoObjetivo });
+  }
+
   return { secciones };
 }
 
@@ -218,6 +239,7 @@ export default function EjerciciosClient() {
   const [nivel, setNivel] = useState("");
   const [restricciones, setRestricciones] = useState("");
   const [plan, setPlan] = useState("");
+  const [planObjetivo, setPlanObjetivo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [ejerciciosMap, setEjerciciosMap] = useState<Map<number, Ejercicio>>(new Map());
@@ -237,6 +259,7 @@ export default function EjerciciosClient() {
           const h = await historialRes.json();
           if (h.plan?.plan_content) {
             setPlan(h.plan.plan_content);
+            setPlanObjetivo(h.plan.objetivo || "");
             setPaso(5);
             const ids = extraerEjercicioIds(h.plan.plan_content);
             if (ids.length > 0) {
@@ -300,6 +323,8 @@ export default function EjerciciosClient() {
         setPlan(fullText);
       }
 
+      setPlanObjetivo(objetivo);
+
       const ids = extraerEjercicioIds(fullText);
       if (ids.length > 0) {
         const catalogRes = await fetch(`/api/ejercicios/catalogo?ids=${ids.join(",")}`);
@@ -335,7 +360,7 @@ export default function EjerciciosClient() {
     );
   }
 
-  const { secciones } = plan ? parsePlan(plan) : { secciones: [] };
+  const { secciones } = plan ? parsePlan(plan, planObjetivo) : { secciones: [] };
 
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
