@@ -118,8 +118,8 @@ export default function AdminClient({
   async function changeRole(userId: string, makeAdmin: boolean) {
     const ok = confirm(
       makeAdmin
-        ? "¿Confirmás hacer admin a este usuario?"
-        : "¿Confirmás revocar el rol admin de este usuario?"
+        ? "Confirmas hacer admin a este usuario?"
+        : "Confirmas revocar el rol admin de este usuario?"
     );
     if (!ok) return;
 
@@ -139,7 +139,7 @@ export default function AdminClient({
 
       location.reload();
     } catch {
-      alert("Error de conexión.");
+      alert("Error de conexion.");
     } finally {
       setLoadingUserId(null);
     }
@@ -155,13 +155,12 @@ export default function AdminClient({
           .reduce((a, h) => a + (h.score ?? 0), 0) /
         history.filter((h) => h.score != null).length
       ).toFixed(1)
-    : "—";
+    : "-";
 
   const usersWithProfile = profiles.filter((p) => p.profile_complete).length;
   const usersWithAnalysis = new Set(history.map((h) => h.owner_email)).size;
   const totalAdmins = profiles.filter((p) => p.is_admin).length;
 
-  // Últimos 14 días
   const last14 = Array.from({ length: 14 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (13 - i));
@@ -226,7 +225,7 @@ export default function AdminClient({
   });
 
   function formatProvider(value?: string) {
-    if (!value) return "—";
+    if (!value) return "-";
     if (value === "google") return "Google";
     if (value === "email") return "Email";
     return value;
@@ -270,7 +269,6 @@ export default function AdminClient({
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      {/* NAVBAR */}
       <nav
         style={{
           display: "grid",
@@ -351,7 +349,6 @@ export default function AdminClient({
           </p>
         </div>
 
-        {/* TABS */}
         <div
           style={{
             display: "flex",
@@ -403,7 +400,6 @@ export default function AdminClient({
           ))}
         </div>
 
-        {/* TAB: RESUMEN */}
         {activeTab === "Resumen" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             
@@ -442,7 +438,7 @@ export default function AdminClient({
                   whiteSpace: "nowrap",
                 }}
               >
-                Ver en Google AI Studio ↗
+                Ver en Google AI Studio
               </span>
             </a>
 
@@ -469,14 +465,14 @@ export default function AdminClient({
               <StatCard
                 label="Usuarios activos"
                 value={usersWithAnalysis}
-                sub="con al menos 1 análisis"
+                sub="con al menos 1 analisis"
                 color="#378ADD"
               />
-              <StatCard label="Análisis totales" value={totalAnalysis} sub="en toda la plataforma" />
+              <StatCard label="Analisis totales" value={totalAnalysis} sub="en toda la plataforma" />
               <StatCard
                 label="Puntaje promedio"
                 value={avgScore}
-                sub="de todos los análisis"
+                sub="de todos los analisis"
                 color={
                   parseFloat(String(avgScore)) >= 7
                     ? "#27500A"
@@ -509,7 +505,7 @@ export default function AdminClient({
                   color: "#2C2C2A",
                 }}
               >
-                Análisis por día (últimos 14 días)
+                Analisis por dia (ultimos 14 dias)
               </h2>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={analysisByDay}>
@@ -550,7 +546,7 @@ export default function AdminClient({
                   color: "#2C2C2A",
                 }}
               >
-                Usuarios nuevos por día (últimos 14 días)
+                Usuarios nuevos por dia (ultimos 14 dias)
               </h2>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={usersByDay}>
@@ -586,7 +582,7 @@ export default function AdminClient({
                     color: "#2C2C2A",
                   }}
                 >
-                  Distribución de puntajes
+                  Distribucion de puntajes
                 </h2>
                 {scoreRanges.map((s) => (
                   <div key={s.label} style={{ marginBottom: "0.75rem" }}>
@@ -601,7 +597,7 @@ export default function AdminClient({
                         {s.label}
                       </span>
                       <span style={{ fontSize: "0.8rem", color: "#5F5E5A" }}>
-                        {s.count} análisis
+                        {s.count} analisis
                       </span>
                     </div>
                     <div
@@ -641,7 +637,7 @@ export default function AdminClient({
                     color: "#2C2C2A",
                   }}
                 >
-                  Alimentos más analizados
+                  Alimentos mas analizados
                 </h2>
                 {topFoods.slice(0, 6).map((f, i) => (
                   <div
@@ -683,7 +679,6 @@ export default function AdminClient({
           </div>
         )}
 
-        {/* TAB: USUARIOS */}
         {activeTab === "Usuarios" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <input
@@ -724,7 +719,7 @@ export default function AdminClient({
                       "Nombre",
                       "Email",
                       "Rol",
-                      "Acción",
+                      "Accion",
                       "Proveedor",
                       "Edad",
                       "Sexo",
@@ -732,7 +727,7 @@ export default function AdminClient({
                       "Altura",
                       "Perfil",
                       "Registro",
-                      "Última actividad",
+                      "Ultima actividad",
                       "Consultas mes",
                     ].map((h) => (
                       <th
@@ -770,7 +765,7 @@ export default function AdminClient({
                         }}
                       >
                         <td style={{ padding: "0.75rem 1rem", color: "#2C2C2A", fontWeight: 500 }}>
-                          {p.full_name ?? "—"}
+                          {p.full_name ?? "-"}
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
@@ -817,7 +812,7 @@ export default function AdminClient({
                               disabled={busy}
                               onClick={async () => {
                                 const ok = confirm(
-                                  "¿Confirmás revocar el rol admin de este usuario?"
+                                  "Confirmas revocar el rol admin de este usuario?"
                                 );
                                 if (!ok) return;
                                 setLoadingUserId(p.owner_id);
@@ -836,7 +831,7 @@ export default function AdminClient({
                                   }
                                   location.reload();
                                 } catch {
-                                  alert("Error de conexión.");
+                                  alert("Error de conexion.");
                                 } finally {
                                   setLoadingUserId(null);
                                 }
@@ -862,7 +857,7 @@ export default function AdminClient({
                               disabled={busy}
                               onClick={async () => {
                                 const ok = confirm(
-                                  "¿Confirmás hacer admin a este usuario?"
+                                  "Confirmas hacer admin a este usuario?"
                                 );
                                 if (!ok) return;
                                 setLoadingUserId(p.owner_id);
@@ -881,7 +876,7 @@ export default function AdminClient({
                                   }
                                   location.reload();
                                 } catch {
-                                  alert("Error de conexión.");
+                                  alert("Error de conexion.");
                                 } finally {
                                   setLoadingUserId(null);
                                 }
@@ -909,19 +904,19 @@ export default function AdminClient({
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {p.age ?? "—"}
+                          {p.age ?? "-"}
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {p.sex ?? "—"}
+                          {p.sex ?? "-"}
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {p.weight_kg ? `${p.weight_kg} kg` : "—"}
+                          {p.weight_kg ? `${p.weight_kg} kg` : "-"}
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
-                          {p.height_cm ? `${p.height_cm} cm` : "—"}
+                          {p.height_cm ? `${p.height_cm} cm` : "-"}
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem" }}>
@@ -957,13 +952,13 @@ export default function AdminClient({
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A", whiteSpace: "nowrap" }}>
                           {p.created_at
                             ? new Date(p.created_at).toLocaleDateString("es-AR")
-                            : "—"}
+                            : "-"}
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A", whiteSpace: "nowrap" }}>
                           {lastActivity
                             ? new Date(lastActivity).toLocaleString("es-AR")
-                            : "—"}
+                            : "-"}
                         </td>
 
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A" }}>
@@ -988,7 +983,6 @@ export default function AdminClient({
           </div>
         )}
 
-        {/* TAB: ANALISIS */}
         {activeTab === "Analisis" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div
@@ -1009,7 +1003,7 @@ export default function AdminClient({
                 }}
               >
                 <h2 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#2C2C2A" }}>
-                  Últimos 100 análisis
+                  Ultimos 100 analisis
                 </h2>
                 <span style={{ fontSize: "0.8rem", color: "#888780" }}>
                   {history.length} total
@@ -1070,7 +1064,7 @@ export default function AdminClient({
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {h.food_description ?? "—"}
+                          {h.food_description ?? "-"}
                         </td>
                         <td style={{ padding: "0.75rem 1rem" }}>
                           {sc != null ? (
@@ -1087,11 +1081,11 @@ export default function AdminClient({
                               {sc}/10
                             </span>
                           ) : (
-                            <span style={{ color: "#888780" }}>—</span>
+                            <span style={{ color: "#888780" }}>-</span>
                           )}
                         </td>
                         <td style={{ padding: "0.75rem 1rem", color: "#888780", fontSize: "0.8rem" }}>
-                          {h.created_at ? new Date(h.created_at).toLocaleString("es-AR") : "—"}
+                          {h.created_at ? new Date(h.created_at).toLocaleString("es-AR") : "-"}
                         </td>
                       </tr>
                     );
@@ -1102,7 +1096,6 @@ export default function AdminClient({
           </div>
         )}
 
-        {/* TAB: USO */}
         {activeTab === "Uso" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div
@@ -1122,7 +1115,7 @@ export default function AdminClient({
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                 <thead>
                   <tr style={{ background: "#E6F1FB" }}>
-                    {["Email", "Consultas hoy", "Consultas mes", "Última actividad"].map((h) => (
+                    {["Email", "Consultas hoy", "Consultas mes", "Ultima actividad"].map((h) => (
                       <th
                         key={h}
                         style={{
@@ -1185,7 +1178,7 @@ export default function AdminClient({
                         <td style={{ padding: "0.75rem 1rem", color: "#888780", fontSize: "0.8rem" }}>
                           {lastActivity
                             ? new Date(lastActivity).toLocaleString("es-AR")
-                            : "—"}
+                            : "-"}
                         </td>
                       </tr>
                     );
@@ -1195,14 +1188,13 @@ export default function AdminClient({
 
               {usage.length === 0 && (
                 <p style={{ textAlign: "center", padding: "2rem", color: "#888780" }}>
-                  Sin datos de uso todavía
+                  Sin datos de uso todavia
                 </p>
               )}
             </div>
           </div>
         )}
 
-        {/* TAB: WAITLIST */}
         {activeTab === "Waitlist" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div
