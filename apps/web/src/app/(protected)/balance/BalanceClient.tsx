@@ -179,7 +179,10 @@ export default function BalanceClient() {
       let fullText = "";
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          fullText += decoder.decode();
+          break;
+        }
         fullText += decoder.decode(value, { stream: true });
       }
 
@@ -206,7 +209,6 @@ export default function BalanceClient() {
   const previewTDEE = profile?.sex && profile?.height_cm && profile?.age && parseFloat(peso) > 0
     ? calcTDEE(parseFloat(peso), profile.height_cm, profile.age, profile.sex) : null;
 
-  // Datos del perfil clínico para el panel colapsable
   const datosPerfilCargados = profile ? [
     profile.total_cholesterol_mg_dl && { label: "Colesterol total", valor: `${profile.total_cholesterol_mg_dl} mg/dL` },
     profile.hdl_mg_dl && { label: "HDL", valor: `${profile.hdl_mg_dl} mg/dL` },
@@ -272,7 +274,7 @@ export default function BalanceClient() {
             </button>
             {perfilExpandido && (
               <div style={{ padding: "0 1.25rem 1rem", borderTop: "1px solid #E6F1FB" }}>
-                <p style={{ margin: "0.75rem 0 0.75rem", fontSize: "0.75rem", color: "#888780" }}>
+                <p style={{ margin: "0.75rem 0", fontSize: "0.75rem", color: "#888780" }}>
                   Estos valores de tu perfil son considerados por la IA al analizar tus comidas y ejercicios.
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
@@ -376,11 +378,10 @@ export default function BalanceClient() {
           {loading ? "Calculando con IA..." : "Calcular balance calórico"}
         </button>
 
-        {/* ---- RESULTADOS ---- */}
+        {/* RESULTADOS */}
         {result !== null && tdee !== null && (
           <div ref={resultsRef}>
 
-            {/* Cards TDEE + consumidas */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
               <div style={{ background: "#EEF4FF", borderRadius: "12px", border: "1px solid #B5D4F4", padding: "1rem", textAlign: "center" }}>
                 <p style={{ margin: "0 0 0.3rem", fontSize: "0.68rem", color: "#888780", textTransform: "uppercase", letterSpacing: "0.4px" }}>Gasto total estimado</p>
@@ -442,7 +443,7 @@ export default function BalanceClient() {
               </div>
             )}
 
-            {/* Impacto glucémico */}
+            {/* Impacto glucémico + ejercicio */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
               <div style={{ background: glucemicoBg[result.impacto_glucemico] ?? "#FFFFFF", borderRadius: "12px", border: "1px solid #B5D4F4", padding: "1rem", textAlign: "center" }}>
                 <p style={{ margin: "0 0 0.3rem", fontSize: "0.68rem", color: "#888780", textTransform: "uppercase" }}>Impacto glucémico *</p>
@@ -550,6 +551,7 @@ export default function BalanceClient() {
                 ))}
               </div>
             )}
+
           </div>
         )}
       </main>
