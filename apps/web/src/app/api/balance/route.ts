@@ -14,44 +14,6 @@ function calcTDEE(weight_kg: number, height_cm: number, age: number, sex: string
   return Math.round((base + constant) * 1.2);
 }
 
-function callGemini(prompt: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const apiKey = process.env.GEMINI_API_KEY!;
-    const body = JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-    });
-
-    const options = {
-      hostname: "generativelanguage.googleapis.com",
-      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(body),
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-          resolve(text);
-        } catch (e) {
-          reject(e);
-        }
-      });
-    });
-
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
-}
-
 export async function POST(request: Request) {
   const session = await auth();
   const email = session?.user?.email;
@@ -136,47 +98,84 @@ Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni desp
     .update({ weight_kg: peso_confirmado })
     .eq("owner_email", email);
 
-  const encoder = new TextEncoder();
+  const apiKey = process.env.GEMINI_API_KEY!;
+  const payload = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+  });
+
+  const agent = new https.Agent({ rejectUnauthorized: false });
+
+  let fullText = "";
+  let incrementDone = false;
 
   const readableStream = new ReadableStream({
-    async start(controller) {
-      try {
-        await incrementUsage(email);
-
-        const fullText = await callGemini(prompt);
-
-        controller.enqueue(encoder.encode(fullText));
-
-        try {
-          const clean = fullText.replace(/```json\n?/g, "").replace(/```/g, "").trim();
-          const parsed = JSON.parse(clean);
-          const balance_kcal =
-            (parsed.calorias_consumidas_kcal ?? 0) -
-            (tdee + (parsed.calorias_quemadas_ejercicio_kcal ?? 0));
-
-          await supabase.from("daily_balance_history").insert({
-            owner_email: email,
-            fecha: fecha ?? new Date().toISOString().slice(0, 10),
-            profile_weight_kg: peso_confirmado,
-            profile_height_cm: height_cm,
-            profile_age: age,
-            profile_sex: sex,
-            comidas: comidas ?? {},
-            ejercicios: ejercicios ?? [],
-            tdee_kcal: tdee,
-            calorias_consumidas_kcal: parsed.calorias_consumidas_kcal ?? null,
-            calorias_quemadas_kcal: parsed.calorias_quemadas_ejercicio_kcal ?? 0,
-            balance_kcal,
-            analisis_gemini: parsed,
+    start(controller) {
+      const req = https.request(
+        {
+          hostname: "generativelanguage.googleapis.com",
+          path: `/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload),
+          },
+          agent,
+        },
+        (res) => {
+          res.on("data", (chunk: Buffer) => {
+            const lines = chunk.toString().split("\n");
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const json = JSON.parse(line.slice(6));
+                  const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (text) {
+                    if (!incrementDone) {
+                      incrementDone = true;
+                      incrementUsage(email).catch(() => {});
+                    }
+                    fullText += text;
+                    controller.enqueue(Buffer.from(text));
+                  }
+                } catch {}
+              }
+            }
           });
-        } catch {
-          // DB save failure is non-fatal
-        }
+          res.on("end", async () => {
+            try {
+              const clean = fullText.replace(/```json\n?/g, "").replace(/```/g, "").trim();
+              const parsed = JSON.parse(clean);
+              const balance_kcal =
+                (parsed.calorias_consumidas_kcal ?? 0) -
+                (tdee + (parsed.calorias_quemadas_ejercicio_kcal ?? 0));
 
-        controller.close();
-      } catch (err) {
-        controller.error(err);
-      }
+              await supabase.from("daily_balance_history").insert({
+                owner_email: email,
+                fecha: fecha ?? new Date().toISOString().slice(0, 10),
+                profile_weight_kg: peso_confirmado,
+                profile_height_cm: height_cm,
+                profile_age: age,
+                profile_sex: sex,
+                comidas: comidas ?? {},
+                ejercicios: ejercicios ?? [],
+                tdee_kcal: tdee,
+                calorias_consumidas_kcal: parsed.calorias_consumidas_kcal ?? null,
+                calorias_quemadas_kcal: parsed.calorias_quemadas_ejercicio_kcal ?? 0,
+                balance_kcal,
+                analisis_gemini: parsed,
+              });
+            } catch {
+              // DB save failure is non-fatal
+            }
+            controller.close();
+          });
+          res.on("error", (err: Error) => controller.error(err));
+        }
+      );
+      req.on("error", (err: Error) => controller.error(err));
+      req.write(payload);
+      req.end();
     },
   });
 
