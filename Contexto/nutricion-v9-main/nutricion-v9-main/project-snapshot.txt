@@ -1,0 +1,52 @@
+﻿=== WEB package.json ===
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "next": "16.2.1",
+    "next-auth": "^5.0.0-beta.30",
+    "pdfjs-dist": "^5.5.207",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+=== AUTH (auth.ts) ===
+C:\Proyectos\nutricion-v9\apps\web\src\auth.ts
+
+=== APP ROUTER API ROUTES (route.ts) ===
+C:\Proyectos\nutricion-v9\apps\web\src\app\api\analizar\route.ts
+C:\Proyectos\nutricion-v9\apps\web\src\app\api\auth\[...nextauth]\route.ts
+C:\Proyectos\nutricion-v9\apps\web\src\app\api\history\route.ts
+C:\Proyectos\nutricion-v9\apps\web\src\app\api\ocr-pdf\route.ts
+C:\Proyectos\nutricion-v9\apps\web\src\app\api\profile\route.ts
+
+=== PROTECTED LAYOUTS ===
+C:\Proyectos\nutricion-v9\apps\web\src\app\layout.tsx
+C:\Proyectos\nutricion-v9\apps\web\src\app\(protected)\layout.tsx
+
+=== SUPABASE SERVICE FILES ===
+C:\Proyectos\nutricion-v9\apps\web\src\lib\supabase.ts
+C:\Proyectos\nutricion-v9\apps\web\src\lib\supabaseService.ts
+C:\Proyectos\nutricion-v9\apps\web\src\lib\supabase\supabaseService.ts

@@ -1,0 +1,541 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { compactProfile } from "@/lib/utils";
+import { shareAnalysisAsImage } from "@/lib/shareAnalysis";
+import NavbarProtegido from "@/components/NavbarProtegido";
+import TourGuia, { TourStep } from "@/components/TourGuia";
+
+type ProfileResponse = { profile: any | null; error?: string };
+type PhotoType = "alimento" | "etiqueta";
+type Block = { key: string; title: string; content: string };
+
+function normalizeKey(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+}
+
+function parseBlocks(text: string): Block[] {
+  const re = /BLOQUE\s+\d+\s*[-–]\s*([^\n:]+):/gi;
+  const titles: { index: number; raw: string; label: string }[] = [];
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    titles.push({ index: match.index, raw: match[0], label: match[1].trim() });
+  }
+  if (titles.length === 0) return [{ key: "RAW", title: "Analisis", content: text }];
+  return titles.map((t, i) => {
+    const start = t.index + t.raw.length;
+    const end = i + 1 < titles.length ? titles[i + 1].index : text.length;
+    return { key: normalizeKey(t.label), title: t.label, content: text.slice(start, end).trim() };
+  });
+}
+
+const BLOCK_CONFIG: Record<string, { bg: string; border: string; titleColor: string; icon: string; displayTitle: string }> = {
+  PUNTAJE:                  { bg: "#EEF4FF",  border: "#85B7EB", titleColor: "#0C447C", icon: "🎯", displayTitle: "Puntaje" },
+  "ANALISIS PERSONALIZADO": { bg: "#E6F1FB",  border: "#378ADD", titleColor: "#0C447C", icon: "🧬", displayTitle: "Evaluacion clinica" },
+  "SUGERENCIAS DE MEJORA":  { bg: "#EAF3DE",  border: "#C0DD97", titleColor: "#27500A", icon: "💡", displayTitle: "Recomendaciones" },
+  FUENTES:                  { bg: "#F1EFE8",  border: "#D3D1C7", titleColor: "#444441", icon: "📚", displayTitle: "Fuentes cientificas" },
+  default:                  { bg: "#F8FBFF",  border: "#B5D4F4", titleColor: "#0C447C", icon: "📋", displayTitle: "" },
+};
+
+function getBlockConfig(key: string) {
+  for (const configKey of Object.keys(BLOCK_CONFIG)) {
+    if (key.includes(configKey)) return BLOCK_CONFIG[configKey];
+  }
+  return BLOCK_CONFIG.default;
+}
+
+function renderSources(content: string) {
+  const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
+  return lines.map((line, i) => {
+    const isSource = /^\d+[\.\)]/.test(line);
+    if (!isSource) return <p key={i} style={{ margin: "0 0 0.5rem", fontSize: "0.875rem", color: "#5F5E5A" }}>{line}</p>;
+    const titleMatch = line.match(/["""«»]([^"""«»]+)["""«»]/) || line.match(/\*([^*]+)\*/) || line.match(/\*\*([^*]+)\*\*/);
+    const searchText = titleMatch ? titleMatch[1] : line.replace(/^\d+[\.\)]\s*/, "").replace(/\*\*/g, "").slice(0, 120);
+    const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(searchText)}`;
+    const scholarUrl = `https://scholar.google.com/scholar?q=${encodeURIComponent(searchText)}`;
+    const cleanLine = line.replace(/^\d+[\.\)]\s*/, "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1");
+    return (
+      <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "0.875rem", borderRadius: "8px", background: "#FFFFFF", border: "1px solid #D3D1C7", marginBottom: "0.75rem" }}>
+        <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.65, color: "#2C2C2A" }}>
+          <strong style={{ color: "#444441" }}>{i + 1}.</strong> {cleanLine}
+        </p>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <a href={pubmedUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "6px", background: "#E6F1FB", border: "1px solid #B5D4F4", color: "#185FA5", fontSize: "0.75rem", fontWeight: 600, textDecoration: "none" }}>Buscar en PubMed</a>
+          <a href={scholarUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "6px", background: "#F1EFE8", border: "1px solid #D3D1C7", color: "#444441", fontSize: "0.75rem", fontWeight: 600, textDecoration: "none" }}>Buscar en Scholar</a>
+        </div>
+      </div>
+    );
+  });
+}
+
+function renderContent(content: string, titleColor: string) {
+  const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
+  return lines.map((line, i) => {
+    const isBullet = /^[\*\-]\s+/.test(line);
+    const formatted = line.replace(/\*\*(.*?)\*\*/g, (_, t) => `<strong style="color:${titleColor}">${t}</strong>`);
+    if (isBullet) {
+      return (
+        <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "0.6rem" }}>
+          <span style={{ color: titleColor, flexShrink: 0, marginTop: "2px" }}>•</span>
+          <span style={{ fontSize: "0.9rem", lineHeight: 1.7, color: "#2C2C2A" }} dangerouslySetInnerHTML={{ __html: formatted.replace(/^[\*\-]\s+/, "") }} />
+        </div>
+      );
+    }
+    return <p key={i} style={{ margin: "0 0 0.65rem", fontSize: "0.9rem", lineHeight: 1.75, color: "#2C2C2A" }} dangerouslySetInnerHTML={{ __html: formatted }} />;
+  });
+}
+
+function WaitlistForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "already" | "error">("idle");
+
+  async function handleSubmit() {
+    if (!email.includes("@")) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.ok && data.already) setStatus("already");
+      else if (data.ok) setStatus("ok");
+      else setStatus("error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "ok") {
+    return (
+      <div style={{ marginTop: "0.75rem", background: "#EAF3DE", border: "1px solid #C0DD97", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#27500A" }}>
+        Te anotamos. Te avisamos cuando haya paquetes disponibles.
+      </div>
+    );
+  }
+
+  if (status === "already") {
+    return (
+      <div style={{ marginTop: "0.75rem", background: "#E6F1FB", border: "1px solid #B5D4F4", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#185FA5" }}>
+        Ya estas en la lista. Te avisamos cuando haya paquetes disponibles.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: "0.875rem", background: "#FFF8E6", border: "1px solid #FAC775", borderRadius: "8px", padding: "0.875rem 1rem" }}>
+      <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", fontWeight: 600, color: "#854F0B" }}>
+        Pronto vas a poder comprar paquetes de consultas
+      </p>
+      <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", color: "#854F0B" }}>
+        Deja tu email y te avisamos cuando este disponible.
+      </p>
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="tu@email.com"
+          style={{ flex: 1, minWidth: 0, padding: "0.5rem 0.75rem", borderRadius: "6px", border: "1.5px solid #FAC775", fontSize: "0.875rem", color: "#2C2C2A", background: "#FFFFFF", outline: "none" }}
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={status === "loading" || !email.includes("@")}
+          style={{ padding: "0.5rem 1rem", borderRadius: "6px", background: "#185FA5", color: "#FFFFFF", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: status === "loading" ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: !email.includes("@") ? 0.6 : 1 }}
+        >
+          {status === "loading" ? "Guardando..." : "Avisame"}
+        </button>
+      </div>
+      {status === "error" && (
+        <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "#991B1B" }}>Error al guardar. Intentalo de nuevo.</p>
+      )}
+    </div>
+  );
+}
+
+const analizarSteps: TourStep[] = [
+  {
+    targetId: "tour-tokens",
+    title: "Tus tokens disponibles",
+    description: "Cada consulta usa 1 token. Tenes 5 por dia y 30 por mes. Solo se descuenta si la IA responde.",
+  },
+  {
+    targetId: "tour-foto-etiqueta",
+    title: "Analiza por foto de etiqueta",
+    description: "Fotografia la tabla nutricional de cualquier producto y la IA la interpreta segun tu perfil.",
+  },
+  {
+    targetId: "tour-foto-alimento",
+    title: "Analiza por foto de alimento",
+    description: "Fotografia tu plato o comida y la IA identifica los ingredientes y evalua el impacto en tu salud.",
+  },
+  {
+    targetId: "tour-texto",
+    title: "O describe con texto",
+    description: "Escribi lo que comiste o vas a comer. Podes ser tan detallado como quieras.",
+  },
+];
+
+export default function AnalizarClient() {
+  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [foodDescription, setFoodDescription] = useState("");
+  const [analysis, setAnalysis] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [identification, setIdentification] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number; monthly_used: number; monthly_limit: number } | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoType, setPhotoType] = useState<PhotoType>("alimento");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadProfile = async () => {
+      setLoadingProfile(true);
+      try {
+        const res = await fetch("/api/profile", { method: "GET" });
+        const json = (await res.json()) as ProfileResponse;
+        if (!mounted) return;
+        setProfile(json.profile ?? null);
+        const usageRes = await fetch("/api/usage");
+        if (usageRes.ok) {
+          const usageData = await usageRes.json();
+          if (mounted) setUsage(usageData);
+        }
+      } catch {
+        if (!mounted) return;
+        setProfile(null);
+      } finally {
+        if (!mounted) return;
+        setLoadingProfile(false);
+      }
+    };
+    loadProfile();
+    return () => { mounted = false; };
+  }, []);
+
+  const refreshUsage = async () => {
+    const res = await fetch("/api/usage");
+    if (res.ok) setUsage(await res.json());
+  };
+
+  const limitReached = usage !== null && (usage.daily_used >= usage.daily_limit || usage.monthly_used >= usage.monthly_limit);
+
+  const handlePhotoSelect = (type: PhotoType) => {
+    setPhotoType(type); setPhotoPreview(null); setPhotoFile(null);
+    setAnalysis(""); setError(""); setIdentification("");
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file); setPhotoPreview(URL.createObjectURL(file)); e.target.value = "";
+  };
+
+  const processFile = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setAnalysis(""); setError(""); setIdentification("");
+  };
+
+  const clearPhoto = () => { setPhotoPreview(null); setPhotoFile(null); };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!loading && !limitReached) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation();
+    setIsDragging(false);
+    if (loading || limitReached) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const saveToHistory = async (text: string, description: string) => {
+    const scoreMatch = text.match(/(\d+)\s*\/\s*10/);
+    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
+    await fetch("/api/history", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ food_description: description, analysis_result: text, score }),
+    });
+  };
+
+  const streamResponse = async (response: Response) => {
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No se pudo leer la respuesta");
+    const decoder = new TextDecoder();
+    let text = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      text += decoder.decode(value);
+      const idMatch = text.match(/^IDENTIFICACION:\s*(.+)/m);
+      if (idMatch) setIdentification(idMatch[1].trim());
+      setAnalysis(text);
+    }
+    return text;
+  };
+
+  const handleAnalyzeText = async () => {
+    if (!foodDescription.trim()) return;
+    setLoading(true); setAnalysis(""); setError(""); setIdentification("");
+    try {
+      const response = await fetch("/api/analizar", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ food_description: foodDescription, health_profile: compactProfile(profile ?? {}) }),
+      });
+      if (response.status === 429) { const errData = await response.json(); setError(errData.error ?? "Limite de consultas alcanzado."); await refreshUsage(); return; }
+      if (!response.ok) throw new Error("Error en el motor de IA");
+      const text = await streamResponse(response);
+      await saveToHistory(text, foodDescription);
+      await refreshUsage();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error de conexion");
+    } finally { setLoading(false); }
+  };
+
+  const handleAnalyzePhoto = async () => {
+    if (!photoFile) return;
+    setLoading(true); setAnalysis(""); setError(""); setIdentification("");
+    try {
+      const formData = new FormData();
+      formData.append("image", photoFile); formData.append("type", photoType);
+      formData.append("health_profile", JSON.stringify(compactProfile(profile ?? {})));
+      const response = await fetch("/api/analizar-foto", { method: "POST", body: formData });
+      if (response.status === 429) { const errData = await response.json(); setError(errData.error ?? "Limite de consultas alcanzado."); await refreshUsage(); return; }
+      if (!response.ok) throw new Error("Error en el motor de IA");
+      const text = await streamResponse(response);
+      const label = photoType === "etiqueta" ? "Etiqueta nutricional (foto)" : "Alimento analizado por foto";
+      await saveToHistory(text, label);
+      await refreshUsage();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error de conexion");
+    } finally { setLoading(false); }
+  };
+
+  const handleShare = async () => {
+    if (!analysis) return;
+    setSharing(true);
+    try {
+      const scoreMatch = analysis.match(/(\d+)\s*\/\s*10/);
+      const score = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
+      const description = identification || foodDescription || "Alimento analizado";
+      await shareAnalysisAsImage({ foodDescription: description, score, analysisText: analysis });
+    } catch { }
+    finally { setSharing(false); }
+  };
+
+  const scoreMatch = analysis.match(/(\d+)\s*\/\s*10/);
+  const score = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
+  const scoreColor = (s: number) => {
+    if (s <= 3) return { bg: "#FEE2E2", text: "#991B1B", border: "#FECACA" };
+    if (s <= 6) return { bg: "#FAEEDA", text: "#854F0B", border: "#FAC775" };
+    return { bg: "#EAF3DE", text: "#27500A", border: "#C0DD97" };
+  };
+
+  const blocks = analysis ? parseBlocks(analysis) : [];
+
+  if (loadingProfile) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F0F6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "#5F5E5A" }}>Cargando perfil...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#F0F6FF" }}>
+      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleFileChange} />
+      <NavbarProtegido showSignOut={false} />
+
+      <main style={{ maxWidth: "680px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+
+        <div style={{ marginBottom: "2rem" }}>
+          <h1 style={{ margin: "0 0 0.3rem", fontSize: "1.5rem", fontWeight: 700, color: "#2C2C2A" }}>Analizar alimento</h1>
+          <p style={{ margin: 0, fontSize: "0.9rem", color: "#5F5E5A" }}>Describi, fotografia o escanea un alimento para recibir tu analisis personalizado.</p>
+        </div>
+
+        {!profile && (
+          <div style={{ background: "#FAEEDA", border: "1px solid #FAC775", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+            <span style={{ fontSize: "0.875rem", color: "#854F0B" }}>Sin perfil clinico — el analisis sera estandar.</span>
+            <Link href="/perfil" style={{ fontSize: "0.8rem", color: "#185FA5", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>Cargar perfil →</Link>
+          </div>
+        )}
+
+        {usage && (
+          <div id="tour-tokens" style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1.25rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_limit - usage.daily_used === 1 ? "#854F0B" : "#185FA5" }}>
+                  {usage.daily_limit - usage.daily_used}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>tokens disponibles hoy</div>
+              </div>
+              <div style={{ width: "1px", background: "#B5D4F4", height: "2rem", alignSelf: "center" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : usage.monthly_limit - usage.monthly_used <= 3 ? "#854F0B" : "#185FA5" }}>
+                  {usage.monthly_limit - usage.monthly_used}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>tokens disponibles este mes</div>
+              </div>
+            </div>
+            {limitReached && (
+              <>
+                <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
+                  {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario. Podes volver manana con 5 tokens nuevos." : "Alcanzaste el limite mensual de 30 tokens."}
+                </div>
+                <WaitlistForm />
+              </>
+            )}
+          </div>
+        )}
+
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          style={{
+            background: isDragging ? "#E6F1FB" : "#FFFFFF",
+            borderRadius: "14px",
+            border: isDragging ? "2px dashed #185FA5" : "1px solid #B5D4F4",
+            boxShadow: "0 2px 12px rgba(24,95,165,0.06)",
+            padding: "1.5rem", marginBottom: "1.25rem",
+            transition: "border 0.15s, background 0.15s",
+          }}
+        >
+          <p style={{ margin: "0 0 1rem", fontSize: "0.8rem", fontWeight: 600, color: "#5F5E5A", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+            Analizar por foto
+          </p>
+
+          {isDragging && (
+            <div style={{ textAlign: "center", padding: "1rem 0", color: "#185FA5", fontWeight: 600, fontSize: "0.95rem" }}>
+              Solta la imagen aca 📷
+            </div>
+          )}
+
+          {!isDragging && (
+            <>
+              <div style={{ display: "flex", gap: "0.875rem", flexWrap: "wrap" }}>
+                {[
+                  { type: "etiqueta" as PhotoType, icon: "🏷️", label: "Etiqueta nutricional", sub: "Fotografia la tabla de un producto" },
+                  { type: "alimento" as PhotoType, icon: "🍽️", label: "Foto de alimento", sub: "Fotografia tu plato o comida" },
+                ].map((btn) => (
+                  <button
+                    key={btn.type}
+                    id={btn.type === "etiqueta" ? "tour-foto-etiqueta" : "tour-foto-alimento"}
+                    type="button"
+                    onClick={() => handlePhotoSelect(btn.type)}
+                    disabled={loading || limitReached}
+                    style={{ flex: "1 1 200px", padding: "0.875rem 1rem", borderRadius: "10px", border: `2px solid ${photoType === btn.type && photoPreview ? "#185FA5" : "#B5D4F4"}`, background: photoType === btn.type && photoPreview ? "#E6F1FB" : "#F8FBFF", color: "#2C2C2A", fontSize: "0.875rem", fontWeight: 600, cursor: loading || limitReached ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "10px", textAlign: "left", opacity: limitReached ? 0.5 : 1 }}
+                  >
+                    <span style={{ fontSize: "1.5rem" }}>{btn.icon}</span>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#185FA5" }}>{btn.label}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#5F5E5A", fontWeight: 400 }}>{btn.sub}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <p style={{ margin: "0.875rem 0 0", fontSize: "0.75rem", color: "#888780", textAlign: "center" }}>
+                O arrastra una imagen directamente aca
+              </p>
+            </>
+          )}
+
+          {photoPreview && (
+            <div style={{ marginTop: "1.25rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+                <p style={{ margin: 0, fontSize: "0.8rem", fontWeight: 600, color: "#185FA5" }}>{photoType === "etiqueta" ? "Etiqueta seleccionada" : "Foto seleccionada"}</p>
+                <button onClick={clearPhoto} style={{ background: "none", border: "none", color: "#888780", fontSize: "0.8rem", cursor: "pointer", textDecoration: "underline" }}>Cambiar foto</button>
+              </div>
+              <img src={photoPreview} alt="Vista previa" style={{ width: "100%", maxHeight: "240px", objectFit: "contain", borderRadius: "8px", border: "1px solid #B5D4F4", background: "#F0F6FF" }} />
+              <button onClick={handleAnalyzePhoto} disabled={loading || limitReached} style={{ width: "100%", marginTop: "1rem", padding: "0.875rem", borderRadius: "8px", background: loading ? "#378ADD" : "#185FA5", color: "#FFFFFF", fontSize: "0.95rem", fontWeight: 700, border: "none", cursor: loading || limitReached ? "not-allowed" : "pointer", opacity: limitReached ? 0.5 : 1 }}>
+                {loading ? "Analizando foto..." : "Analizar esta foto"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div id="tour-texto" style={{ background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4", boxShadow: "0 2px 12px rgba(24,95,165,0.06)", padding: "1.5rem", marginBottom: "1.25rem" }}>
+          <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#5F5E5A", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.4px" }}>O describi el alimento con texto</label>
+          <textarea value={foodDescription} onChange={(e) => setFoodDescription(e.target.value)} placeholder="Ej: Milanesa con pure y un vaso de jugo de naranja." style={{ width: "100%", height: "100px", padding: "0.875rem 1rem", borderRadius: "8px", border: "1.5px solid #B5D4F4", fontSize: "0.95rem", color: "#2C2C2A", background: "#F8FBFF", outline: "none", resize: "vertical", boxSizing: "border-box", lineHeight: 1.6 }} />
+          <button onClick={handleAnalyzeText} disabled={loading || !foodDescription.trim() || limitReached} style={{ width: "100%", marginTop: "0.875rem", padding: "0.875rem", borderRadius: "8px", background: loading ? "#378ADD" : "#185FA5", color: "#FFFFFF", fontSize: "0.95rem", fontWeight: 700, border: "none", cursor: loading || !foodDescription.trim() || limitReached ? "not-allowed" : "pointer", opacity: (!foodDescription.trim() && !loading) || limitReached ? 0.5 : 1 }}>
+            {loading ? "Analizando..." : "Analizar ahora"}
+          </button>
+        </div>
+
+        {loading && <p style={{ margin: "0 0 1rem", fontSize: "0.8rem", color: "#378ADD", textAlign: "center" }}>La IA esta procesando tu consulta en tiempo real...</p>}
+
+        {error && <div style={{ background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", marginBottom: "1rem", fontSize: "0.875rem", color: "#991B1B" }}>{error}</div>}
+
+        {identification && (
+          <div style={{ background: "#E6F1FB", border: "1px solid #85B7EB", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "0.75rem", display: "flex", alignItems: "flex-start", gap: "10px" }}>
+            <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>🔍</span>
+            <div>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#185FA5", textTransform: "uppercase", letterSpacing: "0.4px" }}>La IA identifico</span>
+              <p style={{ margin: "2px 0 0", fontSize: "0.9rem", color: "#0C447C", fontWeight: 500, lineHeight: 1.5 }}>{identification}</p>
+            </div>
+          </div>
+        )}
+
+        {analysis && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {score !== null && (
+              <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", padding: "1.25rem 1.5rem", borderRadius: "14px", background: scoreColor(score).bg, border: `1.5px solid ${scoreColor(score).border}` }}>
+                <div style={{ fontSize: "3rem", fontWeight: 800, color: scoreColor(score).text, lineHeight: 1 }}>
+                  {score}<span style={{ fontSize: "1.25rem", fontWeight: 500 }}>/10</span>
+                </div>
+                <div>
+                  <p style={{ margin: "0 0 0.2rem", fontSize: "1rem", fontWeight: 700, color: scoreColor(score).text }}>Puntaje personalizado</p>
+                  <p style={{ margin: 0, fontSize: "0.85rem", color: scoreColor(score).text, opacity: 0.75 }}>Basado en tu perfil clinico real</p>
+                </div>
+              </div>
+            )}
+
+            {blocks.map((block) => {
+              const config = getBlockConfig(block.key);
+              const isFuentes = block.key.includes("FUENTE");
+              return (
+                <div key={block.key} style={{ background: config.bg, borderRadius: "14px", border: `1.5px solid ${config.border}`, padding: "1.5rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1rem" }}>
+                    <span style={{ fontSize: "1.1rem" }}>{config.icon}</span>
+                    <h3 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: config.titleColor, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      {config.displayTitle || block.title}
+                    </h3>
+                  </div>
+                  <div>{isFuentes ? renderSources(block.content) : renderContent(block.content, config.titleColor)}</div>
+                </div>
+              );
+            })}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
+              <button onClick={handleShare} disabled={sharing} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 20px", borderRadius: "8px", background: sharing ? "#E6F1FB" : "#185FA5", color: sharing ? "#378ADD" : "#FFFFFF", border: "none", fontSize: "0.88rem", fontWeight: 600, cursor: sharing ? "not-allowed" : "pointer" }}>
+                {sharing ? "Generando imagen..." : "Compartir resultado"}
+              </button>
+              <Link href="/historial" style={{ fontSize: "0.85rem", color: "#185FA5", textDecoration: "none", fontWeight: 500 }}>
+                Ver historial completo →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <TourGuia steps={analizarSteps} storageKey="vitalcross_tour_analizar_done" />
+      </main>
+    </div>
+  );
+}

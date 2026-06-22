@@ -1,55 +1,16 @@
-// apps/web/src/app/api/balance/route.ts
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-import https from "https";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { createSupabaseAdmin } from "@/lib/supabaseService";
 import { getUsageStatus, incrementUsage } from "@/lib/usage";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 function calcTDEE(weight_kg: number, height_cm: number, age: number, sex: string): number {
   const base = 10 * weight_kg + 6.25 * height_cm - 5 * age;
   const constant = sex === "masculino" ? 5 : sex === "femenino" ? -161 : -78;
   return Math.round((base + constant) * 1.2);
-}
-
-function callGemini(prompt: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const apiKey = process.env.GEMINI_API_KEY!;
-    const body = JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-    });
-
-    const options = {
-      hostname: "generativelanguage.googleapis.com",
-      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(body),
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-          resolve(text);
-        } catch (e) {
-          reject(e);
-        }
-      });
-    });
-
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
 }
 
 export async function POST(request: Request) {
@@ -103,7 +64,10 @@ export async function POST(request: Request) {
 
 DATOS DEL USUARIO:
 - Sexo: ${sex}, Edad: ${age} años, Peso: ${weight_kg} kg, Altura: ${height_cm} cm
-- TDEE calculado (Mifflin-St Jeor × 1.2, modo sedentario): ${tdee} kcal${labLines.length > 0 ? `\n\nPERFIL CLÍNICO:\n${labLines.join("\n")}` : ""}
+- TDEE calculado (Mifflin-St Jeor × 1.2, modo sedentario): ${tdee} kcal${labLines.length > 0 ? `
+
+PERFIL CLÍNICO:
+${labLines.join("\n")}` : ""}
 
 COMIDAS DEL DÍA (${fecha ?? "hoy"}):
 ${comidaLines.length > 0 ? comidaLines.join("\n") : "Sin comidas registradas"}
@@ -125,7 +89,7 @@ Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni desp
   "detalle_ejercicios": [{"descripcion": "texto", "duracion_minutos": 0, "kcal_estimadas": 0}],
   "grasas_estimadas_g": 0,
   "impacto_glucemico": "bajo",
-  "comentario_clinico": "2-3 oraciones informativas",
+  "comentario_clinico": "2-3 oraciones informativas cruzando el balance con el perfil clínico disponible, siempre sugiriendo consultar con un profesional",
   "recomendaciones": ["recomendación 1", "recomendación 2", "recomendación 3"]
 }`;
 
@@ -136,16 +100,34 @@ Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni desp
     .update({ weight_kg: peso_confirmado })
     .eq("owner_email", email);
 
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+  });
+
   const encoder = new TextEncoder();
+  let fullText = "";
+  let incrementDone = false;
 
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
-        await incrementUsage(email);
+        const geminiResult = await model.generateContentStream(prompt);
 
-        const fullText = await callGemini(prompt);
+        for await (const chunk of geminiResult.stream) {
+          const text = chunk.text();
+          if (!text) continue;
 
-        controller.enqueue(encoder.encode(fullText));
+          fullText += text;
+
+          if (!incrementDone) {
+            await incrementUsage(email);
+            incrementDone = true;
+          }
+
+          controller.enqueue(encoder.encode(text));
+        }
 
         try {
           const clean = fullText.replace(/```json\n?/g, "").replace(/```/g, "").trim();
