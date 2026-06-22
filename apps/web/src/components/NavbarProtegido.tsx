@@ -44,6 +44,7 @@ export default function NavbarProtegido({
       ],
     },
     { type: "link", label: "Ejercicios", href: "/ejercicios" },
+    { type: "link", label: "Balance Calórico", href: "/balance" },
     {
       type: "dropdown",
       label: "Medicamentos",
@@ -196,6 +197,10 @@ export default function NavbarProtegido({
 
             <Link href="/ejercicios" className={`nav-mobile-link${isActivePath("/ejercicios") ? " active" : ""}`} onClick={() => setMobileOpen(false)}>
               Ejercicios
+            </Link>
+
+            <Link href="/balance" className={`nav-mobile-link${isActivePath("/balance") ? " active" : ""}`} onClick={() => setMobileOpen(false)}>
+              Balance Calórico
             </Link>
 
             <div className="nav-mobile-section-label">Medicamentos</div>

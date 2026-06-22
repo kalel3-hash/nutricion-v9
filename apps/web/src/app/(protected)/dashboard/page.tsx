@@ -26,6 +26,10 @@ const flipCards = [
     step: "5", icon: "📈", title: "Segui tu evolucion",
     desc: "Consulta tu historial de analisis, visualiza tendencias y toma mejores decisiones sobre tu alimentacion con el tiempo.",
   },
+  {
+    step: "6", icon: "⚖️", title: "Calcula tu balance calorico",
+    desc: "Carga las comidas y el ejercicio de tu dia. La IA estima las calorias consumidas y quemadas, y las cruza con tu perfil clinico para darte un panorama informativo de tu balance diario.",
+  },
 ];
 
 export default function DashboardPage() {
@@ -87,6 +91,13 @@ export default function DashboardPage() {
       icon: "🏋️", title: "Ejercicios", href: "/ejercicios",
       badge: null,
       subtitle: "Genera tu plan de ejercicios personalizado",
+    },
+    {
+      // TODO: agregar badge dinámico cuando se defina el endpoint GET de daily_balance_history
+      // (ej. "Último registro: hoy" / "Sin registros hoy")
+      icon: "⚖️", title: "Calculadora de Balance Calórico", href: "/balance",
+      badge: null,
+      subtitle: "Registra tu dia y calcula tu balance calorico",
     },
   ];
 
