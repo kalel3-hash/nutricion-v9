@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
 DATOS DEL USUARIO:
 - Sexo: ${sex}, Edad: ${age} años, Peso: ${weight_kg} kg, Altura: ${height_cm} cm
-- TDEE calculado (Mifflin-St Jeor × 1.2, modo sedentario): ${tdee} kcal${labLines.length > 0 ? `\n\nPERFIL CLÍNICO:\n${labLines.join("\n")}` : ""}
+- TDEE calculado (Mifflin-St Jeor × 1.2, modo sedentario): ${tdee} kcal${labLines.length > 0 ? `\n\nPERFIL CLÍNICO (usá estos valores para personalizar el análisis):\n${labLines.join("\n")}` : ""}
 
 COMIDAS DEL DÍA (${fecha ?? "hoy"}):
 ${comidaLines.length > 0 ? comidaLines.join("\n") : "Sin comidas registradas"}
@@ -77,17 +77,23 @@ Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni desp
 {
   "calorias_consumidas_kcal": 0,
   "detalle_comidas": {
-    "desayuno": [{"item": "descripcion del item", "kcal_estimadas": 0}],
-    "almuerzo": [{"item": "descripcion del item", "kcal_estimadas": 0}],
-    "merienda": [{"item": "descripcion del item", "kcal_estimadas": 0}],
-    "cena": [{"item": "descripcion del item", "kcal_estimadas": 0}],
-    "colacion": [{"item": "descripcion del item", "kcal_estimadas": 0}]
+    "desayuno": [{"item": "descripcion", "kcal_estimadas": 0, "proteinas_g": 0, "grasas_g": 0, "carbohidratos_g": 0, "sodio_mg": 0, "fibra_g": 0}],
+    "almuerzo": [{"item": "descripcion", "kcal_estimadas": 0, "proteinas_g": 0, "grasas_g": 0, "carbohidratos_g": 0, "sodio_mg": 0, "fibra_g": 0}],
+    "merienda": [{"item": "descripcion", "kcal_estimadas": 0, "proteinas_g": 0, "grasas_g": 0, "carbohidratos_g": 0, "sodio_mg": 0, "fibra_g": 0}],
+    "cena": [{"item": "descripcion", "kcal_estimadas": 0, "proteinas_g": 0, "grasas_g": 0, "carbohidratos_g": 0, "sodio_mg": 0, "fibra_g": 0}],
+    "colacion": [{"item": "descripcion", "kcal_estimadas": 0, "proteinas_g": 0, "grasas_g": 0, "carbohidratos_g": 0, "sodio_mg": 0, "fibra_g": 0}]
+  },
+  "totales_dia": {
+    "proteinas_g": 0,
+    "grasas_g": 0,
+    "carbohidratos_g": 0,
+    "sodio_mg": 0,
+    "fibra_g": 0
   },
   "calorias_quemadas_ejercicio_kcal": 0,
-  "detalle_ejercicios": [{"descripcion": "texto", "duracion_minutos": 0, "kcal_estimadas": 0}],
-  "grasas_estimadas_g": 0,
+  "detalle_ejercicios": [{"descripcion": "texto", "duracion_minutos": 0, "kcal_estimadas": 0, "tipo": "aeróbico", "beneficio_clinico": "descripción del beneficio considerando el perfil clínico"}],
   "impacto_glucemico": "bajo",
-  "comentario_clinico": "2-3 oraciones informativas",
+  "comentario_clinico": "3-4 oraciones que crucen explícitamente los valores del perfil clínico (mencionar los valores numéricos) con las comidas y ejercicios del día. Siempre sugerir consultar con un profesional.",
   "recomendaciones": ["recomendación 1", "recomendación 2", "recomendación 3"]
 }`;
 
@@ -101,7 +107,7 @@ Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni desp
   const apiKey = process.env.GEMINI_API_KEY!;
   const payload = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+    generationConfig: { temperature: 0.3, maxOutputTokens: 3000 },
   });
 
   const agent = new https.Agent({ rejectUnauthorized: false });
