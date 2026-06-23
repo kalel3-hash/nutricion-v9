@@ -1,4 +1,5 @@
 "use client";
+// apps/web/src/app/(protected)/dashboard/page.tsx
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -6,30 +7,12 @@ import { useSession } from "next-auth/react";
 import NavbarProtegido from "@/components/NavbarProtegido";
 
 const flipCards = [
-  {
-    step: "1", icon: "🧬", title: "Carga tu perfil clinico",
-    desc: "Ingresa tus marcadores de laboratorio: colesterol, glucemia, HbA1c, funcion renal y mas. Tambien podes subir un PDF y la IA los extrae automaticamente.",
-  },
-  {
-    step: "2", icon: "🥗", title: "Analiza un alimento",
-    desc: "Describi o fotografia cualquier alimento. La IA lo evalua en funcion de tu perfil real y te da un puntaje personalizado del 1 al 10.",
-  },
-  {
-    step: "3", icon: "🏋️", title: "Genera tu plan de ejercicios",
-    desc: "Completa un cuestionario corto sobre tu objetivo, dias disponibles, equipamiento y nivel. La IA arma un plan semanal personalizado considerando tu perfil clinico y tus restricciones fisicas.",
-  },
-  {
-    step: "4", icon: "💊", title: "Revisa tus medicamentos",
-    desc: "Ingresa el medicamento que te receto tu medico y la IA cruza esa informacion con tu perfil clinico para ayudarte a preparar mejor la consulta.",
-  },
-  {
-    step: "5", icon: "📈", title: "Segui tu evolucion",
-    desc: "Consulta tu historial de analisis, visualiza tendencias y toma mejores decisiones sobre tu alimentacion con el tiempo.",
-  },
-  {
-    step: "6", icon: "⚖️", title: "Calcula tu balance calorico",
-    desc: "Carga las comidas y el ejercicio de tu dia. La IA estima las calorias consumidas y quemadas, y las cruza con tu perfil clinico para darte un panorama informativo de tu balance diario.",
-  },
+  { step: "1", icon: "🧬", title: "Carga tu perfil clinico", desc: "Ingresa tus marcadores de laboratorio: colesterol, glucemia, HbA1c, funcion renal y mas. Tambien podes subir un PDF y la IA los extrae automaticamente." },
+  { step: "2", icon: "🥗", title: "Analiza un alimento", desc: "Describi o fotografia cualquier alimento. La IA lo evalua en funcion de tu perfil real y te da un puntaje personalizado del 1 al 10." },
+  { step: "3", icon: "🏋️", title: "Genera tu plan de ejercicios", desc: "Completa un cuestionario corto sobre tu objetivo, dias disponibles, equipamiento y nivel. La IA arma un plan semanal personalizado considerando tu perfil clinico y tus restricciones fisicas." },
+  { step: "4", icon: "💊", title: "Revisa tus medicamentos", desc: "Ingresa el medicamento que te receto tu medico y la IA cruza esa informacion con tu perfil clinico para ayudarte a preparar mejor la consulta." },
+  { step: "5", icon: "📈", title: "Segui tu evolucion", desc: "Consulta tu historial de analisis, visualiza tendencias y toma mejores decisiones sobre tu alimentacion con el tiempo." },
+  { step: "6", icon: "⚖️", title: "Calcula tu balance calorico", desc: "Carga las comidas y el ejercicio de tu dia. La IA estima las calorias consumidas y quemadas, y las cruza con tu perfil clinico para darte un panorama informativo de tu balance diario." },
 ];
 
 export default function DashboardPage() {
@@ -86,15 +69,11 @@ export default function DashboardPage() {
         : "Describi o fotografia un alimento",
     },
     {
-      // TODO: agregar badge dinámico "Plan generado / Sin plan" cuando se confirme
-      // el endpoint GET que devuelve el último registro de exercise_plans.
       icon: "🏋️", title: "Ejercicios", href: "/ejercicios",
       badge: null,
       subtitle: "Genera tu plan de ejercicios personalizado",
     },
     {
-      // TODO: agregar badge dinámico cuando se defina el endpoint GET de daily_balance_history
-      // (ej. "Último registro: hoy" / "Sin registros hoy")
       icon: "⚖️", title: "Calculadora de Balance Calórico", href: "/balance",
       badge: null,
       subtitle: "Registra tu dia y calcula tu balance calorico",
@@ -123,14 +102,19 @@ export default function DashboardPage() {
           <p style={{ margin: 0, fontSize: "0.95rem", color: "#5F5E5A" }}>Que queres hacer hoy?</p>
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.875rem", marginBottom: "3rem" }}>
+        {/* Grid 2x2 fijo */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: "0.875rem",
+          marginBottom: "3rem",
+        }}>
           {cards.map((card) => (
             <Link key={card.title} href={card.href} style={{
               display: "flex", flexDirection: "row", alignItems: "center",
               gap: "0.875rem", background: "#FFFFFF", borderRadius: "10px",
               border: "1px solid #B5D4F4", boxShadow: "0 2px 8px rgba(24,95,165,0.06)",
               padding: "0.875rem 1.25rem", textDecoration: "none",
-              flex: "1 1 200px", maxWidth: "270px",
               transition: "box-shadow 0.15s, border-color 0.15s",
             }}
               onMouseEnter={e => {
