@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useRef } from "react";
 
-// ─── Outputs pregenerados ───────────────────────────────────────────────────
 const DEMO_OUTPUTS: Record<string, DemoResult> = {
   default: {
     alimento: "Ensalada César con pollo",
@@ -114,7 +113,6 @@ function matchOutput(input: string): DemoResult {
   return DEMO_OUTPUTS.default;
 }
 
-// ─── Score ring ─────────────────────────────────────────────────────────────
 function ScoreRing({ score, color }: { score: number; color: string }) {
   const r = 38;
   const circ = 2 * Math.PI * r;
@@ -122,8 +120,7 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
   return (
     <svg width="100" height="100" viewBox="0 0 100 100">
       <circle cx="50" cy="50" r={r} fill="none" stroke="#E6F1FB" strokeWidth="8" />
-      <circle
-        cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="8"
+      <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="8"
         strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
         transform="rotate(-90 50 50)"
         style={{ transition: "stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)" }}
@@ -134,7 +131,6 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
   );
 }
 
-// ─── Demo interactiva ────────────────────────────────────────────────────────
 function DemoAnalisis() {
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<"idle" | "loading" | "result">("idle");
@@ -162,7 +158,6 @@ function DemoAnalisis() {
       boxShadow: "0 8px 40px rgba(24,95,165,0.10)",
       overflow: "hidden", maxWidth: "620px", margin: "0 auto",
     }}>
-      {/* Header demo */}
       <div style={{
         background: "linear-gradient(135deg, #0C447C 0%, #185FA5 100%)",
         padding: "1rem 1.5rem", display: "flex", alignItems: "center", gap: "0.75rem",
@@ -175,15 +170,13 @@ function DemoAnalisis() {
         }}>SIN PERFIL CLÍNICO</span>
       </div>
 
-      {/* Input */}
       <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #E6F1FB" }}>
         <p style={{ margin: "0 0 0.625rem", fontSize: "0.78rem", color: "#5F5E5A", fontWeight: 600 }}>
           ¿Qué comiste o vas a comer?
         </p>
         <div style={{ display: "flex", gap: "8px" }}>
           <input
-            type="text"
-            value={input}
+            type="text" value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && analizar(input)}
             placeholder="Ej: milanesa con puré, ensalada césar..."
@@ -194,22 +187,17 @@ function DemoAnalisis() {
               background: "#F8FBFF", outline: "none",
             }}
           />
-          <button
-            onClick={() => analizar(input)}
-            disabled={phase === "loading" || !input.trim()}
+          <button onClick={() => analizar(input)} disabled={phase === "loading" || !input.trim()}
             style={{
               padding: "0.65rem 1.1rem", borderRadius: "8px",
               background: phase === "loading" ? "#85B7EB" : "#185FA5",
               color: "#FFFFFF", border: "none", fontWeight: 700,
               fontSize: "0.85rem", cursor: phase === "loading" ? "not-allowed" : "pointer",
               whiteSpace: "nowrap",
-            }}
-          >
+            }}>
             {phase === "loading" ? "Analizando..." : "Analizar →"}
           </button>
         </div>
-
-        {/* Sugerencias */}
         {phase === "idle" && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "0.625rem" }}>
             {SUGERENCIAS.map(s => (
@@ -223,21 +211,18 @@ function DemoAnalisis() {
         )}
       </div>
 
-      {/* Loading */}
       {phase === "loading" && (
         <div style={{ padding: "2.5rem 1.5rem", textAlign: "center" }}>
           <div style={{
             width: "40px", height: "40px", border: "3px solid #E6F1FB",
             borderTop: "3px solid #185FA5", borderRadius: "50%",
-            margin: "0 auto 1rem",
-            animation: "spin 0.8s linear infinite",
+            margin: "0 auto 1rem", animation: "spin 0.8s linear infinite",
           }} />
           <p style={{ margin: 0, fontSize: "0.85rem", color: "#5F5E5A" }}>Analizando composición nutricional...</p>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
 
-      {/* Resultado */}
       {phase === "result" && result && (
         <div ref={resultRef} style={{ padding: "1.25rem 1.5rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
@@ -247,8 +232,7 @@ function DemoAnalisis() {
               <p style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "#2C2C2A" }}>{result.alimento}</p>
               <span style={{
                 display: "inline-block", padding: "2px 10px", borderRadius: "20px",
-                background: result.bg, color: result.color,
-                fontSize: "0.72rem", fontWeight: 700,
+                background: result.bg, color: result.color, fontSize: "0.72rem", fontWeight: 700,
               }}>
                 {result.puntaje >= 75 ? "Perfil favorable" : result.puntaje >= 50 ? "Perfil moderado" : "Perfil a revisar"}
               </span>
@@ -261,10 +245,7 @@ function DemoAnalisis() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "1rem" }}>
             {result.items.map((item) => (
-              <div key={item.label} style={{
-                padding: "0.625rem 0.75rem", borderRadius: "10px",
-                background: "#F8FBFF", border: "1px solid #E6F1FB",
-              }}>
+              <div key={item.label} style={{ padding: "0.625rem 0.75rem", borderRadius: "10px", background: "#F8FBFF", border: "1px solid #E6F1FB" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" }}>
                   <span style={{ fontSize: "0.68rem", color: "#888780", textTransform: "uppercase", fontWeight: 700 }}>{item.label}</span>
                   <span style={{ fontSize: "0.7rem" }}>{item.icon}</span>
@@ -277,15 +258,14 @@ function DemoAnalisis() {
 
           {result.advertencia && (
             <div style={{
-              padding: "0.75rem", borderRadius: "8px",
-              background: "#FEF3C7", border: "1px solid #FCD34D",
-              marginBottom: "1rem", fontSize: "0.8rem", color: "#92400E", lineHeight: 1.55,
+              padding: "0.75rem", borderRadius: "8px", background: "#FEF3C7",
+              border: "1px solid #FCD34D", marginBottom: "1rem",
+              fontSize: "0.8rem", color: "#92400E", lineHeight: 1.55,
             }}>
               ⚠️ {result.advertencia}
             </div>
           )}
 
-          {/* CTA dentro de la demo */}
           <div style={{
             padding: "1rem", borderRadius: "12px",
             background: "linear-gradient(135deg, #0C447C 0%, #185FA5 100%)",
@@ -296,9 +276,8 @@ function DemoAnalisis() {
               el resultado es personalizado para vos.
             </p>
             <Link href="/register" style={{
-              display: "inline-block", marginTop: "0.5rem",
-              padding: "0.6rem 1.5rem", borderRadius: "8px",
-              background: "#FFFFFF", color: "#185FA5",
+              display: "inline-block", marginTop: "0.5rem", padding: "0.6rem 1.5rem",
+              borderRadius: "8px", background: "#FFFFFF", color: "#185FA5",
               fontSize: "0.88rem", fontWeight: 700, textDecoration: "none",
             }}>
               Crear cuenta gratis →
@@ -318,31 +297,13 @@ function DemoAnalisis() {
   );
 }
 
-// ─── Features ────────────────────────────────────────────────────────────────
 const FEATURES = [
-  {
-    icon: "🔬",
-    title: "Análisis de alimentos",
-    desc: "Escribís lo que comiste en texto libre. La IA estima calorías, macronutrientes e impacto glucémico cruzando los datos con tu perfil clínico.",
-  },
-  {
-    icon: "⚖️",
-    title: "Balance calórico diario",
-    desc: "Registrás comidas y ejercicio del día. La app calcula tu TDEE personal y te muestra si estás en déficit, equilibrio o superávit.",
-  },
-  {
-    icon: "🏋️",
-    title: "Rutinas de ejercicio",
-    desc: "Generá rutinas personalizadas según tu condición física, objetivos y tiempo disponible. Cada ejercicio incluye descripción y beneficio clínico.",
-  },
-  {
-    icon: "💊",
-    title: "Interacciones con medicamentos",
-    desc: "Consultás si un alimento tiene interacciones conocidas con tus medicamentos declarados. Información orientativa con respaldo clínico.",
-  },
+  { icon: "🔬", title: "Análisis de alimentos", desc: "Escribís lo que comiste en texto libre. La IA estima calorías, macronutrientes e impacto glucémico cruzando los datos con tu perfil clínico." },
+  { icon: "⚖️", title: "Balance calórico diario", desc: "Registrás comidas y ejercicio del día. La app calcula tu TDEE personal y te muestra si estás en déficit, equilibrio o superávit." },
+  { icon: "🏋️", title: "Rutinas de ejercicio", desc: "Generá rutinas personalizadas según tu condición física, objetivos y tiempo disponible. Cada ejercicio incluye descripción y beneficio clínico." },
+  { icon: "💊", title: "Interacciones con medicamentos", desc: "Consultás si un alimento tiene interacciones conocidas con tus medicamentos declarados. Información orientativa con respaldo clínico." },
 ];
 
-// ─── Page ────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   return (
     <div style={{ minHeight: "100vh", background: "#F0F6FF", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -370,12 +331,33 @@ export default function HomePage() {
         </Link>
       </nav>
 
-      {/* HERO */}
+      {/* HERO con logo grande */}
       <section style={{
         background: "linear-gradient(160deg, #0C447C 0%, #185FA5 55%, #378ADD 100%)",
         padding: "5rem 2rem 4rem", textAlign: "center",
       }}>
         <div style={{ maxWidth: "640px", margin: "0 auto" }}>
+
+          {/* Logo grande en hero */}
+          <div style={{ marginBottom: "1.5rem" }}>
+            <div style={{
+              display: "inline-block",
+              background: "rgba(255,255,255,0.12)",
+              borderRadius: "24px",
+              padding: "1rem 1.5rem",
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.2)",
+            }}>
+              <Image
+                src="/Logo.png"
+                alt="VitalCross AI"
+                width={120}
+                height={120}
+                style={{ display: "block", borderRadius: "16px" }}
+              />
+            </div>
+          </div>
+
           <span style={{
             display: "inline-block", marginBottom: "1.25rem",
             padding: "4px 14px", borderRadius: "20px",
@@ -423,7 +405,6 @@ export default function HomePage() {
             Cada módulo usa tu perfil clínico para personalizar el resultado.
           </p>
         </div>
-
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
           {FEATURES.map((f) => (
             <div key={f.title} style={{
@@ -433,12 +414,8 @@ export default function HomePage() {
               padding: "1.5rem",
             }}>
               <span style={{ fontSize: "1.8rem", display: "block", marginBottom: "0.75rem" }}>{f.icon}</span>
-              <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem", fontWeight: 700, color: "#185FA5" }}>
-                {f.title}
-              </h3>
-              <p style={{ margin: 0, fontSize: "0.82rem", color: "#5F5E5A", lineHeight: 1.65 }}>
-                {f.desc}
-              </p>
+              <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem", fontWeight: 700, color: "#185FA5" }}>{f.title}</h3>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "#5F5E5A", lineHeight: 1.65 }}>{f.desc}</p>
             </div>
           ))}
         </div>
