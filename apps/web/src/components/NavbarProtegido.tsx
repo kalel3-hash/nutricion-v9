@@ -1,9 +1,11 @@
+// apps/web/src/components/NavbarProtegido.tsx
 "use client";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
+import UsageBadge from "@/components/UsageBadge";
 
 type ExtraLink = { label: string; href: string };
 
@@ -153,6 +155,7 @@ export default function NavbarProtegido({
 
         {/* DERECHA */}
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>
+          <UsageBadge />
           {showSignOut ? (
             <button type="button" onClick={handleSignOut} disabled={signingOut} className="nav-cerrar" style={{ padding: "6px 14px", borderRadius: "8px", border: "1.5px solid #B5D4F4", background: "transparent", color: "#5F5E5A", fontSize: "12px", fontWeight: 500, cursor: signingOut ? "not-allowed" : "pointer", opacity: signingOut ? 0.6 : 1, whiteSpace: "nowrap", flexShrink: 0 }}>
               {signingOut ? "Saliendo..." : "Cerrar sesion"}

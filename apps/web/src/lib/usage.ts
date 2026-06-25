@@ -1,7 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+// apps/web/src/lib/usage.ts
 
-export const DAILY_LIMIT = 5;
-export const MONTHLY_LIMIT = 30;
+import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,13 +8,11 @@ const supabase = createClient(
 );
 
 export function getTodayDate(): string {
-  const now = new Date();
-  return now.toISOString().slice(0, 10);
+  return new Date().toISOString().slice(0, 10);
 }
 
 export function getFirstDayOfMonth(): string {
-  const now = new Date();
-  const yearMonth = now.toISOString().slice(0, 7);
+  const yearMonth = new Date().toISOString().slice(0, 7);
   return `${yearMonth}-01`;
 }
 
@@ -43,35 +40,38 @@ export async function getUsageStatus(email: string): Promise<UsageStatus> {
     .eq("owner_email", email)
     .single();
 
+  const dailyLimit   = row?.daily_limit   ?? 5;
+  const monthlyLimit = row?.monthly_limit ?? 30;
+
   if (!row) {
     return {
       allowed: true,
       daily_used: 0,
-      daily_limit: DAILY_LIMIT,
-      daily_remaining: DAILY_LIMIT,
+      daily_limit: dailyLimit,
+      daily_remaining: dailyLimit,
       monthly_used: 0,
-      monthly_limit: MONTHLY_LIMIT,
-      monthly_remaining: MONTHLY_LIMIT,
+      monthly_limit: monthlyLimit,
+      monthly_remaining: monthlyLimit,
     };
   }
 
-  let dailyCount = row.daily_count ?? 0;
+  let dailyCount   = row.daily_count   ?? 0;
   let monthlyCount = row.monthly_count ?? 0;
 
-  if (row.daily_reset_date !== today) dailyCount = 0;
+  if (row.daily_reset_date    !== today)        dailyCount   = 0;
   if (row.monthly_reset_month !== currentMonth) monthlyCount = 0;
 
-  const dailyRemaining = Math.max(0, DAILY_LIMIT - dailyCount);
-  const monthlyRemaining = Math.max(0, MONTHLY_LIMIT - monthlyCount);
+  const dailyRemaining   = Math.max(0, dailyLimit   - dailyCount);
+  const monthlyRemaining = Math.max(0, monthlyLimit - monthlyCount);
 
   return {
     allowed: dailyRemaining > 0 && monthlyRemaining > 0,
-    reason: dailyRemaining === 0 ? "daily" : monthlyRemaining === 0 ? "monthly" : undefined,
-    daily_used: dailyCount,
-    daily_limit: DAILY_LIMIT,
-    daily_remaining: dailyRemaining,
-    monthly_used: monthlyCount,
-    monthly_limit: MONTHLY_LIMIT,
+    reason:  dailyRemaining === 0 ? "daily" : monthlyRemaining === 0 ? "monthly" : undefined,
+    daily_used:       dailyCount,
+    daily_limit:      dailyLimit,
+    daily_remaining:  dailyRemaining,
+    monthly_used:     monthlyCount,
+    monthly_limit:    monthlyLimit,
     monthly_remaining: monthlyRemaining,
   };
 }
@@ -80,7 +80,7 @@ export async function getUsageStatus(email: string): Promise<UsageStatus> {
  * Solo incrementa — usar después de confirmar que hubo respuesta
  */
 export async function incrementUsage(email: string): Promise<void> {
-  const today = getTodayDate();
+  const today        = getTodayDate();
   const currentMonth = getFirstDayOfMonth();
 
   const { data: row } = await supabase
@@ -89,28 +89,28 @@ export async function incrementUsage(email: string): Promise<void> {
     .eq("owner_email", email)
     .single();
 
-  let dailyCount = row?.daily_count ?? 0;
-  let monthlyCount = row?.monthly_count ?? 0;
-  let dailyResetDate = row?.daily_reset_date ?? today;
+  let dailyCount        = row?.daily_count        ?? 0;
+  let monthlyCount      = row?.monthly_count      ?? 0;
+  let dailyResetDate    = row?.daily_reset_date    ?? today;
   let monthlyResetMonth = row?.monthly_reset_month ?? currentMonth;
 
   if (dailyResetDate !== today) {
-    dailyCount = 0;
+    dailyCount     = 0;
     dailyResetDate = today;
   }
 
   if (monthlyResetMonth !== currentMonth) {
-    monthlyCount = 0;
+    monthlyCount      = 0;
     monthlyResetMonth = currentMonth;
   }
 
   await supabase.from("usage_limits").upsert(
     {
-      owner_email: email,
-      daily_count: dailyCount + 1,
-      daily_reset_date: dailyResetDate,
-      monthly_count: monthlyCount + 1,
-      monthly_reset_month: monthlyResetMonth,
+      owner_email:          email,
+      daily_count:          dailyCount + 1,
+      daily_reset_date:     dailyResetDate,
+      monthly_count:        monthlyCount + 1,
+      monthly_reset_month:  monthlyResetMonth,
     },
     { onConflict: "owner_email" }
   );
@@ -127,10 +127,10 @@ export async function checkAndIncrementUsage(
   await incrementUsage(email);
   return {
     ...status,
-    allowed: true,
-    daily_used: status.daily_used + 1,
-    daily_remaining: Math.max(0, status.daily_remaining - 1),
-    monthly_used: status.monthly_used + 1,
+    allowed:          true,
+    daily_used:       status.daily_used + 1,
+    daily_remaining:  Math.max(0, status.daily_remaining - 1),
+    monthly_used:     status.monthly_used + 1,
     monthly_remaining: Math.max(0, status.monthly_remaining - 1),
   };
 }
