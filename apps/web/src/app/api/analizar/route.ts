@@ -1,6 +1,6 @@
 ﻿import https from "https";
 import { auth } from "@/auth";
-import { getUsageStatus, incrementUsage, DAILY_LIMIT, MONTHLY_LIMIT } from "@/lib/usage";
+import { getUsageStatus, incrementUsage } from "@/lib/usage";
 
 export const runtime = "nodejs";
 
