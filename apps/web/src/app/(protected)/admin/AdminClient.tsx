@@ -39,7 +39,11 @@ type HistoryItem = {
 type UsageItem = {
   owner_email: string;
   daily_count?: number;
+  daily_limit?: number;
   monthly_count?: number;
+  monthly_limit?: number;
+  last_reset_by?: string | null;
+  last_reset_at?: string | null;
   updated_at?: string;
 };
 
@@ -158,6 +162,28 @@ export default function AdminClient({
   const [searchUser, setSearchUser] = useState("");
   const [searchWaitlist, setSearchWaitlist] = useState("");
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
+  const [usageData, setUsageData] = useState<UsageItem[]>(usage);
+  const [resetLoading, setResetLoading] = useState<string | null>(null);
+
+  async function resetUsage(email: string, type: "daily" | "monthly" | "both") {
+    setResetLoading(`${email}-${type}`);
+    await fetch("/api/admin/reset-usage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, type }),
+    });
+    setUsageData(prev => prev.map(u => {
+      if (u.owner_email !== email) return u;
+      return {
+        ...u,
+        daily_count:   type !== "monthly" ? 0 : u.daily_count,
+        monthly_count: type !== "daily"   ? 0 : u.monthly_count,
+        last_reset_by: currentEmail,
+        last_reset_at: new Date().toISOString(),
+      };
+    }));
+    setResetLoading(null);
+  }
 
   async function changeRole(userId: string, makeAdmin: boolean) {
     const ok = confirm(
@@ -1103,99 +1129,75 @@ export default function AdminClient({
 
         {activeTab === "Uso" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            <div
-              style={{
-                background: "#FFFFFF",
-                borderRadius: "14px",
-                border: "1px solid #B5D4F4",
-                overflow: "hidden",
-              }}
-            >
+            <div style={{ background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4", overflow: "hidden" }}>
               <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #E6F1FB" }}>
-                <h2 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#2C2C2A" }}>
+                <h2 style={{ margin: "0 0 0.25rem", fontSize: "0.95rem", fontWeight: 700, color: "#2C2C2A" }}>
                   Consumo por usuario
                 </h2>
+                <p style={{ margin: 0, fontSize: "0.78rem", color: "#888780" }}>
+                  Los contadores reflejan el período activo. El reset no borra el historial.
+                </p>
               </div>
-
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-                <thead>
-                  <tr style={{ background: "#E6F1FB" }}>
-                    {["Email", "Consultas hoy", "Consultas mes", "Ultima actividad"].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "0.75rem 1rem",
-                          textAlign: "left",
-                          fontWeight: 700,
-                          color: "#0C447C",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {usage.map((u, i) => {
-                    const dailyColor =
-                      (u.daily_count ?? 0) >= 5
-                        ? "#991B1B"
-                        : (u.daily_count ?? 0) >= 4
-                        ? "#854F0B"
-                        : "#185FA5";
-
-                    const monthlyColor =
-                      (u.monthly_count ?? 0) >= 30
-                        ? "#991B1B"
-                        : (u.monthly_count ?? 0) >= 25
-                        ? "#854F0B"
-                        : "#185FA5";
-
-                    const lastActivity =
-                      lastActivityByEmail[(u.owner_email || "").toLowerCase()];
-
-                    return (
-                      <tr
-                        key={i}
-                        style={{
-                          borderTop: "1px solid #E6F1FB",
-                          background: i % 2 === 0 ? "#FFFFFF" : "#F8FBFF",
-                        }}
-                      >
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                  <thead>
+                    <tr style={{ background: "#E6F1FB" }}>
+                      {["Email", "Consultas hoy", "Consultas mes", "Último reset", "Acciones"].map((h) => (
+                        <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontWeight: 700, color: "#0C447C", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usageData.map((u, i) => (
+                      <tr key={i} style={{ borderTop: "1px solid #E6F1FB", background: i % 2 === 0 ? "#FFFFFF" : "#F8FBFF" }}>
                         <td style={{ padding: "0.75rem 1rem", color: "#5F5E5A", fontSize: "0.8rem" }}>
                           {u.owner_email}
                         </td>
                         <td style={{ padding: "0.75rem 1rem" }}>
-                          <span style={{ fontWeight: 700, color: dailyColor }}>
-                            {u.daily_count ?? 0}
-                          </span>
-                          <span style={{ color: "#888780" }}>/5</span>
+                          <div>
+                            <div style={{ fontSize: "0.8rem", fontWeight: 700, color: (u.daily_count ?? 0) >= (u.daily_limit ?? 5) ? "#991B1B" : (u.daily_count ?? 0) >= (u.daily_limit ?? 5) * 0.8 ? "#854F0B" : "#185FA5", marginBottom: "3px" }}>
+                              {u.daily_count ?? 0}<span style={{ fontWeight: 400, color: "#888780" }}>/{u.daily_limit ?? 5}</span>
+                            </div>
+                            <div style={{ height: "5px", background: "#E6F1FB", borderRadius: "4px", width: "80px" }}>
+                              <div style={{ height: "100%", width: `${Math.min(((u.daily_count ?? 0) / (u.daily_limit ?? 5)) * 100, 100)}%`, background: (u.daily_count ?? 0) >= (u.daily_limit ?? 5) ? "#991B1B" : "#185FA5", borderRadius: "4px" }} />
+                            </div>
+                          </div>
                         </td>
                         <td style={{ padding: "0.75rem 1rem" }}>
-                          <span style={{ fontWeight: 700, color: monthlyColor }}>
-                            {u.monthly_count ?? 0}
-                          </span>
-                          <span style={{ color: "#888780" }}>/30</span>
+                          <div>
+                            <div style={{ fontSize: "0.8rem", fontWeight: 700, color: (u.monthly_count ?? 0) >= (u.monthly_limit ?? 30) ? "#991B1B" : (u.monthly_count ?? 0) >= (u.monthly_limit ?? 30) * 0.8 ? "#854F0B" : "#185FA5", marginBottom: "3px" }}>
+                              {u.monthly_count ?? 0}<span style={{ fontWeight: 400, color: "#888780" }}>/{u.monthly_limit ?? 30}</span>
+                            </div>
+                            <div style={{ height: "5px", background: "#E6F1FB", borderRadius: "4px", width: "80px" }}>
+                              <div style={{ height: "100%", width: `${Math.min(((u.monthly_count ?? 0) / (u.monthly_limit ?? 30)) * 100, 100)}%`, background: (u.monthly_count ?? 0) >= (u.monthly_limit ?? 30) ? "#991B1B" : "#185FA5", borderRadius: "4px" }} />
+                            </div>
+                          </div>
                         </td>
-                        <td style={{ padding: "0.75rem 1rem", color: "#888780", fontSize: "0.8rem" }}>
-                          {lastActivity
-                            ? new Date(lastActivity).toLocaleString("es-AR")
-                            : "-"}
+                        <td style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", color: "#888780" }}>
+                          {u.last_reset_at ? (
+                            <>{new Date(u.last_reset_at).toLocaleDateString("es-AR")}<br /><span style={{ color: "#B0AEA8" }}>por {u.last_reset_by}</span></>
+                          ) : "—"}
+                        </td>
+                        <td style={{ padding: "0.75rem 1rem" }}>
+                          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                            {(["daily", "monthly", "both"] as const).map(type => (
+                              <button key={type} onClick={() => resetUsage(u.owner_email, type)} disabled={!!resetLoading}
+                                style={{ padding: "4px 10px", borderRadius: "6px", border: "none", background: type === "both" ? "#0C447C" : "#E6F1FB", color: type === "both" ? "#fff" : "#185FA5", fontSize: "0.72rem", fontWeight: 700, cursor: resetLoading ? "not-allowed" : "pointer", opacity: resetLoading === `${u.owner_email}-${type}` ? 0.6 : 1 }}>
+                                {resetLoading === `${u.owner_email}-${type}` ? "..." : type === "daily" ? "Reset día" : type === "monthly" ? "Reset mes" : "Reset todo"}
+                              </button>
+                            ))}
+                          </div>
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {usage.length === 0 && (
-                <p style={{ textAlign: "center", padding: "2rem", color: "#888780" }}>
-                  Sin datos de uso todavia
-                </p>
-              )}
+                    ))}
+                  </tbody>
+                </table>
+                {usageData.length === 0 && (
+                  <p style={{ textAlign: "center", padding: "2rem", color: "#888780" }}>Sin datos de uso todavia</p>
+                )}
+              </div>
             </div>
           </div>
         )}

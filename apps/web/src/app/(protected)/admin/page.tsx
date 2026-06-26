@@ -1,3 +1,5 @@
+// apps/web/src/app/(protected)/admin/page.tsx
+
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { createSupabaseAdmin } from "@/lib/supabaseService";
@@ -78,25 +80,39 @@ export default async function AdminPage() {
   const todayKey = getDateKeyInAR(now.toISOString());
   const monthKey = getMonthKeyInAR(now.toISOString());
 
-  const usageMap: Record<string, { owner_email: string; daily_count: number; monthly_count: number; updated_at?: string }> = {};
-
-  authUsers.forEach((u) => {
-    const email = (u.email || "").toLowerCase();
-    usageMap[email] = { owner_email: u.email || "", daily_count: 0, monthly_count: 0, updated_at: undefined };
-  });
-
+  const lastActivityByEmail: Record<string, string> = {};
   historyRows.forEach((h) => {
     if (!h.owner_email || !h.created_at) return;
     const email = h.owner_email.toLowerCase();
-    if (!usageMap[email]) usageMap[email] = { owner_email: h.owner_email, daily_count: 0, monthly_count: 0, updated_at: undefined };
-    if (getDateKeyInAR(h.created_at) === todayKey) usageMap[email].daily_count += 1;
-    if (getMonthKeyInAR(h.created_at) === monthKey) usageMap[email].monthly_count += 1;
-    if (!usageMap[email].updated_at || new Date(h.created_at).getTime() > new Date(usageMap[email].updated_at as string).getTime()) {
-      usageMap[email].updated_at = h.created_at;
+    const current = lastActivityByEmail[email];
+    if (!current || new Date(h.created_at).getTime() > new Date(current).getTime()) {
+      lastActivityByEmail[email] = h.created_at;
     }
   });
 
-  const usage = Object.values(usageMap).sort((a, b) => (b.monthly_count || 0) - (a.monthly_count || 0));
+  // Traer usage desde usage_limits (fuente de verdad)
+  const { data: usageLimitsRows } = await supabase
+    .from("usage_limits")
+    .select("owner_email, daily_count, daily_limit, monthly_count, monthly_limit, last_reset_by, last_reset_at, daily_reset_date, monthly_reset_month");
+
+  const today = now.toISOString().slice(0, 10);
+  const currentMonth = now.toISOString().slice(0, 7) + "-01";
+
+  const usage = (usageLimitsRows ?? []).map((row) => {
+    const dailyCount  = row.daily_reset_date    === today        ? row.daily_count   : 0;
+    const monthlyCount = row.monthly_reset_month === currentMonth ? row.monthly_count : 0;
+    const lastActivity = lastActivityByEmail[(row.owner_email || "").toLowerCase()];
+    return {
+      owner_email:    row.owner_email,
+      daily_count:   dailyCount,
+      daily_limit:   row.daily_limit,
+      monthly_count: monthlyCount,
+      monthly_limit: row.monthly_limit,
+      last_reset_by: row.last_reset_by,
+      last_reset_at: row.last_reset_at,
+      updated_at:    lastActivity,
+    };
+  }).sort((a, b) => (b.monthly_count ?? 0) - (a.monthly_count ?? 0));
 
   const { data: waitlistRows } = await supabase
     .from("waitlist")
