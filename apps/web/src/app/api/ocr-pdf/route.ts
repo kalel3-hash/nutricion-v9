@@ -16,9 +16,11 @@ async function callGeminiWithPdf(apiKey: string, pdfBase64: string): Promise<str
           },
           {
             text: `Sos un experto en análisis clínicos de laboratorio.
-Analizá este PDF de laboratorio y extraé los valores numéricos de los marcadores clínicos.
+Analizá este PDF de laboratorio y extraé los valores numéricos de los marcadores clínicos y la fecha del análisis.
+Para la fecha: buscá campos como "Fecha", "Fecha de extracción", "Fecha de análisis", "Fecha de emisión" o similares en el encabezado del documento. Devolvela en formato YYYY-MM-DD. Si no encontrás ninguna fecha, devolvé null.
 Respondé ÚNICAMENTE con un objeto JSON válido con estos campos exactos (usá null si el valor no está presente):
 {
+  "recorded_at": "YYYY-MM-DD" o null,
   "total_cholesterol_mg_dl": número o null,
   "hdl_mg_dl": número o null,
   "ldl_mg_dl": número o null,

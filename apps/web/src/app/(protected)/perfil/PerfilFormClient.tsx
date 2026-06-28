@@ -4,6 +4,22 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import TourGuia, { TourStep } from "@/components/TourGuia";
 
+type HealthRecord = {
+  id: string;
+  recorded_at: string;
+  weight_kg: number | null;
+  total_cholesterol_mg_dl: number | null;
+  hdl_mg_dl: number | null;
+  ldl_mg_dl: number | null;
+  triglycerides_mg_dl: number | null;
+  fasting_glucose_mg_dl: number | null;
+  hba1c_percent: number | null;
+  creatinine_mg_dl: number | null;
+  urea_mg_dl: number | null;
+  tsh_miu_l: number | null;
+  notes: string | null;
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "0.7rem 1rem", borderRadius: "8px",
   border: "1.5px solid #B5D4F4", fontSize: "0.9rem", color: "#2C2C2A",
@@ -27,6 +43,11 @@ const cardStyle: React.CSSProperties = {
 
 const rowStyle: React.CSSProperties = {
   display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem",
+};
+
+const tagStyle: React.CSSProperties = {
+  display: "inline-block", padding: "2px 10px", borderRadius: "20px",
+  background: "#E6F1FB", color: "#185FA5", fontSize: "0.75rem", fontWeight: 600,
 };
 
 const GOALS = [
@@ -96,6 +117,28 @@ export default function PerfilFormClient() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  // Estados para la sección "Mis análisis"
+  const [records, setRecords] = useState<HealthRecord[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [showNewRecord, setShowNewRecord] = useState(false);
+  const [newRecordDate, setNewRecordDate] = useState("");
+  const [newRecordWeight, setNewRecordWeight] = useState("");
+  const [newRecordCholesterol, setNewRecordCholesterol] = useState("");
+  const [newRecordHdl, setNewRecordHdl] = useState("");
+  const [newRecordLdl, setNewRecordLdl] = useState("");
+  const [newRecordTriglycerides, setNewRecordTriglycerides] = useState("");
+  const [newRecordGlucose, setNewRecordGlucose] = useState("");
+  const [newRecordHba1c, setNewRecordHba1c] = useState("");
+  const [newRecordCreatinine, setNewRecordCreatinine] = useState("");
+  const [newRecordUrea, setNewRecordUrea] = useState("");
+  const [newRecordTsh, setNewRecordTsh] = useState("");
+  const [newRecordNotes, setNewRecordNotes] = useState("");
+  const [newRecordSaving, setNewRecordSaving] = useState(false);
+  const [newRecordMsg, setNewRecordMsg] = useState("");
+  const [newRecordOcrLoading, setNewRecordOcrLoading] = useState(false);
+  const [newRecordOcrMsg, setNewRecordOcrMsg] = useState("");
+  const newRecordFileRef = useRef<HTMLInputElement>(null);
+
   const imc = (() => {
     const w = parseFloat(weight);
     const h = parseFloat(height) / 100;
@@ -148,7 +191,121 @@ export default function PerfilFormClient() {
       setNotes(p.notes ?? "");
     };
     load();
+    loadRecords();
   }, []);
+
+  const loadRecords = async () => {
+    setRecordsLoading(true);
+    try {
+      const res = await fetch("/api/health-records");
+      const json = await res.json();
+      setRecords(json.records ?? []);
+    } catch {
+      // silencioso
+    } finally {
+      setRecordsLoading(false);
+    }
+  };
+
+  const resetNewRecord = () => {
+    setNewRecordDate("");
+    setNewRecordWeight("");
+    setNewRecordCholesterol("");
+    setNewRecordHdl("");
+    setNewRecordLdl("");
+    setNewRecordTriglycerides("");
+    setNewRecordGlucose("");
+    setNewRecordHba1c("");
+    setNewRecordCreatinine("");
+    setNewRecordUrea("");
+    setNewRecordTsh("");
+    setNewRecordNotes("");
+    setNewRecordMsg("");
+    setNewRecordOcrMsg("");
+  };
+
+  const handleNewRecordOcr = async (file: File) => {
+    setNewRecordOcrLoading(true);
+    setNewRecordOcrMsg("Analizando el archivo con IA...");
+    try {
+      const formData = new FormData();
+      formData.append("pdf", file);
+      const res = await fetch("/api/ocr-pdf", { method: "POST", body: formData });
+      const json = await res.json();
+      if (json.error) { setNewRecordOcrMsg(`Error: ${json.error}`); return; }
+      const v = json.values ?? {};
+      if (v.recorded_at) setNewRecordDate(v.recorded_at);
+      if (v.total_cholesterol_mg_dl != null) setNewRecordCholesterol(v.total_cholesterol_mg_dl.toString());
+      if (v.hdl_mg_dl != null) setNewRecordHdl(v.hdl_mg_dl.toString());
+      if (v.ldl_mg_dl != null) setNewRecordLdl(v.ldl_mg_dl.toString());
+      if (v.triglycerides_mg_dl != null) setNewRecordTriglycerides(v.triglycerides_mg_dl.toString());
+      if (v.fasting_glucose_mg_dl != null) setNewRecordGlucose(v.fasting_glucose_mg_dl.toString());
+      if (v.hba1c_percent != null) setNewRecordHba1c(v.hba1c_percent.toString());
+      if (v.creatinine_mg_dl != null) setNewRecordCreatinine(v.creatinine_mg_dl.toString());
+      if (v.urea_mg_dl != null) setNewRecordUrea(v.urea_mg_dl.toString());
+      if (v.tsh_miu_l != null) setNewRecordTsh(v.tsh_miu_l.toString());
+      setNewRecordOcrMsg("Datos extraidos correctamente. Revisalos y guardá el análisis.");
+    } catch {
+      setNewRecordOcrMsg("Error al procesar el archivo.");
+    } finally {
+      setNewRecordOcrLoading(false);
+    }
+  };
+
+  const saveNewRecord = async () => {
+    if (!newRecordDate) { setNewRecordMsg("La fecha del análisis es obligatoria."); return; }
+    setNewRecordSaving(true);
+    setNewRecordMsg("");
+    try {
+      const body = {
+        recorded_at: newRecordDate,
+        weight_kg: newRecordWeight ? parseFloat(newRecordWeight) : null,
+        total_cholesterol_mg_dl: newRecordCholesterol ? parseFloat(newRecordCholesterol) : null,
+        hdl_mg_dl: newRecordHdl ? parseFloat(newRecordHdl) : null,
+        ldl_mg_dl: newRecordLdl ? parseFloat(newRecordLdl) : null,
+        triglycerides_mg_dl: newRecordTriglycerides ? parseFloat(newRecordTriglycerides) : null,
+        fasting_glucose_mg_dl: newRecordGlucose ? parseFloat(newRecordGlucose) : null,
+        hba1c_percent: newRecordHba1c ? parseFloat(newRecordHba1c) : null,
+        creatinine_mg_dl: newRecordCreatinine ? parseFloat(newRecordCreatinine) : null,
+        urea_mg_dl: newRecordUrea ? parseFloat(newRecordUrea) : null,
+        tsh_miu_l: newRecordTsh ? parseFloat(newRecordTsh) : null,
+        notes: newRecordNotes || null,
+      };
+      const res = await fetch("/api/health-records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setNewRecordMsg("Análisis guardado correctamente.");
+        resetNewRecord();
+        setShowNewRecord(false);
+        await loadRecords();
+      } else {
+        setNewRecordMsg(json.error ?? "Error al guardar.");
+      }
+    } catch {
+      setNewRecordMsg("Error de red al guardar.");
+    } finally {
+      setNewRecordSaving(false);
+    }
+  };
+
+  const deleteRecord = async (id: string) => {
+    if (!confirm("¿Eliminar este análisis? Esta acción no se puede deshacer.")) return;
+    try {
+      await fetch(`/api/health-records?id=${id}`, { method: "DELETE" });
+      await loadRecords();
+    } catch {
+      // silencioso
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split("-");
+    return `${d}/${m}/${y}`;
+  };
 
   const toggleGoal = (value: string) => {
     setMainGoals(prev =>
@@ -526,6 +683,261 @@ export default function PerfilFormClient() {
       </button>
 
       <TourGuia steps={perfilSteps} storageKey="vitalcross_tour_perfil_done" />
+
+      {/* ─── MIS ANÁLISIS ─── */}
+      <div style={{ marginTop: "2rem" }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          marginBottom: "1.25rem",
+        }}>
+          <h2 style={{ ...sectionTitleStyle, margin: 0, borderBottom: "none" }}>
+            📋 Mis análisis clínicos
+          </h2>
+          <button
+            type="button"
+            onClick={() => router.push("/historial-clinico")}
+            style={{
+              padding: "0.5rem 1rem", borderRadius: "8px", fontSize: "0.82rem",
+              fontWeight: 600, border: "1.5px solid #185FA5", background: "transparent",
+              color: "#185FA5", cursor: "pointer",
+            }}
+          >
+            Ver evolución con IA →
+          </button>
+        </div>
+
+        {/* Botón cargar nuevo análisis */}
+        <button
+          type="button"
+          onClick={() => { setShowNewRecord(v => !v); resetNewRecord(); }}
+          style={{
+            width: "100%", padding: "0.85rem", borderRadius: "10px",
+            background: showNewRecord ? "#E6F1FB" : "#185FA5",
+            color: showNewRecord ? "#185FA5" : "#FFFFFF",
+            border: showNewRecord ? "1.5px solid #185FA5" : "none",
+            fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
+            marginBottom: "1rem",
+          }}
+        >
+          {showNewRecord ? "✕ Cancelar" : "+ Cargar nuevo análisis"}
+        </button>
+
+        {/* Panel para nuevo análisis */}
+        {showNewRecord && (
+          <div style={{ ...cardStyle, borderColor: "#185FA5", marginBottom: "1.25rem" }}>
+            <h3 style={{ ...sectionTitleStyle, fontSize: "0.95rem" }}>Nuevo análisis</h3>
+
+            {/* OCR dentro del panel */}
+            <div style={{
+              background: "linear-gradient(135deg, #185FA5 0%, #0C447C 100%)",
+              borderRadius: "10px", padding: "1.25rem", marginBottom: "1.25rem",
+            }}>
+              <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "#FFFFFF", fontWeight: 600 }}>
+                🔬 Subí el PDF del laboratorio y la IA completa los campos automáticamente
+              </p>
+              <input
+                ref={newRecordFileRef}
+                type="file"
+                accept="application/pdf,image/*"
+                style={{ display: "none" }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleNewRecordOcr(f); }}
+              />
+              <button
+                type="button"
+                onClick={() => newRecordFileRef.current?.click()}
+                disabled={newRecordOcrLoading}
+                style={{
+                  width: "100%", padding: "0.75rem", borderRadius: "8px",
+                  background: newRecordOcrLoading ? "rgba(255,255,255,0.2)" : "#FFFFFF",
+                  color: newRecordOcrLoading ? "rgba(255,255,255,0.7)" : "#185FA5",
+                  border: "none", fontSize: "0.9rem", fontWeight: 700,
+                  cursor: newRecordOcrLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                {newRecordOcrLoading ? "Procesando con IA..." : "Subir PDF o foto"}
+              </button>
+              {newRecordOcrMsg && (
+                <div style={{
+                  marginTop: "0.75rem", padding: "0.6rem 0.875rem", borderRadius: "7px",
+                  background: newRecordOcrMsg.startsWith("Datos") ? "rgba(234,243,222,0.95)" : "rgba(254,226,226,0.95)",
+                  color: newRecordOcrMsg.startsWith("Datos") ? "#27500A" : "#991B1B",
+                  fontSize: "0.82rem", fontWeight: 500,
+                }}>
+                  {newRecordOcrMsg}
+                </div>
+              )}
+            </div>
+
+            {/* Fecha obligatoria */}
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={labelStyle}>Fecha del análisis *</label>
+              <input
+                style={inputStyle}
+                type="date"
+                value={newRecordDate}
+                onChange={e => setNewRecordDate(e.target.value)}
+              />
+            </div>
+
+            {/* Campos clínicos */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>Peso (kg)</label>
+                  <input style={inputStyle} type="number" step="0.1" value={newRecordWeight} onChange={e => setNewRecordWeight(e.target.value)} placeholder="Ej: 95" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Colesterol total</label>
+                  <input style={inputStyle} type="number" step="0.1" value={newRecordCholesterol} onChange={e => setNewRecordCholesterol(e.target.value)} placeholder="Ej: 190" />
+                </div>
+              </div>
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>HDL</label>
+                  <input style={inputStyle} type="number" step="0.1" value={newRecordHdl} onChange={e => setNewRecordHdl(e.target.value)} placeholder="Ej: 55" />
+                </div>
+                <div>
+                  <label style={labelStyle}>LDL</label>
+                  <input style={inputStyle} type="number" step="0.1" value={newRecordLdl} onChange={e => setNewRecordLdl(e.target.value)} placeholder="Ej: 110" />
+                </div>
+              </div>
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>Triglicéridos</label>
+                  <input style={inputStyle} type="number" step="0.1" value={newRecordTriglycerides} onChange={e => setNewRecordTriglycerides(e.target.value)} placeholder="Ej: 150" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Glucemia en ayunas</label>
+                  <input style={inputStyle} type="number" step="0.1" value={newRecordGlucose} onChange={e => setNewRecordGlucose(e.target.value)} placeholder="Ej: 95" />
+                </div>
+              </div>
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>HbA1c (%)</label>
+                  <input style={inputStyle} type="number" step="0.1" value={newRecordHba1c} onChange={e => setNewRecordHba1c(e.target.value)} placeholder="Ej: 5.4" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Creatinina</label>
+                  <input style={inputStyle} type="number" step="0.01" value={newRecordCreatinine} onChange={e => setNewRecordCreatinine(e.target.value)} placeholder="Ej: 0.9" />
+                </div>
+              </div>
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>Urea</label>
+                  <input style={inputStyle} type="number" step="0.1" value={newRecordUrea} onChange={e => setNewRecordUrea(e.target.value)} placeholder="Ej: 30" />
+                </div>
+                <div>
+                  <label style={labelStyle}>TSH (mUI/L)</label>
+                  <input style={inputStyle} type="number" step="0.01" value={newRecordTsh} onChange={e => setNewRecordTsh(e.target.value)} placeholder="Ej: 2.1" />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Notas del análisis</label>
+                <textarea
+                  style={{ ...inputStyle, height: "70px", resize: "vertical" }}
+                  value={newRecordNotes}
+                  onChange={e => setNewRecordNotes(e.target.value)}
+                  placeholder="Observaciones, contexto del análisis..."
+                />
+              </div>
+            </div>
+
+            {newRecordMsg && (
+              <div style={{
+                marginTop: "0.875rem", padding: "0.7rem 1rem", borderRadius: "8px",
+                background: newRecordMsg.includes("correctamente") ? "#EAF3DE" : "#FEE2E2",
+                color: newRecordMsg.includes("correctamente") ? "#27500A" : "#991B1B",
+                fontSize: "0.85rem", fontWeight: 500,
+              }}>
+                {newRecordMsg}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={saveNewRecord}
+              disabled={newRecordSaving}
+              style={{
+                width: "100%", marginTop: "1.25rem", padding: "0.85rem",
+                borderRadius: "10px", background: "#185FA5", color: "#FFFFFF",
+                fontSize: "0.95rem", fontWeight: 600, border: "none",
+                cursor: newRecordSaving ? "not-allowed" : "pointer",
+                opacity: newRecordSaving ? 0.7 : 1,
+              }}
+            >
+              {newRecordSaving ? "Guardando..." : "Guardar análisis"}
+            </button>
+          </div>
+        )}
+
+        {/* Lista de registros existentes */}
+        {recordsLoading ? (
+          <p style={{ textAlign: "center", color: "#888780", fontSize: "0.85rem" }}>Cargando análisis...</p>
+        ) : records.length === 0 ? (
+          <div style={{
+            ...cardStyle, textAlign: "center", padding: "2rem",
+            color: "#888780", fontSize: "0.875rem",
+          }}>
+            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📂</div>
+            <p style={{ margin: 0 }}>Todavía no cargaste ningún análisis clínico.</p>
+            <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
+              Usá el botón de arriba para agregar tu primer registro.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {records.map(r => (
+              <div key={r.id} style={{
+                ...cardStyle, marginBottom: 0, padding: "1rem 1.25rem",
+                display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem",
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, color: "#0C447C", fontSize: "0.95rem", marginBottom: "0.4rem" }}>
+                    📅 {formatDate(r.recorded_at)}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                    {r.weight_kg != null && (
+                      <span style={tagStyle}>Peso: {r.weight_kg} kg</span>
+                    )}
+                    {r.total_cholesterol_mg_dl != null && (
+                      <span style={tagStyle}>Col: {r.total_cholesterol_mg_dl}</span>
+                    )}
+                    {r.hdl_mg_dl != null && (
+                      <span style={tagStyle}>HDL: {r.hdl_mg_dl}</span>
+                    )}
+                    {r.ldl_mg_dl != null && (
+                      <span style={tagStyle}>LDL: {r.ldl_mg_dl}</span>
+                    )}
+                    {r.triglycerides_mg_dl != null && (
+                      <span style={tagStyle}>TG: {r.triglycerides_mg_dl}</span>
+                    )}
+                    {r.fasting_glucose_mg_dl != null && (
+                      <span style={tagStyle}>Gluc: {r.fasting_glucose_mg_dl}</span>
+                    )}
+                    {r.hba1c_percent != null && (
+                      <span style={tagStyle}>HbA1c: {r.hba1c_percent}%</span>
+                    )}
+                  </div>
+                  {r.notes && (
+                    <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "#888780" }}>{r.notes}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => deleteRecord(r.id)}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    color: "#FECACA", fontSize: "1.1rem", padding: "0.2rem", flexShrink: 0,
+                  }}
+                  title="Eliminar análisis"
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
