@@ -67,9 +67,9 @@ export default function HistorialClinicoClient() {
 
     try {
       const res = await fetch("/api/historial-clinico", { method: "POST" });
+      const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
         if (json.error === "sin_registros") {
           setError("No tiene análisis clínicos cargados. Agregue al menos uno desde su Perfil.");
         } else if (json.error === "limite") {
@@ -80,38 +80,15 @@ export default function HistorialClinicoClient() {
         return;
       }
 
-      // Leer stream completo acumulando chunks
-      const reader = res.body?.getReader();
-      if (!reader) { setError("Error al leer la respuesta."); return; }
-
-      const chunks: Uint8Array[] = [];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          // Mostrar progreso mientras llega
-          const partial = new TextDecoder().decode(value);
-          setStreamText(prev => prev + partial);
-        }
+      if (!json.ok || !json.result) {
+        setError("La respuesta de la IA no fue válida. Intente nuevamente.");
+        return;
       }
 
-      const fullText = new TextDecoder().decode(
-        chunks.reduce((acc, chunk) => {
-          const merged = new Uint8Array(acc.length + chunk.length);
-          merged.set(acc);
-          merged.set(chunk, acc.length);
-          return merged;
-        }, new Uint8Array(0))
-      );
-
-      const clean = fullText.replace(/```json\n?/g, "").replace(/```/g, "").trim();
-      const parsed: AnalysisResult = JSON.parse(clean);
-      setAnalysis(parsed);
-      setStreamText("");
+      setAnalysis(json.result as AnalysisResult);
 
     } catch {
-      setError("Error al procesar el análisis. Intente nuevamente.");
+      setError("Error de conexión. Intente nuevamente.");
     } finally {
       setAnalyzing(false);
     }
