@@ -175,16 +175,20 @@ export default function BalanceClient() {
       }
 
       const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
+      const chunks: Uint8Array[] = [];
       while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-          fullText += decoder.decode();
-          break;
-        }
-        fullText += decoder.decode(value, { stream: true });
+        if (done) break;
+        if (value) chunks.push(value);
       }
+      const fullText = new TextDecoder().decode(
+        chunks.reduce((acc, chunk) => {
+          const merged = new Uint8Array(acc.length + chunk.length);
+          merged.set(acc);
+          merged.set(chunk, acc.length);
+          return merged;
+        }, new Uint8Array(0))
+      );
 
       const clean = fullText.replace(/```json\n?/g, "").replace(/```/g, "").trim();
       const parsed: GeminiResult = JSON.parse(clean);

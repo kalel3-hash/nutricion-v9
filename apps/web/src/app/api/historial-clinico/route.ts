@@ -81,19 +81,22 @@ INSTRUCCIONES:
 - Identificá avances positivos, retrocesos y valores que requieren atención.
 - Usá un tono empático, claro y directo. No uses jerga médica sin explicarla.
 - Para cada hallazgo relevante, indicá la tendencia (mejora, estable, empeora) y su significado clínico.
-- Al final, incluí recomendaciones concretas y pasos a seguir.
 - NO diagnosticás ni prescribís medicación. Siempre sugerí consultar con el médico tratante para decisiones clínicas.
-- Estructurá la respuesta con secciones claras usando este formato exacto de texto plano (sin markdown, sin asteriscos, sin #):
 
-ANÁLISIS DE EVOLUCIÓN CLÍNICA
-Fecha del último análisis: [fecha]
+Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni después, con esta estructura exacta:
+{
+  "fecha_ultimo_analisis": "DD/MM/YYYY",
+  "introduccion": "Párrafo de bienvenida personalizado dirigido al paciente por su nombre, resumiendo brevemente el objetivo del análisis.",
+  "secciones": [
+    {
+      "titulo": "TÍTULO DE LA SECCIÓN EN MAYÚSCULAS",
+      "contenido": "Texto completo de esta sección con análisis detallado, tendencias y significado clínico. Puede tener múltiples párrafos separados por salto de línea."
+    }
+  ],
+  "conclusion": "Párrafo final con recomendaciones concretas y pasos a seguir. Siempre indicar consultar con el médico tratante."
+}
 
-[Nombre del paciente], a continuación le presento el análisis comparativo de sus estudios clínicos...
-
-[Secciones numeradas con título en mayúsculas, contenido debajo]
-
-CONCLUSIÓN Y PRÓXIMOS PASOS
-[Párrafo final con recomendaciones]`;
+Las secciones deben cubrir los grupos de valores presentes en los análisis. Por ejemplo: perfil lipídico, glucemia y diabetes, función renal, tiroides, peso, etc. Solo incluí secciones para los valores que realmente están en los datos.`;
 
   const payloadObj = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],

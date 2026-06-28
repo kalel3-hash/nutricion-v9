@@ -20,6 +20,13 @@ type HealthRecord = {
   notes: string | null;
 };
 
+type AnalysisResult = {
+  fecha_ultimo_analisis: string;
+  introduccion: string;
+  secciones: { titulo: string; contenido: string }[];
+  conclusion: string;
+};
+
 const card: React.CSSProperties = {
   background: "#FFFFFF", borderRadius: "14px", border: "1px solid #B5D4F4",
   boxShadow: "0 2px 12px rgba(24,95,165,0.06)", padding: "1.5rem", marginBottom: "1rem",
@@ -35,7 +42,8 @@ export default function HistorialClinicoClient() {
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysis, setAnalysis] = useState("");
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [streamText, setStreamText] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -53,7 +61,8 @@ export default function HistorialClinicoClient() {
 
   const runAnalysis = async () => {
     setAnalyzing(true);
-    setAnalysis("");
+    setAnalysis(null);
+    setStreamText("");
     setError("");
 
     try {
@@ -71,24 +80,38 @@ export default function HistorialClinicoClient() {
         return;
       }
 
-      // Leer el stream de texto
+      // Leer stream completo acumulando chunks
       const reader = res.body?.getReader();
       if (!reader) { setError("Error al leer la respuesta."); return; }
 
-      const decoder = new TextDecoder();
-      let accumulated = "";
-
+      const chunks: Uint8Array[] = [];
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
-        setAnalysis(accumulated);
+        if (value) {
+          chunks.push(value);
+          // Mostrar progreso mientras llega
+          const partial = new TextDecoder().decode(value);
+          setStreamText(prev => prev + partial);
+        }
       }
-      accumulated += decoder.decode();
-      setAnalysis(accumulated);
+
+      const fullText = new TextDecoder().decode(
+        chunks.reduce((acc, chunk) => {
+          const merged = new Uint8Array(acc.length + chunk.length);
+          merged.set(acc);
+          merged.set(chunk, acc.length);
+          return merged;
+        }, new Uint8Array(0))
+      );
+
+      const clean = fullText.replace(/```json\n?/g, "").replace(/```/g, "").trim();
+      const parsed: AnalysisResult = JSON.parse(clean);
+      setAnalysis(parsed);
+      setStreamText("");
 
     } catch {
-      setError("Error de conexión. Intente nuevamente.");
+      setError("Error al procesar el análisis. Intente nuevamente.");
     } finally {
       setAnalyzing(false);
     }
@@ -210,7 +233,8 @@ export default function HistorialClinicoClient() {
               cursor: analyzing ? "not-allowed" : "pointer",
               boxShadow: analyzing ? "none" : "0 4px 16px rgba(24,95,165,0.25)",
               marginBottom: "1.25rem",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+              display: analysis ? "none" : "flex",
+              alignItems: "center", justifyContent: "center", gap: "8px",
             }}
           >
             {analyzing ? (
@@ -243,32 +267,103 @@ export default function HistorialClinicoClient() {
           )}
 
           {/* Resultado del análisis */}
-          {analysis && (
+          {analyzing && streamText && (
             <div style={{ ...card, borderColor: "#185FA5" }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: "8px",
-                marginBottom: "1.25rem", paddingBottom: "0.875rem",
-                borderBottom: "2px solid #E6F1FB",
-              }}>
-                <span style={{ fontSize: "1.4rem" }}>🩺</span>
-                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#0C447C" }}>
-                  Análisis de su evolución clínica
-                </h2>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1rem" }}>
+                <span style={{ fontSize: "1.2rem" }}>⏳</span>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: "#185FA5", fontWeight: 600 }}>
+                  Generando análisis...
+                </p>
               </div>
-              <div style={{
-                fontSize: "0.9rem", lineHeight: 1.8, color: "#2C2C2A",
-                whiteSpace: "pre-wrap",
-              }}>
-                {analysis}
+              <div style={{ fontSize: "0.82rem", color: "#888780", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                {streamText}
               </div>
-              <p style={{
-                margin: "1.25rem 0 0", fontSize: "0.75rem", color: "#888780",
-                borderTop: "1px solid #E6F1FB", paddingTop: "0.875rem",
-              }}>
-                Este análisis es orientativo y no reemplaza la consulta con su médico tratante.
-              </p>
             </div>
           )}
+
+          {analysis && (() => {
+            const SECTION_COLORS = [
+              { bg: "#E6F1FB", border: "#185FA5", title: "#0C447C" },
+              { bg: "#EAF3DE", border: "#C0DD97", title: "#27500A" },
+              { bg: "#FAEEDA", border: "#FAC775", title: "#854F0B" },
+              { bg: "#F3E8FF", border: "#C084FC", title: "#6B21A8" },
+              { bg: "#FEF9C3", border: "#FDE047", title: "#713F12" },
+              { bg: "#FCE7F3", border: "#F9A8D4", title: "#9D174D" },
+              { bg: "#E0F2FE", border: "#7DD3FC", title: "#075985" },
+            ];
+
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+                {/* Encabezado */}
+                <div style={{
+                  background: "linear-gradient(135deg, #0C447C 0%, #185FA5 100%)",
+                  borderRadius: "14px", padding: "1.5rem",
+                }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Análisis de evolución clínica · {analysis.fecha_ultimo_analisis}
+                  </p>
+                  <p style={{ margin: 0, fontSize: "0.92rem", color: "#FFFFFF", lineHeight: 1.7 }}>
+                    {analysis.introduccion}
+                  </p>
+                </div>
+
+                {/* Secciones con colores rotativos */}
+                {analysis.secciones.map((sec, i) => {
+                  const color = SECTION_COLORS[i % SECTION_COLORS.length];
+                  return (
+                    <div key={i} style={{
+                      background: color.bg,
+                      border: `1.5px solid ${color.border}`,
+                      borderRadius: "14px", padding: "1.25rem",
+                    }}>
+                      <p style={{
+                        margin: "0 0 0.75rem", fontSize: "0.72rem", fontWeight: 800,
+                        color: color.title, textTransform: "uppercase", letterSpacing: "0.6px",
+                        borderBottom: `1px solid ${color.border}`, paddingBottom: "0.5rem",
+                      }}>
+                        {i + 1}. {sec.titulo}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.875rem", color: "#2C2C2A", lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
+                        {sec.contenido}
+                      </p>
+                    </div>
+                  );
+                })}
+
+                {/* Conclusión */}
+                <div style={{
+                  background: "#2C2C2A", borderRadius: "14px", padding: "1.5rem",
+                }}>
+                  <p style={{ margin: "0 0 0.75rem", fontSize: "0.72rem", fontWeight: 800, color: "#64B5F6", textTransform: "uppercase", letterSpacing: "0.6px" }}>
+                    Conclusión y próximos pasos
+                  </p>
+                  <p style={{ margin: 0, fontSize: "0.875rem", color: "#F0F6FF", lineHeight: 1.75 }}>
+                    {analysis.conclusion}
+                  </p>
+                </div>
+
+                <p style={{ margin: "0.25rem 0 0", fontSize: "0.72rem", color: "#888780", textAlign: "center" }}>
+                  Este análisis es orientativo y no reemplaza la consulta con su médico tratante.
+                </p>
+
+                {/* Botón volver a analizar */}
+                <button
+                  type="button"
+                  onClick={runAnalysis}
+                  disabled={analyzing}
+                  style={{
+                    width: "100%", padding: "0.875rem", borderRadius: "12px",
+                    background: "transparent", color: "#185FA5",
+                    border: "1.5px solid #185FA5", fontSize: "0.9rem",
+                    fontWeight: 600, cursor: "pointer", marginBottom: "1rem",
+                  }}
+                >
+                  🔄 Volver a analizar
+                </button>
+              </div>
+            );
+          })()}
         </>
       )}
     </main>
