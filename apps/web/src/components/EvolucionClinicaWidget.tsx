@@ -220,6 +220,22 @@ export default function EvolucionClinicaWidget() {
     }
   }, [indicadoresDisponibles, selectedKey]);
 
+  // Dominio dinámico del eje Y: incluye datos reales + líneas de referencia, con margen del 15%
+  const yDomain = (() => {
+    if (chartData.length === 0) return ["auto", "auto"] as ["auto", "auto"];
+    const valores = chartData.map((d) => d.valor);
+    const candidatos = [...valores];
+    if (indicadorActual.refMin !== null) candidatos.push(indicadorActual.refMin);
+    if (indicadorActual.refMax !== null) candidatos.push(indicadorActual.refMax);
+    const minVal = Math.min(...candidatos);
+    const maxVal = Math.max(...candidatos);
+    const rango = maxVal - minVal || 1;
+    const margen = rango * 0.15;
+    const yMin = Math.floor(minVal - margen);
+    const yMax = Math.ceil(maxVal + margen);
+    return [yMin < 0 ? 0 : yMin, yMax] as [number, number];
+  })();
+
   const tieneReferencia = indicadorActual.refMin !== null || indicadorActual.refMax !== null;
 
   const cardStyle: React.CSSProperties = {
@@ -357,6 +373,7 @@ export default function EvolucionClinicaWidget() {
                 tickLine={false}
                 axisLine={false}
                 width={48}
+                domain={yDomain}
               />
               <Tooltip
                 content={
