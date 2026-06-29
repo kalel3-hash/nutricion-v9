@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import NavbarProtegido from "@/components/NavbarProtegido";
+import EvolucionClinicaWidget from "@/components/EvolucionClinicaWidget";
 
 const flipCards = [
   { step: "1", icon: "🧬", title: "Carga tu perfil clinico", desc: "Ingresa tus marcadores de laboratorio: colesterol, glucemia, HbA1c, funcion renal y mas. Tambien podes subir un PDF y la IA los extrae automaticamente." },
@@ -146,6 +147,9 @@ export default function DashboardPage() {
             </Link>
           ))}
         </div>
+
+        {/* Widget: Evolución de indicadores clínicos */}
+        <EvolucionClinicaWidget />
 
         <div style={{ borderTop: "1px solid #B5D4F4", paddingTop: "2.5rem" }}>
           <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.15rem", fontWeight: 700, color: "#2C2C2A" }}>
