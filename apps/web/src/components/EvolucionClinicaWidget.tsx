@@ -10,6 +10,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import Link from "next/link";
 
@@ -262,8 +263,8 @@ export default function EvolucionClinicaWidget() {
           Necesitás al menos 2 registros con ese indicador cargado.
         </p>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={chartData} margin={{ top: 28, right: 20, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E6F1FB" />
             <XAxis
               dataKey="fecha"
@@ -287,7 +288,17 @@ export default function EvolucionClinicaWidget() {
               dot={{ r: 5, fill: indicadorActual.color, strokeWidth: 2, stroke: "#FFFFFF" }}
               activeDot={{ r: 7, fill: indicadorActual.color, stroke: "#FFFFFF", strokeWidth: 2 }}
               name={indicadorActual.label}
-            />
+            >
+              <LabelList
+                dataKey="valor"
+                position="top"
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  fill: indicadorActual.color,
+                }}
+              />
+            </Line>
           </LineChart>
         </ResponsiveContainer>
       )}
