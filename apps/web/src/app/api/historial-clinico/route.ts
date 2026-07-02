@@ -14,7 +14,7 @@ function geminiRequest(payload: string, apiKey: string): Promise<string> {
     const req = https.request(
       {
         hostname: "generativelanguage.googleapis.com",
-        path: `/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -125,6 +125,7 @@ Solo incluí secciones para los valores que realmente están presentes en los da
   const payload = JSON.stringify({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.4, maxOutputTokens: 4000 },
+    thinkingConfig: { thinkingBudget: 0 },
   });
 
   try {
@@ -151,7 +152,7 @@ Solo incluí secciones para los valores que realmente están presentes en los da
 
     // Paso 3: limpiar y extraer el JSON del texto
     // gemini-2.5-flash puede incluir bloques de "pensamiento" antes del JSON
-    // Buscamos el primer { y el último } para extraer solo el JSON
+    // Extraemos todo lo que está entre el primer { y el último }
     let clean = text.replace(/```json\n?/g, "").replace(/```/g, "").trim();
     const firstBrace = clean.indexOf("{");
     const lastBrace = clean.lastIndexOf("}");
@@ -163,8 +164,18 @@ Solo incluí secciones para los valores que realmente están presentes en los da
     try {
       result = JSON.parse(clean);
     } catch {
-      console.error("Error parseando JSON del contenido de Gemini. Texto limpio:", clean.slice(0, 500));
-      return NextResponse.json({ error: "El análisis generado no tiene formato válido" }, { status: 500 });
+      // Intento de reparación: reemplazar saltos de línea literales dentro de strings
+      // que rompen el parser JSON
+      const repaired = clean
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "\\r")
+        .replace(/\t/g, "\\t");
+      try {
+        result = JSON.parse(repaired);
+      } catch {
+        console.error("Error parseando JSON del contenido de Gemini. Texto limpio:", clean.slice(0, 800));
+        return NextResponse.json({ error: "El análisis generado no tiene formato válido" }, { status: 500 });
+      }
     }
 
     await incrementUsage(email).catch(() => {});
