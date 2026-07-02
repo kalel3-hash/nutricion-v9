@@ -14,7 +14,7 @@ function geminiRequest(payload: string, apiKey: string): Promise<string> {
     const req = https.request(
       {
         hostname: "generativelanguage.googleapis.com",
-        path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        path: `/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
