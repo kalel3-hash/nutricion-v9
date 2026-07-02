@@ -139,6 +139,7 @@ INSTRUCCIONES:
 - Para cada hallazgo relevante, indicá la tendencia (mejora, estable, empeora) y su significado clínico.
 - NO diagnosticás ni prescribís medicación. Siempre sugerí consultar con el médico tratante.
 - El contenido de cada sección debe ser texto limpio, sin asteriscos, sin markdown, sin bullets con *.
+- Sé conciso: máximo 3 oraciones por sección. Priorizá los hallazgos más importantes.
 
 Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni después:
 {
@@ -157,7 +158,7 @@ Solo incluí secciones para los valores que realmente están presentes en los da
 
   const payload = JSON.stringify({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.4, maxOutputTokens: 4000 },
+    generationConfig: { temperature: 0.4, maxOutputTokens: 8192 },
   });
 
   try {
