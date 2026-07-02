@@ -35,6 +35,39 @@ function geminiRequest(payload: string, apiKey: string): Promise<string> {
   });
 }
 
+// Escapa saltos de línea y tabulaciones literales dentro de valores string JSON
+// sin tocar los caracteres estructurales del JSON
+function repairJsonStrings(input: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      result += ch;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+    if (inString) {
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+    }
+    result += ch;
+  }
+  return result;
+}
+
 export async function POST() {
   const session = await auth();
   const email = session?.user?.email;
@@ -125,7 +158,6 @@ Solo incluí secciones para los valores que realmente están presentes en los da
   const payload = JSON.stringify({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.4, maxOutputTokens: 4000 },
-    thinkingConfig: { thinkingBudget: 0 },
   });
 
   try {
@@ -164,12 +196,9 @@ Solo incluí secciones para los valores que realmente están presentes en los da
     try {
       result = JSON.parse(clean);
     } catch {
-      // Intento de reparación: reemplazar saltos de línea literales dentro de strings
-      // que rompen el parser JSON
-      const repaired = clean
-        .replace(/\n/g, "\\n")
-        .replace(/\r/g, "\\r")
-        .replace(/\t/g, "\\t");
+      // Gemini a veces incluye saltos de línea literales DENTRO de valores string
+      // lo que produce JSON inválido. Los escapamos solo dentro de strings.
+      const repaired = repairJsonStrings(clean);
       try {
         result = JSON.parse(repaired);
       } catch {
