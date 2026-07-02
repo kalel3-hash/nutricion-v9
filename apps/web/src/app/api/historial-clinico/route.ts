@@ -145,7 +145,7 @@ Solo incluí secciones para los valores que realmente están presentes en los da
         ?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
     if (!text) {
-      console.error("Gemini devolvió texto vacío. geminiJson:", JSON.stringify(geminiJson).slice(0, 500));
+      console.error("Gemini devolvió texto vacío. geminiJson COMPLETO:", JSON.stringify(geminiJson));
       return NextResponse.json({ error: "Gemini no generó contenido" }, { status: 500 });
     }
 
