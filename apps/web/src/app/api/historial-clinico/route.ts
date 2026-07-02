@@ -202,7 +202,7 @@ Solo incluí secciones para los valores que realmente están presentes en los da
       try {
         result = JSON.parse(repaired);
       } catch {
-        console.error("Error parseando JSON del contenido de Gemini. Texto limpio:", clean.slice(0, 800));
+        console.error("Error parseando JSON del contenido de Gemini. Texto limpio COMPLETO:", clean);
         return NextResponse.json({ error: "El análisis generado no tiene formato válido" }, { status: 500 });
       }
     }
