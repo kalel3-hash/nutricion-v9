@@ -124,37 +124,43 @@ export async function POST() {
     return `--- Análisis del ${r.recorded_at} ---\n${valores.join("\n")}`;
   });
 
-  const prompt = `Sos un asistente médico especializado en análisis clínicos. Tu tarea es analizar la evolución de los valores de laboratorio de un paciente a lo largo del tiempo y generar un informe comparativo claro, empático y personalizado en español, usando "usted".
+  const prompt = `Sos un médico clínico con experiencia en medicina preventiva y análisis de laboratorio. Analizás la evolución de los valores clínicos de un paciente real a lo largo del tiempo. Tu análisis cruza indicadores entre sí y los interpreta en el contexto del perfil del paciente: su medicación, condiciones y objetivos declarados.
 
 PERFIL DEL PACIENTE:
 ${profileLines.length > 0 ? profileLines.join("\n") : "Sin datos de perfil cargados."}
 
-HISTORIAL DE ANÁLISIS CLÍNICOS (ordenados cronológicamente):
+HISTORIAL DE ANÁLISIS CLÍNICOS (ordenados cronológicamente, del más antiguo al más reciente):
 ${historyLines.join("\n\n")}
 
 INSTRUCCIONES:
-- Analizá la evolución de cada valor entre los distintos análisis.
-- Identificá avances positivos, retrocesos y valores que requieren atención.
-- Usá un tono empático, claro y directo. No uses jerga médica sin explicarla.
-- Para cada hallazgo relevante, indicá la tendencia (mejora, estable, empeora) y su significado clínico.
-- NO diagnosticás ni prescribís medicación. Siempre sugerí consultar con el médico tratante.
-- El contenido de cada sección debe ser texto limpio, sin asteriscos, sin markdown, sin bullets con *.
-- Sé conciso: máximo 3 oraciones por sección. Priorizá los hallazgos más importantes.
+- Organizá el análisis en exactamente 3 bloques temáticos que crucen indicadores relacionados entre sí.
+- En cada bloque, identificá momentos específicos del historial (con fechas reales) donde hubo cambios significativos y explicá qué los pudo haber causado o qué significan en conjunto.
+- Cruzá los indicadores con el perfil: si el paciente toma medicación antihipertensiva, analizá la función renal en ese contexto; si bajó de peso, correlacionalo con cambios en glucosa o lípidos.
+- Usá un tono directo y claro, dirigiéndote al paciente por su nombre con "usted". Sin jerga médica sin explicar.
+- NO diagnosticás ni prescribís. Al final de cada bloque sugerí qué preguntarle al médico tratante sobre ese tema específico.
+- Texto limpio: sin asteriscos, sin markdown, sin bullets con *.
+- Cada bloque debe tener un párrafo de análisis (5-7 oraciones) y una pregunta sugerida para el médico.
+
+Los 3 bloques SIEMPRE son:
+1. RIESGO CARDIOVASCULAR: analizá colesterol total, LDL, HDL, triglicéridos y peso en conjunto. Si hay medicación cardiovascular en el perfil, interpretá los valores en ese contexto.
+2. METABOLISMO GLUCÍDICO: analizá glucosa en ayunas y HbA1c en conjunto, correlacionando con cambios de peso si los hay. Identificá períodos de riesgo y períodos de mejora.
+3. FUNCIÓN RENAL Y METABÓLICA: analizá creatinina y urea. Si hay medicación que afecte los riñones, mencionalo. Si no hay datos suficientes de estos indicadores, indicalo brevemente.
+
+Solo incluí un bloque si tiene al menos 1 dato en el historial. Si un bloque no tiene datos, omitilo del array.
 
 Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni después:
 {
   "fecha_ultimo_analisis": "DD/MM/YYYY",
-  "introduccion": "Párrafo de bienvenida personalizado dirigido al paciente por su nombre.",
-  "secciones": [
+  "introduccion": "2-3 oraciones que mencionen el período total de seguimiento, cuántos análisis tiene el paciente y los 2 hallazgos más relevantes del historial completo. Dirigirse por nombre.",
+  "bloques": [
     {
-      "titulo": "TÍTULO EN MAYÚSCULAS",
-      "contenido": "Texto completo sin markdown ni asteriscos. Párrafos separados por salto de línea."
+      "titulo": "TÍTULO DEL BLOQUE EN MAYÚSCULAS",
+      "analisis": "Párrafo de análisis cruzado con referencias a fechas y valores específicos del historial.",
+      "pregunta_medico": "Una pregunta concreta y específica que el paciente debería hacerle a su médico sobre este tema."
     }
   ],
-  "conclusion": "Párrafo final con recomendaciones y sugerencia de consultar al médico tratante."
-}
-
-Solo incluí secciones para los valores que realmente están presentes en los datos.`;
+  "conclusion": "2-3 oraciones que sinteticen el avance general, señalen el área que más atención requiere ahora mismo, y recomienden compartir este análisis con el médico tratante."
+}`;
 
   const payload = JSON.stringify({
     contents: [{ role: "user", parts: [{ text: prompt }] }],

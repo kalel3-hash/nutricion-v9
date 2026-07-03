@@ -23,7 +23,7 @@ type HealthRecord = {
 type AnalysisResult = {
   fecha_ultimo_analisis: string;
   introduccion: string;
-  secciones: { titulo: string; contenido: string }[];
+  bloques: { titulo: string; analisis: string; pregunta_medico: string }[];
   conclusion: string;
 };
 
@@ -203,17 +203,27 @@ export default function HistorialClinicoClient() {
                 </p>
               </div>
 
-              {/* Secciones con colores rotativos */}
-              {analysis.secciones.map((sec, i) => {
+              {/* Bloques temáticos */}
+              {analysis.bloques.map((bloque, i) => {
                 const color = SECTION_COLORS[i % SECTION_COLORS.length];
                 return (
                   <div key={i} style={{ background: color.bg, border: `1.5px solid ${color.border}`, borderRadius: "14px", padding: "1.25rem" }}>
                     <p style={{ margin: "0 0 0.75rem", fontSize: "0.72rem", fontWeight: 800, color: color.title, textTransform: "uppercase", letterSpacing: "0.6px", borderBottom: `1px solid ${color.border}`, paddingBottom: "0.5rem" }}>
-                      {i + 1}. {sec.titulo}
+                      {i + 1}. {bloque.titulo}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#2C2C2A", lineHeight: 1.75 }}>
-                      {sec.contenido}
+                    <p style={{ margin: "0 0 1rem", fontSize: "0.875rem", color: "#2C2C2A", lineHeight: 1.75 }}>
+                      {bloque.analisis}
                     </p>
+                    {bloque.pregunta_medico && (
+                      <div style={{ background: "rgba(255,255,255,0.6)", borderRadius: "8px", padding: "0.75rem 1rem", borderLeft: `3px solid ${color.title}` }}>
+                        <p style={{ margin: "0 0 0.25rem", fontSize: "0.65rem", fontWeight: 800, color: color.title, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          💬 Preguntale a tu médico
+                        </p>
+                        <p style={{ margin: 0, fontSize: "0.82rem", color: "#2C2C2A", lineHeight: 1.6, fontStyle: "italic" }}>
+                          {bloque.pregunta_medico}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
