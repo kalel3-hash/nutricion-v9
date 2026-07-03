@@ -165,37 +165,27 @@ export default function BalanceClient() {
         }),
       });
 
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({})) as { error?: string };
-        if (json.error === "limite") setError("Alcanzaste el límite de consultas del día.");
-        else if (json.error === "perfil_incompleto") setError("Tu perfil no tiene todos los datos necesarios.");
+      const data = await res.json().catch(() => null) as
+        | { ok: true; result: GeminiResult; tdee_kcal: number }
+        | { error?: string; reason?: string }
+        | null;
+
+      if (!res.ok || !data || !("ok" in data) || !data.ok) {
+        const errCode = data && "error" in data ? data.error : undefined;
+        if (errCode === "limite") setError("Alcanzaste el límite de consultas del día.");
+        else if (errCode === "perfil_incompleto") setError("Tu perfil no tiene todos los datos necesarios.");
+        else if (errCode === "El análisis generado no tiene formato válido" || errCode === "Gemini no generó contenido")
+          setError("La IA no pudo generar un análisis válido esta vez. Intentá de nuevo.");
         else setError("Error al calcular el balance. Intentá de nuevo.");
         setLoading(false);
         return;
       }
 
-      const reader = res.body!.getReader();
-      const chunks: Uint8Array[] = [];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) chunks.push(value);
-      }
-      const fullText = new TextDecoder().decode(
-        chunks.reduce((acc, chunk) => {
-          const merged = new Uint8Array(acc.length + chunk.length);
-          merged.set(acc);
-          merged.set(chunk, acc.length);
-          return merged;
-        }, new Uint8Array(0))
-      );
-
-      const clean = fullText.replace(/```json\n?/g, "").replace(/```/g, "").trim();
-      const parsed: GeminiResult = JSON.parse(clean);
-      setResult(parsed);
+      setTdee(data.tdee_kcal);
+      setResult(data.result);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch {
-      setError("Error al procesar el resultado. Intentá de nuevo.");
+      setError("Error de conexión al calcular el balance. Intentá de nuevo.");
     } finally {
       setLoading(false);
     }

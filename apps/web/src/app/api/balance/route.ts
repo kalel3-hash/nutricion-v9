@@ -14,6 +14,67 @@ function calcTDEE(weight_kg: number, height_cm: number, age: number, sex: string
   return Math.round((base + constant) * 1.2);
 }
 
+function geminiRequest(payload: string, apiKey: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const req = https.request(
+      {
+        hostname: "generativelanguage.googleapis.com",
+        path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+        agent,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+        res.on("error", reject);
+      }
+    );
+    req.on("error", reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+// Escapa saltos de línea y tabulaciones literales dentro de valores string JSON
+// sin tocar los caracteres estructurales del JSON. Misma función que en
+// api/historial-clinico/route.ts — mantenerlas sincronizadas si se ajusta una.
+function repairJsonStrings(input: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      result += ch;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+    if (inString) {
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+    }
+    result += ch;
+  }
+  return result;
+}
+
 export async function POST(request: Request) {
   const session = await auth();
   const email = session?.user?.email;
@@ -23,6 +84,9 @@ export async function POST(request: Request) {
   if (!usageStatus.allowed) {
     return NextResponse.json({ error: "limite", reason: usageStatus.reason }, { status: 429 });
   }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "Sin clave Gemini" }, { status: 500 });
 
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Body inválido" }, { status: 400 });
@@ -97,98 +161,100 @@ Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto antes ni desp
   "recomendaciones": ["recomendación 1", "recomendación 2", "recomendación 3"]
 }`;
 
-  const supabase = createSupabaseAdmin();
-
-  await supabase
-    .from("health_profiles")
-    .update({ weight_kg: peso_confirmado })
-    .eq("owner_email", email);
-
-  const apiKey = process.env.GEMINI_API_KEY!;
   const payload = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 3000 },
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
   });
 
-  const agent = new https.Agent({ rejectUnauthorized: false });
+  try {
+    const raw = await geminiRequest(payload, apiKey);
 
-  let fullText = "";
-  let incrementDone = false;
+    // Paso 1: parsear la respuesta HTTP de Gemini
+    let geminiJson: unknown;
+    try {
+      geminiJson = JSON.parse(raw);
+    } catch {
+      console.error("Error parseando respuesta HTTP de Gemini (balance). Raw:", raw.slice(0, 500));
+      return NextResponse.json({ error: "Respuesta inválida de Gemini" }, { status: 500 });
+    }
 
-  const readableStream = new ReadableStream({
-    start(controller) {
-      const req = https.request(
-        {
-          hostname: "generativelanguage.googleapis.com",
-          path: `/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Content-Length": Buffer.byteLength(payload),
-          },
-          agent,
-        },
-        (res) => {
-          res.on("data", (chunk: Buffer) => {
-            const lines = chunk.toString().split("\n");
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                try {
-                  const json = JSON.parse(line.slice(6));
-                  const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                  if (text) {
-                    if (!incrementDone) {
-                      incrementDone = true;
-                      incrementUsage(email).catch(() => {});
-                    }
-                    fullText += text;
-                    controller.enqueue(Buffer.from(text));
-                  }
-                } catch {}
-              }
-            }
-          });
-          res.on("end", async () => {
-            try {
-              const clean = fullText.replace(/```json\n?/g, "").replace(/```/g, "").trim();
-              const parsed = JSON.parse(clean);
-              const balance_kcal =
-                (parsed.calorias_consumidas_kcal ?? 0) -
-                (tdee + (parsed.calorias_quemadas_ejercicio_kcal ?? 0));
+    // Paso 2: extraer el texto generado
+    const text: string =
+      (geminiJson as { candidates?: { content?: { parts?: { text?: string }[] } }[] })
+        ?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-              await supabase.from("daily_balance_history").insert({
-                owner_email: email,
-                fecha: fecha ?? new Date().toISOString().slice(0, 10),
-                profile_weight_kg: peso_confirmado,
-                profile_height_cm: height_cm,
-                profile_age: age,
-                profile_sex: sex,
-                comidas: comidas ?? {},
-                ejercicios: ejercicios ?? [],
-                tdee_kcal: tdee,
-                calorias_consumidas_kcal: parsed.calorias_consumidas_kcal ?? null,
-                calorias_quemadas_kcal: parsed.calorias_quemadas_ejercicio_kcal ?? 0,
-                balance_kcal,
-                analisis_gemini: parsed,
-              });
-            } catch {
-              // DB save failure is non-fatal
-            }
-            controller.close();
-          });
-          res.on("error", (err: Error) => controller.error(err));
-        }
-      );
-      req.on("error", (err: Error) => controller.error(err));
-      req.write(payload);
-      req.end();
-    },
-  });
+    if (!text) {
+      console.error("Gemini devolvió texto vacío (balance). geminiJson COMPLETO:", JSON.stringify(geminiJson));
+      return NextResponse.json({ error: "Gemini no generó contenido" }, { status: 500 });
+    }
 
-  return new Response(readableStream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache",
-    },
-  });
+    // Paso 3: limpiar y extraer el JSON del texto
+    // gemini-2.5-flash puede incluir texto de razonamiento antes del JSON.
+    // Extraemos todo lo que está entre el primer { y el último }
+    let clean = text.replace(/```json\n?/g, "").replace(/```/g, "").trim();
+    const firstBrace = clean.indexOf("{");
+    const lastBrace = clean.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      clean = clean.slice(firstBrace, lastBrace + 1);
+    }
+
+    let parsed: {
+      calorias_consumidas_kcal?: number;
+      calorias_quemadas_ejercicio_kcal?: number;
+      [key: string]: unknown;
+    };
+    try {
+      parsed = JSON.parse(clean);
+    } catch {
+      // Gemini a veces incluye saltos de línea literales DENTRO de valores string,
+      // lo que produce JSON inválido. Los escapamos solo dentro de strings.
+      const repaired = repairJsonStrings(clean);
+      try {
+        parsed = JSON.parse(repaired);
+      } catch {
+        console.error("Error parseando JSON del contenido de Gemini (balance). Texto limpio COMPLETO:", clean);
+        return NextResponse.json({ error: "El análisis generado no tiene formato válido" }, { status: 500 });
+      }
+    }
+
+    const balance_kcal =
+      (parsed.calorias_consumidas_kcal ?? 0) -
+      (tdee + (parsed.calorias_quemadas_ejercicio_kcal ?? 0));
+
+    const supabase = createSupabaseAdmin();
+
+    await supabase
+      .from("health_profiles")
+      .update({ weight_kg: peso_confirmado })
+      .eq("owner_email", email);
+
+    const { error: insertError } = await supabase.from("daily_balance_history").insert({
+      owner_email: email,
+      fecha: fecha ?? new Date().toISOString().slice(0, 10),
+      profile_weight_kg: peso_confirmado,
+      profile_height_cm: height_cm,
+      profile_age: age,
+      profile_sex: sex,
+      comidas: comidas ?? {},
+      ejercicios: ejercicios ?? [],
+      tdee_kcal: tdee,
+      calorias_consumidas_kcal: parsed.calorias_consumidas_kcal ?? null,
+      calorias_quemadas_kcal: parsed.calorias_quemadas_ejercicio_kcal ?? 0,
+      balance_kcal,
+      analisis_gemini: parsed,
+    });
+
+    if (insertError) {
+      // No es fatal para el usuario (ya tiene su análisis), pero se loguea
+      // para poder auditar por qué no quedó guardado en el historial.
+      console.error("Error guardando daily_balance_history:", insertError.message);
+    }
+
+    await incrementUsage(email).catch(() => {});
+
+    return NextResponse.json({ ok: true, result: parsed, tdee_kcal: tdee }, { status: 200 });
+  } catch (err) {
+    console.error("Error inesperado en balance:", err);
+    return NextResponse.json({ error: "Error al procesar con Gemini" }, { status: 500 });
+  }
 }
