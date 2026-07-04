@@ -105,6 +105,7 @@ export default function BalanceClient() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<GeminiResult | null>(null);
   const [tdee, setTdee] = useState<number | null>(null);
+  const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number; monthly_used: number; monthly_limit: number } | null>(null);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -116,6 +117,11 @@ export default function BalanceClient() {
       })
       .catch(() => setProfileError("Error cargando el perfil."))
       .finally(() => setProfileLoading(false));
+
+    fetch("/api/usage")
+      .then(r => r.json())
+      .then(setUsage)
+      .catch(() => {});
   }, []);
 
   const addItem = (meal: string) =>
@@ -131,9 +137,12 @@ export default function BalanceClient() {
   const removeEjercicio = (idx: number) =>
     setEjercicios(prev => prev.filter((_, i) => i !== idx));
 
+  const limitReached = usage !== null && (usage.daily_used >= usage.daily_limit || usage.monthly_used >= usage.monthly_limit);
+
   const handleSubmit = async () => {
     if (!profile) return;
     setError("");
+    if (limitReached) { setError("Alcanzaste el límite de consultas. Intentá más tarde."); return; }
     if (!profile.sex) { setError("Tu perfil no tiene el sexo cargado."); return; }
     if (!profile.height_cm || !profile.age) { setError("Tu perfil está incompleto. Cargá altura y edad."); return; }
     const pesoNum = parseFloat(peso);
@@ -253,6 +262,31 @@ export default function BalanceClient() {
           </div>
         )}
 
+        {usage && (
+          <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_limit - usage.daily_used === 1 ? "#854F0B" : "#185FA5" }}>
+                  {usage.daily_limit - usage.daily_used}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles hoy</div>
+              </div>
+              <div style={{ width: "1px", background: "#B5D4F4", height: "2rem", alignSelf: "center" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : usage.monthly_limit - usage.monthly_used <= 3 ? "#854F0B" : "#185FA5" }}>
+                  {usage.monthly_limit - usage.monthly_used}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles este mes</div>
+              </div>
+            </div>
+            {limitReached && (
+              <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
+                {usage.daily_used >= usage.daily_limit ? "Alcanzaste el límite diario de consultas. Podés volver mañana." : "Alcanzaste el límite mensual de consultas."}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Panel perfil clínico colapsable */}
         {datosPerfilCargados.length > 0 && (
           <div style={{ marginBottom: "1rem", borderRadius: "12px", border: "1px solid #B5D4F4", background: "#FFFFFF", overflow: "hidden" }}>
@@ -366,10 +400,10 @@ export default function BalanceClient() {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={loading || !profile || !!profileError || !!profileIncomplete}
-          style={{ width: "100%", padding: "0.9rem", borderRadius: "10px", background: loading ? "#85B7EB" : "#185FA5", color: "#FFFFFF", fontSize: "1rem", fontWeight: 600, border: "none", cursor: loading || !profile || !!profileError || !!profileIncomplete ? "not-allowed" : "pointer", marginBottom: "2rem" }}
+          disabled={loading || !profile || !!profileError || !!profileIncomplete || limitReached}
+          style={{ width: "100%", padding: "0.9rem", borderRadius: "10px", background: loading ? "#85B7EB" : "#185FA5", color: "#FFFFFF", fontSize: "1rem", fontWeight: 600, border: "none", cursor: loading || !profile || !!profileError || !!profileIncomplete || limitReached ? "not-allowed" : "pointer", opacity: limitReached ? 0.5 : 1, marginBottom: "2rem" }}
         >
-          {loading ? "Calculando con IA..." : "Calcular balance calórico"}
+          {loading ? "Calculando con IA..." : limitReached ? "Límite de consultas alcanzado" : "Calcular balance calórico"}
         </button>
 
         {/* RESULTADOS */}

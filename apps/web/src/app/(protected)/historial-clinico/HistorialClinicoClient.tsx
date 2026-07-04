@@ -54,6 +54,7 @@ export default function HistorialClinicoClient() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
+  const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number; monthly_used: number; monthly_limit: number } | null>(null);
 
   useEffect(() => {
     fetch("/api/health-records")
@@ -61,6 +62,11 @@ export default function HistorialClinicoClient() {
       .then(json => setRecords(json.records ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    fetch("/api/usage")
+      .then(r => r.json())
+      .then(setUsage)
+      .catch(() => {});
   }, []);
 
   const formatDate = (d: string) => {
@@ -68,7 +74,10 @@ export default function HistorialClinicoClient() {
     return `${day}/${m}/${y}`;
   };
 
+  const limitReached = usage !== null && (usage.daily_used >= usage.daily_limit || usage.monthly_used >= usage.monthly_limit);
+
   const runAnalysis = async () => {
+    if (limitReached) { setError("Alcanzó el límite de consultas por hoy. Intente mañana."); return; }
     setAnalyzing(true);
     setAnalysis(null);
     setError("");
@@ -146,6 +155,31 @@ export default function HistorialClinicoClient() {
             </div>
           </div>
 
+          {usage && (
+            <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1.25rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_limit - usage.daily_used === 1 ? "#854F0B" : "#185FA5" }}>
+                    {usage.daily_limit - usage.daily_used}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles hoy</div>
+                </div>
+                <div style={{ width: "1px", background: "#B5D4F4", height: "2rem", alignSelf: "center" }} />
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : usage.monthly_limit - usage.monthly_used <= 3 ? "#854F0B" : "#185FA5" }}>
+                    {usage.monthly_limit - usage.monthly_used}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles este mes</div>
+                </div>
+              </div>
+              {limitReached && (
+                <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
+                  {usage.daily_used >= usage.daily_limit ? "Alcanzó el límite diario de consultas. Podrá volver mañana." : "Alcanzó el límite mensual de consultas."}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Aviso un solo análisis */}
           {records.length < 2 && !analysis && (
             <div style={{ ...card, background: "#FFF8E1", borderColor: "#FFD54F", fontSize: "0.85rem", color: "#5F5E5A", textAlign: "center" }}>
@@ -158,12 +192,13 @@ export default function HistorialClinicoClient() {
             <button
               type="button"
               onClick={runAnalysis}
-              disabled={analyzing}
+              disabled={analyzing || limitReached}
               style={{
                 width: "100%", padding: "1rem", borderRadius: "12px",
                 background: analyzing ? "rgba(24,95,165,0.5)" : "linear-gradient(135deg, #185FA5 0%, #0C447C 100%)",
                 color: "#FFFFFF", border: "none", fontSize: "1rem", fontWeight: 700,
-                cursor: analyzing ? "not-allowed" : "pointer",
+                cursor: analyzing || limitReached ? "not-allowed" : "pointer",
+                opacity: limitReached ? 0.5 : 1,
                 boxShadow: analyzing ? "none" : "0 4px 16px rgba(24,95,165,0.25)",
                 marginBottom: "1.25rem",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
