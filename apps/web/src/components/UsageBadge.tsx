@@ -34,6 +34,8 @@ export default function UsageBadge() {
 
   if (!usage) return null;
 
+  const dailyRemaining   = Math.max(0, usage.daily_limit   - usage.daily_used);
+  const monthlyRemaining = Math.max(0, usage.monthly_limit - usage.monthly_used);
   const dailyPct  = Math.min((usage.daily_used  / usage.daily_limit)  * 100, 100);
   const dailyFull = usage.daily_used >= usage.daily_limit;
   const barColor  = dailyFull ? "#DC2626" : dailyPct >= 80 ? "#D97706" : "#185FA5";
@@ -49,8 +51,8 @@ export default function UsageBadge() {
         }}
       >
         <span style={{ fontSize: "11px", fontWeight: 700, color: barColor, whiteSpace: "nowrap" }}>
-          {usage.daily_used}/{usage.daily_limit}
-          <span style={{ fontWeight: 400, color: "#888780", marginLeft: "3px" }}>hoy</span>
+          {dailyRemaining}/{usage.daily_limit}
+          <span style={{ fontWeight: 400, color: "#888780", marginLeft: "3px" }}>disponibles hoy</span>
         </span>
         <div style={{ width: "36px", height: "4px", background: "#E6F1FB", borderRadius: "4px", flexShrink: 0 }}>
           <div style={{
@@ -68,24 +70,25 @@ export default function UsageBadge() {
           boxShadow: "0 8px 24px rgba(24,95,165,0.12)", zIndex: 200,
         }}>
           <p style={{ margin: "0 0 0.75rem", fontSize: "0.72rem", fontWeight: 700, color: "#888780", textTransform: "uppercase" }}>
-            Uso de consultas
+            Consultas disponibles
           </p>
-          <DetailRow label="Consultas hoy" used={usage.daily_used}   limit={usage.daily_limit} />
-          <DetailRow label="Este mes"      used={usage.monthly_used} limit={usage.monthly_limit} />
+          <DetailRow label="Hoy"      remaining={dailyRemaining}   limit={usage.daily_limit} />
+          <DetailRow label="Este mes" remaining={monthlyRemaining} limit={usage.monthly_limit} />
         </div>
       )}
     </div>
   );
 }
 
-function DetailRow({ label, used, limit }: { label: string; used: number; limit: number }) {
+function DetailRow({ label, remaining, limit }: { label: string; remaining: number; limit: number }) {
+  const used  = limit - remaining;
   const pct   = Math.min((used / limit) * 100, 100);
   const color = pct >= 100 ? "#DC2626" : pct >= 80 ? "#D97706" : "#185FA5";
   return (
     <div style={{ marginBottom: "0.625rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
         <span style={{ fontSize: "0.75rem", color: "#5F5E5A" }}>{label}</span>
-        <span style={{ fontSize: "0.75rem", fontWeight: 700, color }}>{used}/{limit}</span>
+        <span style={{ fontSize: "0.75rem", fontWeight: 700, color }}>{remaining}/{limit} disponibles</span>
       </div>
       <div style={{ height: "4px", background: "#E6F1FB", borderRadius: "4px" }}>
         <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: "4px", transition: "width 0.3s" }} />
