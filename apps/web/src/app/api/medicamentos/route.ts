@@ -106,7 +106,6 @@ Una sola oracion recordando que esto no reemplaza la consulta medica.`;
   }
 
   const agent = new https.Agent({ rejectUnauthorized: false });
-  let tokenConsumed = false;
   let fullText = "";
 
   const stream = new ReadableStream({
@@ -131,10 +130,6 @@ Una sola oracion recordando que esto no reemplaza la consulta medica.`;
                   const json = JSON.parse(line.slice(6));
                   const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
                   if (text) {
-                    if (!tokenConsumed) {
-                      tokenConsumed = true;
-                      incrementUsage(email).catch(() => {});
-                    }
                     fullText += text;
                     controller.enqueue(text);
                   }
@@ -144,6 +139,9 @@ Una sola oracion recordando que esto no reemplaza la consulta medica.`;
           });
           res.on("end", async () => {
             if (fullText) {
+              // Solo se cobra el token cuando hay una respuesta completa y no vacía —
+              // igual criterio que Balance e Historial Clínico.
+              await incrementUsage(email).catch(() => {});
               await supabase.from("medication_history").insert({
                 owner_email: email,
                 query: query || "Consulta por imagen",

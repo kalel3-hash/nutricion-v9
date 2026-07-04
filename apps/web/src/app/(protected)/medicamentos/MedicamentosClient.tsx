@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 type Props = { userEmail: string };
 
@@ -113,7 +113,17 @@ export default function MedicamentosClient({ userEmail }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [limitReached, setLimitReached] = useState(false);
+  const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number; monthly_used: number; monthly_limit: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/usage")
+      .then(r => r.json())
+      .then(setUsage)
+      .catch(() => {});
+  }, []);
+
+  const quotaExhausted = usage !== null && (usage.daily_used >= usage.daily_limit || usage.monthly_used >= usage.monthly_limit);
 
   function handleImage(file: File) {
     setImage(file);
@@ -142,6 +152,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
   }
 
   async function handleSubmit() {
+    if (quotaExhausted) { setLimitReached(true); return; }
     if (!query.trim() && !image) {
       setError("Ingresa el medicamento recetado o una imagen de la receta.");
       return;
@@ -229,6 +240,26 @@ export default function MedicamentosClient({ userEmail }: Props) {
         Tu medico te receto un medicamento. Ingresalo aca y te digo que datos de tu perfil son relevantes para que puedas consultarle.
       </p>
 
+      {usage && !limitReached && (
+        <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: 10, padding: "0.875rem 1.25rem", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_limit - usage.daily_used === 1 ? "#854F0B" : "#185FA5" }}>
+                {usage.daily_limit - usage.daily_used}
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles hoy</div>
+            </div>
+            <div style={{ width: "1px", background: "#B5D4F4", height: "2rem", alignSelf: "center" }} />
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : usage.monthly_limit - usage.monthly_used <= 3 ? "#854F0B" : "#185FA5" }}>
+                {usage.monthly_limit - usage.monthly_used}
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles este mes</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {limitReached && (
         <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: 10, padding: "0.875rem 1.25rem", marginBottom: 20 }}>
           <div style={{ background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: 8, padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
@@ -247,8 +278,8 @@ export default function MedicamentosClient({ userEmail }: Props) {
           onChange={e => setQuery(e.target.value)}
           placeholder="Ej: El medico me receto Enalapril 10mg para la presion"
           rows={3}
-          disabled={limitReached}
-          style={{ width: "100%", borderRadius: 10, border: "1.5px solid #B5D4F4", padding: "10px 14px", fontSize: 14, color: "#2C2C2A", background: limitReached ? "#F0F0F0" : "#F0F6FF", resize: "vertical", boxSizing: "border-box", opacity: limitReached ? 0.6 : 1 }}
+          disabled={limitReached || quotaExhausted}
+          style={{ width: "100%", borderRadius: 10, border: "1.5px solid #B5D4F4", padding: "10px 14px", fontSize: 14, color: "#2C2C2A", background: (limitReached || quotaExhausted) ? "#F0F0F0" : "#F0F6FF", resize: "vertical", boxSizing: "border-box", opacity: (limitReached || quotaExhausted) ? 0.6 : 1 }}
         />
       </div>
 
@@ -258,10 +289,10 @@ export default function MedicamentosClient({ userEmail }: Props) {
         </label>
         {!imagePreview ? (
           <div
-            onDrop={limitReached ? undefined : handleDrop}
-            onDragOver={limitReached ? undefined : handleDragOver}
-            onClick={limitReached ? undefined : () => fileInputRef.current?.click()}
-            style={{ border: "2px dashed #B5D4F4", borderRadius: 10, padding: "24px", textAlign: "center", cursor: limitReached ? "not-allowed" : "pointer", background: "#F0F6FF", color: "#5F5E5A", fontSize: 13, opacity: limitReached ? 0.6 : 1 }}
+            onDrop={(limitReached || quotaExhausted) ? undefined : handleDrop}
+            onDragOver={(limitReached || quotaExhausted) ? undefined : handleDragOver}
+            onClick={(limitReached || quotaExhausted) ? undefined : () => fileInputRef.current?.click()}
+            style={{ border: "2px dashed #B5D4F4", borderRadius: 10, padding: "24px", textAlign: "center", cursor: (limitReached || quotaExhausted) ? "not-allowed" : "pointer", background: "#F0F6FF", color: "#5F5E5A", fontSize: 13, opacity: (limitReached || quotaExhausted) ? 0.6 : 1 }}
           >
             Arrastra una imagen o hace clic para seleccionar
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
@@ -284,10 +315,10 @@ export default function MedicamentosClient({ userEmail }: Props) {
 
       <button
         onClick={handleSubmit}
-        disabled={loading || limitReached}
-        style={{ width: "100%", padding: "12px", borderRadius: 10, background: loading || limitReached ? "#85B7EB" : "#185FA5", color: "#fff", fontWeight: 700, fontSize: 15, border: "none", cursor: loading || limitReached ? "not-allowed" : "pointer", marginBottom: 24, opacity: limitReached ? 0.6 : 1 }}
+        disabled={loading || limitReached || quotaExhausted}
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: (loading || limitReached || quotaExhausted) ? "#85B7EB" : "#185FA5", color: "#fff", fontWeight: 700, fontSize: 15, border: "none", cursor: (loading || limitReached || quotaExhausted) ? "not-allowed" : "pointer", marginBottom: 24, opacity: (limitReached || quotaExhausted) ? 0.6 : 1 }}
       >
-        {loading ? "Analizando..." : "Revisar con mi perfil"}
+        {loading ? "Analizando..." : (limitReached || quotaExhausted) ? "Limite de consultas alcanzado" : "Revisar con mi perfil"}
       </button>
 
       {loading && !result && (
