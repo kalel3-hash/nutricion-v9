@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Archivos de contexto temporales
+arbol.txt
+configs.txt
+lista_sin_modulos.txt
