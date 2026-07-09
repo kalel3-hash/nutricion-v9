@@ -40,13 +40,6 @@ export default function DashboardPage() {
   const toggle = (i: number) => setFlipped(prev => prev === i ? null : i);
 
   const disponibles = usage ? usage.daily_limit - usage.daily_used : null;
-  const usageColor = disponibles === null ? "#185FA5" : disponibles === 0 ? "#991B1B" : disponibles === 1 ? "#854F0B" : "#185FA5";
-
-  const usageBadge = () =>
-    disponibles === null ? null
-      : disponibles === 0
-        ? { label: "Sin consultas hoy", bg: "#FEE2E2", border: "#FECACA", text: "#991B1B" }
-        : { label: disponibles + "/" + usage?.daily_limit + " disponibles hoy", bg: "#E6F1FB", border: "#B5D4F4", text: usageColor };
 
   const userName = session?.user?.name
     ? session.user.name.split(" ")[0]
@@ -67,19 +60,19 @@ export default function DashboardPage() {
     },
     {
       icon: "🥗", title: "Analizar alimento", href: "/analizar",
-      badge: usageBadge(),
+      // badge eliminado
       subtitle: disponibles === null ? "Cargando..."
         : disponibles === 0 ? "Limite diario alcanzado"
         : "Describi o fotografia un alimento",
     },
     {
       icon: "🏋️", title: "Ejercicios", href: "/ejercicios",
-      badge: usageBadge(),
+      // badge eliminado
       subtitle: disponibles === 0 ? "Limite diario alcanzado" : "Genera tu plan de ejercicios personalizado",
     },
     {
       icon: "⚖️", title: "Calculadora de Balance Calórico", href: "/balance",
-      badge: usageBadge(),
+      // badge eliminado
       subtitle: disponibles === 0 ? "Limite diario alcanzado" : "Registra tu dia y calcula tu balance calorico",
     },
   ];
