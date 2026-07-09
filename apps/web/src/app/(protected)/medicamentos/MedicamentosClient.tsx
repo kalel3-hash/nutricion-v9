@@ -263,7 +263,7 @@ export default function MedicamentosClient({ userEmail }: Props) {
       {limitReached && (
         <div style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: 10, padding: "0.875rem 1.25rem", marginBottom: 20 }}>
           <div style={{ background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: 8, padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
-            Alcanzaste el limite de consultas. Podes volver manana con tokens nuevos.
+            Alcanzaste el límite de consultas. Podés volver mañana con consultas nuevas.
           </div>
           <WaitlistForm />
         </div>

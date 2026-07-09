@@ -382,19 +382,19 @@ export default function EjerciciosClient() {
                 <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : "#185FA5" }}>
                   {usage.daily_limit - usage.daily_used}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>tokens hoy</div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas hoy</div>
               </div>
               <div style={{ width: "1px", background: "#B5D4F4", height: "2rem" }} />
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : "#185FA5" }}>
                   {usage.monthly_limit - usage.monthly_used}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>tokens este mes</div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas este mes</div>
               </div>
             </div>
             {limitReached && (
               <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
-                {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario." : "Alcanzaste el limite mensual."}
+                {usage.daily_used >= usage.daily_limit ? "Alcanzaste el límite diario de consultas." : "Alcanzaste el límite mensual de consultas."}
               </div>
             )}
           </div>

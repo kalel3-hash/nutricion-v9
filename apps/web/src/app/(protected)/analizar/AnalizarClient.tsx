@@ -158,8 +158,8 @@ function WaitlistForm() {
 const analizarSteps: TourStep[] = [
   {
     targetId: "tour-tokens",
-    title: "Tus tokens disponibles",
-    description: "Cada consulta usa 1 token. Tenes 5 por dia y 30 por mes. Solo se descuenta si la IA responde.",
+    title: "Tus consultas disponibles",
+    description: "Cada consulta descuenta 1 de tus consultas disponibles. Tenes 5 por dia y 30 por mes.",
   },
   {
     targetId: "tour-foto-etiqueta",
@@ -384,20 +384,20 @@ export default function AnalizarClient() {
                 <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_limit - usage.daily_used === 1 ? "#854F0B" : "#185FA5" }}>
                   {usage.daily_limit - usage.daily_used}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>tokens disponibles hoy</div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles hoy</div>
               </div>
               <div style={{ width: "1px", background: "#B5D4F4", height: "2rem", alignSelf: "center" }} />
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : usage.monthly_limit - usage.monthly_used <= 3 ? "#854F0B" : "#185FA5" }}>
                   {usage.monthly_limit - usage.monthly_used}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>tokens disponibles este mes</div>
+                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles este mes</div>
               </div>
             </div>
             {limitReached && (
               <>
                 <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
-                  {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario. Podes volver manana con 5 tokens nuevos." : "Alcanzaste el limite mensual de 30 tokens."}
+                  {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario. Podes volver manana con 5 consultas nuevas." : "Alcanzaste el limite mensual de 30 consultas."}
                 </div>
                 <WaitlistForm />
               </>
