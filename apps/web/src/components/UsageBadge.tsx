@@ -52,7 +52,7 @@ export default function UsageBadge() {
       >
         <span style={{ fontSize: "11px", fontWeight: 700, color: barColor, whiteSpace: "nowrap" }}>
           {dailyRemaining}/{usage.daily_limit}
-          <span style={{ fontWeight: 400, color: "#888780", marginLeft: "3px" }}>disponibles hoy</span>
+          <span style={{ fontWeight: 400, color: "#888780", marginLeft: "3px" }}>consultas restantes</span>
         </span>
         <div style={{ width: "36px", height: "4px", background: "#E6F1FB", borderRadius: "4px", flexShrink: 0 }}>
           <div style={{
@@ -88,7 +88,7 @@ function DetailRow({ label, remaining, limit }: { label: string; remaining: numb
     <div style={{ marginBottom: "0.625rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
         <span style={{ fontSize: "0.75rem", color: "#5F5E5A" }}>{label}</span>
-        <span style={{ fontSize: "0.75rem", fontWeight: 700, color }}>{remaining}/{limit} disponibles</span>
+        <span style={{ fontSize: "0.75rem", fontWeight: 700, color }}>{remaining}/{limit} consultas restantes</span>
       </div>
       <div style={{ height: "4px", background: "#E6F1FB", borderRadius: "4px" }}>
         <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: "4px", transition: "width 0.3s" }} />
