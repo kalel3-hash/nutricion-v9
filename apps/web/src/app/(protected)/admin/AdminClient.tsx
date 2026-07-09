@@ -759,7 +759,7 @@ export default function AdminClient({
                       "Perfil",
                       "Registro",
                       "Ultima actividad",
-                      "Consultas mes",
+                      "Consultas usadas (mes)",  // 🔥 CAMBIO: antes era "Consultas mes"
                     ].map((h) => (
                       <th
                         key={h}
@@ -1142,7 +1142,8 @@ export default function AdminClient({
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                   <thead>
                     <tr style={{ background: "#E6F1FB" }}>
-                      {["Email", "Consultas hoy", "Consultas mes", "Último reset", "Acciones"].map((h) => (
+                      {/* 🔥 CAMBIOS: "Consultas hoy" → "Usadas hoy" y "Consultas mes" → "Usadas este mes" */}
+                      {["Email", "Usadas hoy", "Usadas este mes", "Último reset", "Acciones"].map((h) => (
                         <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontWeight: 700, color: "#0C447C", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
                           {h}
                         </th>
