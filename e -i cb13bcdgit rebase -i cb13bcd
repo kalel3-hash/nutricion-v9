@@ -1,0 +1,270 @@
+[33m0cd6463[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: unificar terminología en panel admin: 'Consultas' → 'Usadas' para claridad
+[33m3fe5d83[m chore: ignorar archivos de contexto temporales en apps/web
+[33m91a2523[m fix: unificar terminología 'tokens' → 'consultas' en todos los módulos y eliminar badges redundantes del dashboard
+[33mcb13bcd[m fix: cambiar texto 'disponibles hoy' por 'consultas restantes' en navbar para mayor claridad
+[33mebf7e27[m fix: eliminar badges de cupo en tarjetas del dashboard para evitar redundancia (solo navbar)
+[33mef610cc[m fix: subir breakpoint navbar a 1000px y nowrap para evitar wrap en notebooks
+[33m9b247d8[m fix: Medicamentos muestra cupo disponible antes de consultar y solo cobra token con respuesta completa
+[33mf28cd73[m feat: mostrar cupo de consultas disponibles en Balance e Historial Clinico, y en las tarjetas de Ejercicios/Balance del dashboard
+[33m37a83ae[m fix: unificar UsageBadge a formato 'disponibles' consistente con dashboard/analizar/ejercicios
+[33m9a454f2[m fix: navbar usa auto 1fr auto para evitar wrap del dropdown Medicamentos
+[33ma75f5c2[m fix: balance calórico usa generateContent no-streaming, maxOutputTokens 8192 y repairJsonStrings
+[33m4b34f21[m feat: rediseño análisis clínico con bloques temáticos cruzados
+[33mbe71053[m fix: aumentar maxOutputTokens a 8192 y limitar longitud de secciones
+[33m0d84b66[m debug: log texto completo de Gemini para diagnosticar fallo de parseo
+[33m09e07cb[m fix: eliminar thinkingConfig inválido y reparar JSON con saltos de línea literales
+[33m5a3afc6[m fix: deshabilitar thinking de gemini-2.5-flash y mejorar parseo JSON
+[33mce0af77[m debug: log completo de respuesta Gemini cuando texto vacío
+[33ma20aebc[m fix: cambio a gemini-2.0-flash para parseo JSON confiable
+[33mc5a78c2[m fix: parseo robusto de respuesta Gemini en historial clínico
+[33m0c4442f[m fix: dominio dinámico eje Y en gráfico clínico
+[33m96e26d4[m feat: líneas de referencia clínica en gráfico de evolución
+[33ma100a96[m fix: mostrar valores sobre cada punto del gráfico clínico
+[33md02b1f4[m feat: widget evolución clínica en dashboard con recharts
+[33madd7ed1[m Fix definitivo: HistorialClinicoClient reescrito desde cero con bloques de colores
+[33md0fde84[m Force redeploy: historial clínico bloques de colores
+[33mfcf2cf5[m Fix historial clínico: generateContent sin streaming + render JSON en bloques
+[33me345152[m Fix balance calórico + historial clínico con bloques de colores por sección
+[33m5112f56[m Fix: mover página historial-clínico a ruta protegida correcta
+[33m148c25b[m Historial Clínico: tabla health_records, OCR con fecha, endpoint API, sección en Perfil, página y navbar
+[33m3e0fc3b[m feat: panel admin con reset de uso y auditoría
+[33m1fed200[m fix: eliminar imports DAILY_LIMIT y MONTHLY_LIMIT deprecados
+[33m81cec72[m feat: límites diario y mensual, panel admin, UsageBadge navbar
+[33mdd25955[m fix: dashboard cards en grid 2x2 fijo
+[33m4f17d02[m feat: logo grande en hero + icon.png como favicon
+[33mbfd891a[m feat: nueva landing con demo interactiva de análisis de alimentos
+[33m4b6ebca[m fix: flush final TextDecoder en stream de balance
+[33me6db7a3[m feat: balance con macros por comida, panel perfil clínico colapsable y detalle ejercicios
+[33m424e133[m fix: balance/route.ts usa streamGenerateContent con agente https igual que analizar
+[33mad7bec4[m fix: reemplazar SDK @google/generative-ai por https nativo en balance/route.ts
+[33m2ef596e[m feat: modulo calculadora de balance calorico
+[33mbf0a8d9[m agregar link a billing de Gemini API en admin1
+[33mfcaa31c[m agregar link a billing de Gemini API en admin
+[33md34d97e[m agregar link directo a billing de Gemini API en admin
+[33m7cd451a[m agregar tarjeta de ejercicios a seccion como funciona
+[33meacaced[m agregar FAQs de medicamentos y ejercicios
+[33m192327d[m restructure navbar dropdowns and reduce dashboard a 3 tarjetas
+[33mdfd7f64[m parser tolerante a errores de formato de gemini en plan de ejercicios
+[33me11ff95[m refuerza prompt para incluir siempre la seccion objetivo del plan
+[33m1c7581d[m carga ultimo plan al entrar y limpia nombres de ejercicios
+[33mc21c969[m corrige textos del modulo de ejercicios
+[33m06b0aa9[m cambia a gemini-2.5-flash-lite para evitar timeout en generacion de plan
+[33m6baf89f[m reduce catalogo y tokens para evitar timeout en generacion de plan
+[33maa2cd5e[m mejora prompt de ejercicios: 2 semanas, sin texto basura, formato estricto
+[33m4c841e9[m corrige fetch de catalogo de ejercicios desde cliente
+[33m44ab6bd[m corrige campo allowed en ruta de ejercicios
+[33mfac017c[m agrega modulo de ejercicios con wizard, plan IA y catalogo wger
+[33m60f78d2[m agrega ruta admin para cargar catalogo de ejercicios
+[33m7787b3c[m feat: tab Waitlist en panel admin
+[33mc23aac0[m feat: waitlist en medicamentos cuando se alcanza el limite
+[33m96d8ae2[m feat: waitlist cuando se alcanza el limite de consultas
+[33mdbb0b6c[m feat: separar tarjetas medicamentos e historial medicamentos en dashboard
+[33m3ce8764[m feat: agregar tarjetas Medicamentos e Historial en dashboard
+[33mfdce7a6[m fix: renderizado markdown en MedicamentosClient
+[33mf032dc3[m fix: estructura correcta api historial-medicamentos y medicamentos
+[33m6a9ceea[m fix: restaurar api historial-medicamentos correcta
+[33m940b559[m fix: subir maxOutputTokens a 2048 en medicamentos
+[33m6b5d4b9[m fix: agregar maxDuration 60 en api medicamentos
+[33mf32ce99[m feat: nuevo enfoque medicamento recetado con respuesta concisa
+[33mc694ec1[m fix: aumentar maxOutputTokens a 8192 en medicamentos
+[33m96af8b5[m fix: tildes en utils.ts rompian el build
+[33mda0cb68[m feat: prompt personalizado con profileToText en medicamentos
+[33m03d34d3[m fix: corregir lectura de stream en MedicamentosClient
+[33mcb41d24[m fix: corregir modelo gemini en api medicamentos
+[33m90a806e[m feat: modulo analizar medicamento
+[33m93aaee2[m medicamentos
+[33m1fca036[m feat tour guia nuevos usuarios perfil y analizar
+[33mb71c691[m fix navbar perfil onboarding sin loop
+[33m1dcb24c[m feat onboarding forzado al perfil si no tiene datos
+[33m39f4f36[m feat: reorder users table and sort admins first by latest activity
+[33m5f9a6b8[m fix: replace corrupted admin page with clean file
+[33m932dd07[m fix: repair admin page file corruption
+[33me6f4f05[m fix: repair admin page syntax and expand admin data
+[33mfe4bdc4[m feat: expand admin users table with provider profile activity and monthly usage
+[33m060ffa9[m fix: remove nonexistent owner_id from health_profiles query
+[33mffe12dd[m fix: map admin profile fields by owner_id and email fallback
+[33m4ab1f13[m fix: use undefined instead of null for admin usage timestamps
+[33me4b1173[m fix: repair admin page syntax and calculate usage from history
+[33m61d254a[m fix: calculate admin usage from analysis history
+[33m365cc82[m fix: show real last activity from analysis history
+[33mda562f9[m fix: repair admin page imports and build admin data from auth users
+[33mbe63631[m fix: handle nullable session user in admin page
+[33m39f7b98[m fix: build admin users from auth users
+[33m8b39d3e[m fix: use user_roles in admin page and add admin actions
+[33md2ad0e5[m fix: build admin stats from auth users instead of profiles
+[33mb1254dc[m fix: persist user id in nextauth session
+[33m3af9872[m feat OCR destacado como camino principal en perfil
+[33mae8eee4[m fix footer sintaxis
+[33m7a26f1c[m fix footer como client component
+[33m62462e1[m feat redes sociales al footer y navbar limpio
+[33me23a91c[m fix parser bloques y titulos renombrados
+[33ma57de64[m fix tokens solo si Gemini responde
+[33mc2ec9ff[m feat: contador inverso de tokens de consulta
+[33ma7ac7ba[m feat: redirigir al dashboard al guardar perfil
+[33m0caaece[m feat: redirigir al dashboard al guardar perfil
+[33ma35e005[m fix: eliminar carpeta (internal) duplicada que rompía el build
+[33m9d17205[m fix: drag and drop de imagenes en AnalizarClient
+[33m4413fea[m feat: panel de administracion con estadisticas, usuarios, analisis y uso
+[33m44045b5[m fix: remove global middleware blocking admin route
+[33m2e2376a[m fix: repair auth.ts invalid import syntax
+[33m1b8b7d7[m fix: repair auth.ts syntax and stabilize nextauth
+[33mc28b6b1[m fix: restore nextauth handlers required by api route
+[33mdf5402b[m fix: repair auth.ts syntax and disable implicit middleware
+[33mef7f56a[m fix: disable nextauth implicit middleware
+[33m003b3fa[m fix: remove redirect callback causing /admin loop
+[33mdcac272[m fix: move admin into internal route group
+[33m4fa99e5[m fix: move admin to internal route to avoid nextauth redirect
+[33mda468fb[m fix: remove nextauth blocking of admin route
+[33md975ef2[m fix: unify admin detection using user_roles
+[33m028f813[m feat: admin role management ui
+[33m9ae47d7[m feat: add admin role audit and safe revoke
+[33mc62f123[m fix: load admin data client-side and pass props
+[33mf1d7559[m fix: stabilize admin as client-only route
+[33m3a62298[m fix: explicit middleware to allow admin route without auth redirect
+[33mcb3afb8[m fix: allow admin route via nextauth authorized callback
+[33m6a48f53[m fix: flatten admin route directory
+[33mca21bf5[m fix: gate admin with client layout instead of server auth
+[33m38f76c2[m fix: force cookie headers so auth works in ad1min page
+[33mcddf300[m fix: force cookie headers so auth works in admin page
+[33m373cc58[m fix: repair corrupted admin page and force node runtime
+[33m6c8d422[m fix: force nodejs runtime for admin auth
+[33ma1bd09e[m fix: force dynamic render for admin to allow auth
+[33m14f396c[m fix: include is_admin flag when building admin users list
+[33mc33021e[m fix: add is_admin to admin panel user type
+[33m503ec43[m feat: show admin role in admin users table
+[33m05ab3e2[m feat: admin api for listing and managing admin roles
+[33m6db125c[m fix: allow legacy supabase anon keys in env guardrails
+[33m75a7151[m fix: add createAdminClient export to supabase lib
+[33mdb6b34a[m chore: remove service role from credentials login
+[33m2b8711f[m chore: require user id before showing register success
+[33m0b0650c[m chore: use centralized supabase admin client with guardrails
+[33ma52ac1c[m chore: harden supabase client with environment
+[33m2b3d19f[m fix: actually create user in Supabase
+[33mf46eca8[m test: isolate register api endpoint response
+[33mc14d3c4[m feat: add register api route using supabase admin
+[33m1c6b297[m fix: force nodejs + dynamic runtime for register api
+[33m1e2b217[m fix: backend email signup via supabase admin without email confirmation
+[33mdfed225[m fix: force nodejs runtime for supabase admin register endpoint
+[33m7ff14e6[m fix: remove accidental git command from login page
+[33me7d80e8[m fix: use Supabase anon key for client auth signup
+[33m0379a54[m fix: register usa NextAuth para Google y corrige Failed to fetch
+[33m065f5cf[m fix: login como client component usando signIn de next-auth/react con redirect false
+[33m82ab905[m fix: capturar solo AuthError en credentialsSignIn, re-throw redirect de NextAuth v5
+[33m4e67e07[m fix: agregar trustHost true para NextAuth v5 en Vercel
+[33m3c9b989[m fix: auth sin callbacks jwt session que interferian con NextAuth v5
+[33m3f705a8[m debug: logs en callbacks jwt session redirect
+[33m9ded50b[m debug: logs temporales en authorize para ver error Supabase
+[33m42c5aef[m fix: encoding AnalizarClient y boton volver en analizar e historial
+[33m4965b0b[m fix: navbar perfil con boton volver en vez de cerrar sesion
+[33md3cdca2[m fix: eliminar timeout de recovery, solo usar onAuthStateChange
+[33m3a7647b[m fix: aumentar timeout recovery session a 8 segundos
+[33m66c1f9b[m fix: nueva-contrasena usa onAuthStateChange para detectar recovery session
+[33ma4d73bd[m fix: nueva-contrasena lee token del hash antes de updateUser
+[33m748b888[m fix: registro valida correctamente creacion de usuario y detecta email duplicado
+[33mf7314eb[m fix: AdminClient null safety y encoding corregido
+[33m688ba29[m config: cambiar ADMIN_EMAIL a kalel3@gmail.com
+[33m56ab0ac[m fix: route.ts admin sin JSX, solo API handler
+[33m7127b5d[m fix: force redeploy sin cache para ruta admin
+[33md87651d[m fix: admin page lee Supabase directo, agrega AdminClient
+[33m301c475[m feat: módulo admin con estadísticas de usuarios y consultas
+[33ma4ddaa1[m fix: agregar SessionProvider al layout para useSession en dashboard
+[33mfdc5526[m feat: nombre de usuario en saludo del dashboard
+[33maca917a[m feat: shareAnalysis genera PDF completo con jsPDF
+[33md45d6b2[m fix: shareAnalysis con Canvas nativo, URL correcta y mejor render
+[33mdb7abd3[m fix: boton volver al dashboard en faqs terminos y privacidad
+[33m9429ea1[m feat: links faqs navbar dashboard, terminos y privacidad en footer
+[33m2448aa0[m feat: google analytics
+[33mb152d47[m feat: paginas faqs, terminos y privacidad
+[33m87e6e32[m feat: pagina
+[33m08be1eb[m feat: pagina de preguntas frecuentes /faqs
+[33mc98cd54[m navbar: logo 100px e iconos redes sin fondo colores oficiales
+[33m728f91e[m navbar: logo mas grande e iconos reales de redes sociales
+[33m72add96[m fix: jsx en una linea para evitar error Turbopack target
+[33me8c77e9[m fix: encoding UTF-8 NavbarProtegido
+[33m628c45c[m fix: encoding UTF-8 dashboard
+[33md01a67a[m fix: separar SocialLinkExterno y SocialLinkEmail para compatibilidad Turbopack
+[33m1e43beb[m fix: corregir errores Turbopack - ternario target y dynamic ssr en server component
+[33md392361[m navbar: logo centrado, título izquierda, redes sociales derecha - componente NavbarProtegido compartido
+[33m5c14d2a[m fix: Google login primero en login page
+[33m20dda01[m fix: restaurar AnalizarClient correcto
+[33m25419f4[m feat: compartir análisis como imagen desde Analizar e Historial
+[33m563cb49[m fix: landing navbar responsive mobile
+[33m246139e[m fix: login responsive para mobile
+[33mfbaacf1[m feat: PWA con manifest y service worker
+[33m9d8fb21[m perfil: objetivos expandidos con campo libre otros
+[33m864e8e7[m perfil: objetivos con checkboxes múltiples
+[33md0d6cdc[m landing: hero empático y flip cards en cómo funciona
+[33m3f6ff72[m landing: textos empáticos y flip cards de contraste
+[33m9b64425[m fix: restaurar dashboard1
+[33mf5ec59a[m fix: restaurar dashboard
+[33m1e5a71c[m fix: landing compacta con flip cards1
+[33ma681b09[m  landing tiene 6 secciones: hero, problema, verdad, ejemplo del arroz1
+[33mfb6fe2d[m  landing tiene 6 secciones: hero, problema, verdad, ejemplo del arroz
+[33m5604dc3[m chore: eliminar rutas legacy y supabaseService duplicado
+[33mbc48d28[m chore: eliminar rutas legacy y supabaseService duplicado
+[33m02cb823[m fix: compactProfile fuera de getUsageStatus1
+[33mf9a5742[m fix: compactProfile fuera de getUsageStatus
+[33mb382723[m fix: optimizar consulta
+[33m84860c9[m fix: mover usage dentro de api/
+[33ma67772e[m fix: mover usage dentro de api/
+[33m468de68[m feat: sistema de límites de uso 5/día 30/mes
+[33m9d24741[m Rediseño completo paleta azul + fixes auth y arquitectura+rediseño busqueda
+[33m1e6345a[m Rediseño completo paleta azul + fixes auth y arquitectura
+[33mdb73e98[m Fix: Google login stable + protected routes + Supabase profile/history via owner_email
+[33mdba7f07[m Checkpoint antes de sacar supabase auth getSession de clients
+[33mc698417[m Fix evolucion/historial clients to not require userId prop
+[33mae712d9[m Fix evolucion/historial client components and build
+[33m495ff2b[m Split evolucion and historial into server and client components
+[33m8de8897[m Finalize client-side auth guard for all protected pages
+[33me4e81a0[m Finalize protected layout auth flow
+[33m2ed3ca3[m Fix analizar: align with dashboard server auth
+[33m7775d29[m Fix perfil page: pass non-null userId from server
+[33m7038de5[m Fix PerfilClient typing: userId always string
+[33m91acbad[m Fix PerfilClient userId null type
+[33md1661d8[m Handle Google OAuth null user in AnalizarClient
+[33m9654f4a[m Fix PerfilClient type + full file
+[33m839f6a5[m Refactor analizar to server+client auth safe
+[33me1a0ece[m Refactor perfil to server + client
+[33mfcd3613[m Fix auth rehydration issue in perfil (Supabase OAuth)
+[33m0767b69[m fix: refresh session Google OAuth en analsizar
+[33me1bac63[m fix: refresh session Google OAuth en analizar
+[33mb43d508[m fix: refresh session Google OAuth en analizar
+[33m8229b4a[m Perfil: aplicado fix definitiddvo de sesiócn Google
+[33mc8552cf[m Perfil: aplicado fix definitiddvo de sesiócn Google
+[33m95216eb[m Perfil: aplicado fix definitiddvo de sesiócn Google
+[33md8f5323[m Perfil: aplicado fix definitivo de sesiócn Google
+[33ma8abf4b[m Perfil: aplicado fix definitivo de sesión Google
+[33m6a66b54[m Perfil: aplicado fix definitivo de sesión Google
+[33m8550270[m Perfil: aplicado fix definitivo de sesión Google
+[33md8c97fd[m Perfil: restaurada estetica y fix google auth
+[33m86a3eee[m Perfil: restaurada estética, OCR PDF y fix sesión Google
+[33m4bd2bd3[m Restaurada estética de tarjetas y corregido error de sesión Google
+[33m8575e92[m Fix final perfil: restaurar estética y asegurar sesión
+[33md97480f[m Restaurar diseño estético y fix sesión Google
+[33m0e3a927[m Fix final: Estética restaurada y sesión Google corregida
+[33mfe41ba8[m Fix: Perfil compatible con Google OAuth
+[33md476228[m Fix: Perfil compatible con Google OAuth
+[33mf7a2200[m Fix final: Sincronización Google Auth
+[33m9b2c289[m Fix final: Sincronización Google Auth
+[33mf8b9f8f[m Fix final: refreshSession for Google Auth
+[33m7cbf079[m Logo VitalCross AI en pantalla de inicio y footer, streaming análisis
+[33mfb21a44[m Logo VitalCross AI en pantalla de inicio y footer, streaming análisis
+[33m27daa46[m Logo VitalCross AI en pantalla de inicio y footer, streaming análisis
+[33m2063c03[m Logo VitalCross AI en pantalla de inicio y footer, streaming análisis
+[33m0e4115d[m Logo VitalCross AI en pantalla de inicio y footer, streaming análisis
+[33md43c8a6[m Pantalla de inicio con dos botones - Crear cuenta y Ya tengo cuenta
+[33m5326bed[m Mejoras visuales análisis: tarjeta de puntaje con colores, títulos descriptivos por bloque
+[33m3278fc5[m Gráficos de evolución con Recharts
+[33mb335d11[m Gráficos de evolución con Recharts
+[33mff1091c[m OCR de estudios clínicos PDF con Gemini
+[33ma1bef16[m Perfil de salud carga datos existentes al entrar
+[33md98bfc6[m Módulo de historial de análisis completo
+[33md13991d[m Fix gitignore - excluir node_modules definitivamente
+[33mdf0a996[m Fix navegación dashboard - todas las tarjetas linkeadas
+[33m055c774[m Mejorar gitignore
+[33mbf97cbe[m Eliminar node_modules del repositorio
+[33mc16ca23[m Motor de análisis nutricional funcionando con Gemini 2.5
+[33m68394fc[m Login con Google - botón OAuth en login y registro
+[33m86a43a1[m Módulo de perfil de salud completo
+[33m52d1041[m Pantallas de registro, login y dashboard
+[33m400c951[m Inicio del proyecto Nutricion V9 - estructura base y web app Next.js
