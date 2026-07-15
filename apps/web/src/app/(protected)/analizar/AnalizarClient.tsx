@@ -187,7 +187,7 @@ export default function AnalizarClient() {
   const [error, setError] = useState("");
   const [identification, setIdentification] = useState("");
   const [sharing, setSharing] = useState(false);
-  const [usage, setUsage] = useState<{ daily_used: number; daily_limit: number; monthly_used: number; monthly_limit: number } | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoType, setPhotoType] = useState<PhotoType>("alimento");
@@ -206,7 +206,9 @@ export default function AnalizarClient() {
         const usageRes = await fetch("/api/usage");
         if (usageRes.ok) {
           const usageData = await usageRes.json();
-          if (mounted) setUsage(usageData);
+          if (mounted) {
+            setLimitReached(usageData.daily_used >= usageData.daily_limit || usageData.monthly_used >= usageData.monthly_limit);
+          }
         }
       } catch {
         if (!mounted) return;
@@ -220,12 +222,13 @@ export default function AnalizarClient() {
     return () => { mounted = false; };
   }, []);
 
-  const refreshUsage = async () => {
+  const refreshLimit = async () => {
     const res = await fetch("/api/usage");
-    if (res.ok) setUsage(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setLimitReached(data.daily_used >= data.daily_limit || data.monthly_used >= data.monthly_limit);
+    }
   };
-
-  const limitReached = usage !== null && (usage.daily_used >= usage.daily_limit || usage.monthly_used >= usage.monthly_limit);
 
   const handlePhotoSelect = (type: PhotoType) => {
     setPhotoType(type); setPhotoPreview(null); setPhotoFile(null);
@@ -299,11 +302,16 @@ export default function AnalizarClient() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ food_description: foodDescription, health_profile: compactProfile(profile ?? {}) }),
       });
-      if (response.status === 429) { const errData = await response.json(); setError(errData.error ?? "Limite de consultas alcanzado."); await refreshUsage(); return; }
+      if (response.status === 429) {
+        const errData = await response.json();
+        setError(errData.error ?? "Limite de consultas alcanzado.");
+        await refreshLimit();
+        return;
+      }
       if (!response.ok) throw new Error("Error en el motor de IA");
       const text = await streamResponse(response);
       await saveToHistory(text, foodDescription);
-      await refreshUsage();
+      await refreshLimit();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexion");
     } finally { setLoading(false); }
@@ -317,12 +325,17 @@ export default function AnalizarClient() {
       formData.append("image", photoFile); formData.append("type", photoType);
       formData.append("health_profile", JSON.stringify(compactProfile(profile ?? {})));
       const response = await fetch("/api/analizar-foto", { method: "POST", body: formData });
-      if (response.status === 429) { const errData = await response.json(); setError(errData.error ?? "Limite de consultas alcanzado."); await refreshUsage(); return; }
+      if (response.status === 429) {
+        const errData = await response.json();
+        setError(errData.error ?? "Limite de consultas alcanzado.");
+        await refreshLimit();
+        return;
+      }
       if (!response.ok) throw new Error("Error en el motor de IA");
       const text = await streamResponse(response);
       const label = photoType === "etiqueta" ? "Etiqueta nutricional (foto)" : "Alimento analizado por foto";
       await saveToHistory(text, label);
-      await refreshUsage();
+      await refreshLimit();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexion");
     } finally { setLoading(false); }
@@ -340,15 +353,27 @@ export default function AnalizarClient() {
     finally { setSharing(false); }
   };
 
-  const scoreMatch = analysis.match(/(\d+)\s*\/\s*10/);
-  const score = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
+  const blocks = analysis ? parseBlocks(analysis) : [];
+
+  // NUEVA LÓGICA: extrae puntaje del bloque PUNTAJE o fallback
+  const score = (() => {
+    if (!analysis || blocks.length === 0) return null;
+    const puntaJeBlock = blocks.find(b => b.key.includes("PUNTAJE"));
+    if (puntaJeBlock) {
+      const match = puntaJeBlock.content.match(/(\d+(?:\.\d+)?)\s*\/\s*10/);
+      if (match) {
+        return Math.round(parseFloat(match[1])); // Redondea a entero para la tarjeta
+      }
+    }
+    const fallback = analysis.match(/(\d+)\s*\/\s*10/);
+    return fallback ? parseInt(fallback[1], 10) : null;
+  })();
+
   const scoreColor = (s: number) => {
     if (s <= 3) return { bg: "#FEE2E2", text: "#991B1B", border: "#FECACA" };
     if (s <= 6) return { bg: "#FAEEDA", text: "#854F0B", border: "#FAC775" };
     return { bg: "#EAF3DE", text: "#27500A", border: "#C0DD97" };
   };
-
-  const blocks = analysis ? parseBlocks(analysis) : [];
 
   if (loadingProfile) {
     return (
@@ -377,31 +402,10 @@ export default function AnalizarClient() {
           </div>
         )}
 
-        {usage && (
-          <div id="tour-tokens" style={{ background: "#FFFFFF", border: "1px solid #B5D4F4", borderRadius: "10px", padding: "0.875rem 1.25rem", marginBottom: "1.25rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.daily_used >= usage.daily_limit ? "#991B1B" : usage.daily_limit - usage.daily_used === 1 ? "#854F0B" : "#185FA5" }}>
-                  {usage.daily_limit - usage.daily_used}
-                </div>
-                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles hoy</div>
-              </div>
-              <div style={{ width: "1px", background: "#B5D4F4", height: "2rem", alignSelf: "center" }} />
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, color: usage.monthly_used >= usage.monthly_limit ? "#991B1B" : usage.monthly_limit - usage.monthly_used <= 3 ? "#854F0B" : "#185FA5" }}>
-                  {usage.monthly_limit - usage.monthly_used}
-                </div>
-                <div style={{ fontSize: "0.75rem", color: "#5F5E5A", marginTop: "2px" }}>consultas disponibles este mes</div>
-              </div>
-            </div>
-            {limitReached && (
-              <>
-                <div style={{ marginTop: "0.75rem", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#991B1B" }}>
-                  {usage.daily_used >= usage.daily_limit ? "Alcanzaste el limite diario. Podes volver manana con 5 consultas nuevas." : "Alcanzaste el limite mensual de 30 consultas."}
-                </div>
-                <WaitlistForm />
-              </>
-            )}
+        {limitReached && (
+          <div style={{ background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: "8px", padding: "0.75rem 1rem", marginBottom: "1.25rem", fontSize: "0.875rem", color: "#991B1B" }}>
+            Alcanzaste el límite de consultas. Podés volver mañana.
+            <WaitlistForm />
           </div>
         )}
 
